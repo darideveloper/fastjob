@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from decouple import config, Csv
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,14 +73,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME", default="faztjob"),
-        "USER": config("DB_USER", default="postgres"),
-        "PASSWORD": config("DB_PASSWORD", default=""),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
-    }
+    "default": config(
+        "DATABASE_URL",
+        default="postgres://postgres:@localhost:5432/faztjob",
+        cast=dj_database_url.parse
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [

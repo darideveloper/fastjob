@@ -3,9 +3,7 @@ import os
 
 os.environ.setdefault("SECRET_KEY", "test-key")
 os.environ.setdefault("DEBUG", "True")
-os.environ.setdefault("DB_NAME", "x")
-os.environ.setdefault("DB_USER", "x")
-os.environ.setdefault("DB_PASSWORD", "x")
+os.environ.setdefault("DATABASE_URL", "postgres://x:x@x:5432/x")
 
 from config.settings import *  # noqa: F401, F403, E402
 
