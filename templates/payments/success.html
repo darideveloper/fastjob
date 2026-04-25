@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Pago completado — ResumeLink{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-20 text-center">
+  <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+    <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </svg>
+  </div>
+  <h1 class="text-3xl font-extrabold mb-3">¡Pago completado!</h1>
+  {% if payment %}
+    <p class="text-gray-600 mb-2">
+      Se han añadido <strong class="text-brand">{{ payment.credits_granted }} créditos</strong> a tu cuenta.
+    </p>
+  {% endif %}
+  <p class="text-gray-500 mb-8">Ya puedes iniciar o reanudar tu campaña desde el panel de control.</p>
+  <a href="/dashboard/" class="inline-block bg-brand hover:bg-brand-dark text-white font-bold px-8 py-3 rounded-xl transition shadow">
+    Ir al Panel de Control
+  </a>
+</div>
+{% endblock %}

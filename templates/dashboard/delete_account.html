@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Eliminar cuenta — ResumeLink{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-12">
+  <div class="bg-white border border-red-200 rounded-2xl shadow-sm p-8">
+    <h1 class="text-2xl font-bold text-red-600 mb-2">Eliminar cuenta</h1>
+    <p class="text-sm text-gray-600 mb-6">
+      Esta acción es <strong>permanente</strong>. Eliminaremos tu cuenta, tu CV,
+      tu historial de envíos, los tokens OAuth vinculados y tu información de
+      facturación local. Los registros de pagos ya completados se conservan
+      anonimizados por obligaciones contables.
+    </p>
+
+    <form method="post">
+      {% csrf_token %}
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Para confirmar, escribe tu email:
+        <span class="block text-gray-500 text-xs mt-1">{{ user.email }}</span>
+      </label>
+      <input type="email" name="confirm_email" required
+        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm mb-4"
+        placeholder="{{ user.email }}"/>
+      <div class="flex items-center justify-between gap-3">
+        <a href="{% url 'dashboard' %}" class="text-sm text-gray-500 hover:underline">← Volver</a>
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl">
+          Eliminar permanentemente
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: faztjob
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    restart: unless-stopped
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  celery_worker:
+    build: .
+    restart: unless-stopped
+    command: celery -A config worker -l info -c 4
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  celery_beat:
+    build: .
+    restart: unless-stopped
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  # Optional queue/task inspector. NEVER expose port 5555 to the public
+  # internet — put it behind Nginx with HTTP Basic auth or IP restrict.
+  flower:
+    build: .
+    restart: unless-stopped
+    command: >
+      celery -A config flower
+      --port=5555
+      --url_prefix=flower
+      --basic_auth=${FLOWER_BASIC_AUTH:?FLOWER_BASIC_AUTH must be set (format user:password)}
+    ports:
+      - "127.0.0.1:5555:5555"
+    env_file: .env
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:

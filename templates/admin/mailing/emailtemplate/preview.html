@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 20px auto;">
+  <p style="margin-bottom: 16px;">
+    <a href="../../">← Volver</a>
+  </p>
+  <h1 style="margin-bottom: 4px;">Vista previa: {{ template_obj.name }}</h1>
+  <p style="color: #666; font-size: 12px; margin-bottom: 24px;">
+    Placeholders sustituidos con valores de ejemplo:
+    <code>{% for k, v in sample_values.items %}{{ k }}={{ v }}{% if not forloop.last %}, {% endif %}{% endfor %}</code>
+  </p>
+
+  {% if error %}
+    <div style="background:#fee; border:1px solid #fbb; color:#900; padding:12px 16px; border-radius:6px;">
+      <strong>Error al renderizar:</strong> {{ error }}
+      <p style="margin-top:6px; font-size:12px;">
+        Revisa los placeholders del asunto y el cuerpo HTML. Solo se permiten:
+        <code>{company_name}</code>, <code>{cv_url}</code>, <code>{unsubscribe_url}</code>.
+      </p>
+    </div>
+  {% else %}
+    <div style="background:#fff; border:1px solid #ddd; border-radius:8px; overflow:hidden;">
+      <div style="padding:12px 16px; border-bottom:1px solid #eee; background:#fafafa;">
+        <strong>De:</strong> usuario@ejemplo.com<br>
+        <strong>Para:</strong> hr@empresa-ejemplo.com<br>
+        <strong>Asunto:</strong> {{ subject }}
+      </div>
+      <div style="padding:20px;">{{ body_html }}</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

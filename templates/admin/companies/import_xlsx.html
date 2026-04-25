@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 600px;">
+  <h1>Importar empresas desde Excel</h1>
+  <p style="color: #666; margin-bottom: 1.5rem;">
+    El archivo debe tener las columnas: <code>name</code>, <code>email</code>,
+    y opcionalmente <code>area</code> y <code>location</code>.
+    Las empresas existentes se actualizarán por email.
+  </p>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <div class="form-row">
+        <div>
+          <label>{{ form.xlsx_file.label }}</label>
+          {{ form.xlsx_file }}
+          {% if form.xlsx_file.help_text %}
+            <p class="help">{{ form.xlsx_file.help_text }}</p>
+          {% endif %}
+          {% for error in form.xlsx_file.errors %}
+            <p class="errornote">{{ error }}</p>
+          {% endfor %}
+        </div>
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" value="Importar" class="default"/>
+      <a href=".." class="closelink">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+from django.db import models
+
+
+class CreditPackage(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    price_eur = models.DecimalField(max_digits=8, decimal_places=2)
+    credits = models.IntegerField()
+    stripe_price_id = models.CharField(max_length=200, blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Paquete de Créditos"
+        verbose_name_plural = "Paquetes de Créditos"
+        ordering = ["order", "price_eur"]
+
+    def __str__(self):
+        return f"{self.name} — {self.credits} créditos por {self.price_eur}€"
+
+    @property
+    def price_cents(self):
+        return int(self.price_eur * 100)
+
+
+class StripePayment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pendiente"
+        COMPLETED = "completed", "Completado"
+        FAILED = "failed", "Fallido"
+
+    user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="payments")
+    package = models.ForeignKey(CreditPackage, on_delete=models.SET_NULL, null=True)
+    stripe_session_id = models.CharField(max_length=300, unique=True)
+    stripe_payment_intent = models.CharField(max_length=300, blank=True)
+    amount_eur = models.DecimalField(max_digits=8, decimal_places=2)
+    credits_granted = models.IntegerField(default=0)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Pago Stripe"
+        verbose_name_plural = "Pagos Stripe"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} — {self.amount_eur}€ ({self.status})"

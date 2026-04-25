@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Cancelar suscripción — ResumeLink{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-4 py-20 text-center">
+  <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+    <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+    </svg>
+  </div>
+  <h1 class="text-2xl font-bold mb-3">Has cancelado la suscripción</h1>
+  <p class="text-gray-600 mb-2">
+    El email <strong>{{ email }}</strong> ha sido añadido a la lista de exclusión.
+  </p>
+  <p class="text-gray-500 text-sm">Ya no recibirás más correos de nuestra plataforma.</p>
+</div>
+{% endblock %}

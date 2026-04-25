@@ -1,0 +1,40 @@
+# Secrets — never bake into image layers
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+service-account*.json
+
+# Version control / CI metadata
+.git
+.gitignore
+.github
+
+# Python build / cache artefacts
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.tox
+.coverage
+htmlcov
+
+# Local virtualenvs
+.venv
+venv
+env
+
+# Editor / OS noise
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Local dev data
+*.sqlite3
+db.sqlite3
+cvs/
+staticfiles/
+node_modules
