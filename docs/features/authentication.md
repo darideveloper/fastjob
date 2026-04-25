@@ -1,6 +1,6 @@
 # Authentication
 
-ResumeLink has **no passwords**. Every user authenticates via Google or Microsoft OAuth2. This isn't a convenience choice — the mailing engine needs delegated send access to the user's inbox, so OAuth is the only viable auth model.
+FastJob has **no passwords**. Every user authenticates via Google or Microsoft OAuth2. This isn't a convenience choice — the mailing engine needs delegated send access to the user's inbox, so OAuth is the only viable auth model.
 
 ---
 

@@ -76,7 +76,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # We use decouple's config() to provide a fallback only if needed.
 DATABASES = {
     "default": dj_database_url.config(
-        default=config("DATABASE_URL", default="postgres://postgres:postgres@localhost:9001/faztjob"),
+        default=config("DATABASE_URL", default="postgres://postgres:postgres@localhost:9001/fastjob"),
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -106,7 +106,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SITE_ID = 1
 SITE_DOMAIN = config("SITE_DOMAIN", default="localhost:8000")
-SITE_NAME = config("SITE_NAME", default="ResumeLink")
+SITE_NAME = config("SITE_NAME", default="FastJob")
 
 # Authentication
 AUTHENTICATION_BACKENDS = [
@@ -156,7 +156,7 @@ SOCIALACCOUNT_PROVIDERS = {
 # DigitalOcean Spaces (S3 Compatible)
 AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
 AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
-AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="faztjob")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="fastjob")
 AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="nyc3")
 AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="https://nyc3.digitaloceanspaces.com")
 AWS_S3_CUSTOM_DOMAIN = config("AWS_S3_CUSTOM_DOMAIN", default="")
@@ -186,7 +186,7 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="ResumeLink <noreply@example.com>")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="FastJob <noreply@example.com>")
 
 # ---------------------------------------------------------------------------
 # Cache (Redis) — required by django-ratelimit; reuses the Celery Redis instance

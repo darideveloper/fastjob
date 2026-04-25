@@ -1,6 +1,6 @@
 # Mailing Engine
 
-The heart of ResumeLink. This module decides **who** sends **what** to **whom** at **which time**, using **whose OAuth token**. Every deliverability claim ("slow-drip", "random templates", "no footprint") traces back to code in this feature.
+The heart of FastJob. This module decides **who** sends **what** to **whom** at **which time**, using **whose OAuth token**. Every deliverability claim ("slow-drip", "random templates", "no footprint") traces back to code in this feature.
 
 ---
 
@@ -227,7 +227,7 @@ response = requests.post(
 
 Spam filters at scale use **footprint detection**: if 10 000 emails with the exact same "Candidatura para X" subject arrive at 10 000 different mailboxes, that's a pattern. Even if each email comes from a different sender.
 
-**Our counter:** admins create several `EmailTemplate` rows (shipped with 3 by default — see the seed migration). Each send picks `order_by('?').first()`. Over a day, no two emails from the same ResumeLink user look identical, and across our entire user base the subject/body distribution is uniform.
+**Our counter:** admins create several `EmailTemplate` rows (shipped with 3 by default — see the seed migration). Each send picks `order_by('?').first()`. Over a day, no two emails from the same FastJob user look identical, and across our entire user base the subject/body distribution is uniform.
 
 **Placeholder substitution** (via `EmailTemplate.render`):
 - `{company_name}` → Company.name

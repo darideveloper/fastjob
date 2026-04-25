@@ -1,6 +1,6 @@
 # Payments
 
-ResumeLink sells credits in configurable packages via Stripe Checkout (EUR). The payment flow is stateless on our side — Stripe handles card collection, and we receive a signed webhook to grant credits.
+FastJob sells credits in configurable packages via Stripe Checkout (EUR). The payment flow is stateless on our side — Stripe handles card collection, and we receive a signed webhook to grant credits.
 
 ---
 
@@ -90,7 +90,7 @@ Users can view invoices and manage receipts through Stripe's hosted Billing Port
 The checkout uses **dynamic pricing** (`price_data`) rather than pre-created Stripe Price objects. This means:
 - No Stripe dashboard management needed for each package.
 - `stripe_price_id` on `CreditPackage` is populated but unused in the current flow.
-- Product name in Stripe shows as `"ResumeLink — {package.name}"`.
+- Product name in Stripe shows as `"FastJob — {package.name}"`.
 
 ### Webhook handler
 

@@ -1,6 +1,6 @@
 # Re-link Notifications
 
-When a user's OAuth token expires and can't be refreshed, the mailing engine auto-pauses their campaign and sends them a transactional email asking them to re-authorize. This is the only system-initiated email ResumeLink sends.
+When a user's OAuth token expires and can't be refreshed, the mailing engine auto-pauses their campaign and sends them a transactional email asking them to re-authorize. This is the only system-initiated email FastJob sends.
 
 ---
 
@@ -35,7 +35,7 @@ def send_relink_notification(user_pk):
     user = User.objects.get(pk=user_pk)
     relink_url = f"{scheme}://{settings.SITE_DOMAIN}/accounts/login/"
     send_mail(
-        subject="ResumeLink: Vuelve a conectar tu cuenta de correo",
+        subject="FastJob: Vuelve a conectar tu cuenta de correo",
         message=f"... {relink_url} ...",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
@@ -73,7 +73,7 @@ Order matters: the `MailingLog` is written before the notification is dispatched
 
 ## The notification email
 
-**Subject:** `ResumeLink: Vuelve a conectar tu cuenta de correo`
+**Subject:** `FastJob: Vuelve a conectar tu cuenta de correo`
 
 **Body (plain text):**
 ```
@@ -83,7 +83,7 @@ Tu sesión de correo ha expirado y tu campaña ha sido pausada.
 
 Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}
 
-El equipo de ResumeLink
+El equipo de FastJob
 ```
 
 The email is plain text only. No HTML, no branding. This is intentional — a branded HTML email from an OAuth-service company can look like phishing to a user who just had their session expire. Plain text reads as a legitimate system alert.
@@ -126,9 +126,9 @@ If a user reports they never received the notification email, check:
 | `EMAIL_USE_TLS` | TLS flag (default: `True`) |
 | `EMAIL_HOST_USER` | SMTP username (e.g. `system@yourdomain.com`) |
 | `EMAIL_HOST_PASSWORD` | SMTP password or app password |
-| `DEFAULT_FROM_EMAIL` | From header (e.g. `ResumeLink <system@yourdomain.com>`) |
+| `DEFAULT_FROM_EMAIL` | From header (e.g. `FastJob <system@yourdomain.com>`) |
 
-**This SMTP account is for ResumeLink's own outgoing mail only** — re-link notifications, future admin alerts, etc. It is completely separate from the user's OAuth-based send flow.
+**This SMTP account is for FastJob's own outgoing mail only** — re-link notifications, future admin alerts, etc. It is completely separate from the user's OAuth-based send flow.
 
 ---
 

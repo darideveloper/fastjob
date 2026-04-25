@@ -17,7 +17,7 @@ flowchart LR
     Engine2[Next tick] -->|exclude email__in blacklist| DB
 ```
 
-The blacklist is **global** — if Company X unsubscribes from User A's email, User B also won't mail Company X. This prevents a company from being bombarded by multiple ResumeLink users after opting out.
+The blacklist is **global** — if Company X unsubscribes from User A's email, User B also won't mail Company X. This prevents a company from being bombarded by multiple FastJob users after opting out.
 
 ---
 
@@ -97,7 +97,7 @@ companies = Company.objects.exclude(email__in=blacklisted_emails)
 1. Company receives a CV email.
 2. Clicks the unsubscribe link in the footer.
 3. Sees a simple confirmation page: "Has sido dado de baja. No recibirás más correos."
-4. Never receives another email from any ResumeLink user.
+4. Never receives another email from any FastJob user.
 
 ### From the job-seeker's side
 
@@ -107,7 +107,7 @@ Users don't see the blacklist. They simply notice that a company they previously
 
 ## Configuration
 
-No env vars. The endpoint is public (no auth required — it must work for the company recipient who has no ResumeLink account).
+No env vars. The endpoint is public (no auth required — it must work for the company recipient who has no FastJob account).
 
 ---
 

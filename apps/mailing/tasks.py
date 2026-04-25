@@ -1,5 +1,5 @@
 """
-Celery tasks for the ResumeLink mailing engine.
+Celery tasks for the FastJob mailing engine.
 - process_mailing_queue: runs every minute, sends one email per eligible active user.
 - send_relink_notification: emails user when their OAuth token has expired.
 """
@@ -123,12 +123,12 @@ def send_relink_notification(user_pk):
     relink_url = f"{scheme}://{settings.SITE_DOMAIN}/accounts/login/"
 
     send_mail(
-        subject="ResumeLink: Vuelve a conectar tu cuenta de correo",
+        subject="FastJob: Vuelve a conectar tu cuenta de correo",
         message=(
             f"Hola {user.first_name or user.email},\n\n"
             "Tu sesión de correo ha expirado y tu campaña ha sido pausada.\n\n"
             f"Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
-            "El equipo de ResumeLink"
+            "El equipo de FastJob"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],

@@ -164,7 +164,7 @@ See [`security.md`](security.md) for the full threat model.
 
 ### `Django Admin → Usuarios → <user>`
 
-Under the "ResumeLink" fieldset:
+Under the "FastJob" fieldset:
 - `cv_file` — clickable link to the (raw, authenticated) S3 path.
 - `cv_updated_at` — timestamp.
 
@@ -184,7 +184,7 @@ Everything is on the User page. If there's ever a support case where the admin n
 |---|---|
 | `AWS_ACCESS_KEY_ID` | Spaces access key |
 | `AWS_SECRET_ACCESS_KEY` | Spaces secret |
-| `AWS_STORAGE_BUCKET_NAME` | Bucket name (e.g. `resumelink-cvs`) |
+| `AWS_STORAGE_BUCKET_NAME` | Bucket name (e.g. `fastjob-cvs`) |
 | `AWS_S3_REGION_NAME` | `nyc3`, `ams3`, etc. |
 | `AWS_S3_ENDPOINT_URL` | `https://<region>.digitaloceanspaces.com` |
 | `AWS_S3_CUSTOM_DOMAIN` | Optional CDN domain |

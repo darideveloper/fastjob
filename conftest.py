@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for all ResumeLink tests."""
+"""Shared pytest fixtures for all FastJob tests."""
 from datetime import timedelta
 
 import pytest

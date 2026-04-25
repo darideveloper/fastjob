@@ -2,7 +2,7 @@
 
 Exhaustive list of every surface that needs to be reviewed before a security audit. Each item names **what** to check and **where** (file path / URL / model). No findings yet — this is the checklist that drives the actual testing pass.
 
-> Scope: ResumeLink (Django 4.2 + Celery + PostgreSQL + Redis + Stripe + Google/Microsoft OAuth + DigitalOcean Spaces). Generated 2026-04-24.
+> Scope: FastJob (Django 4.2 + Celery + PostgreSQL + Redis + Stripe + Google/Microsoft OAuth + DigitalOcean Spaces). Generated 2026-04-24.
 
 ---
 

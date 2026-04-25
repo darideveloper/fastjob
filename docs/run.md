@@ -1,6 +1,6 @@
 # Running Locally
 
-This guide gets the full ResumeLink stack running on your machine: Django, PostgreSQL, Redis, Celery worker, and Celery beat.
+This guide gets the full FastJob stack running on your machine: Django, PostgreSQL, Redis, Celery worker, and Celery beat.
 
 ---
 
@@ -39,7 +39,7 @@ Edit `.env`. The minimum set needed to start the server:
 |---|---|
 | `SECRET_KEY` | Any long random string (see below) |
 | `DEBUG` | `True` |
-| `DATABASE_URL` | Leave as `postgres://postgres:postgres@localhost:5432/faztjob` if using Docker below |
+| `DATABASE_URL` | Leave as `postgres://postgres:postgres@localhost:5432/fastjob` if using Docker below |
 | `REDIS_URL` | `redis://localhost:6379/0` |
 | `CACHE_REDIS_URL` | `redis://localhost:6379/1` |
 

@@ -40,8 +40,8 @@ Gunicorn (3 workers)    ◄── Docker service: web
 
 ```bash
 # On the server
-git clone <repo-url> /opt/resumelink
-cd /opt/resumelink
+git clone <repo-url> /opt/fastjob
+cd /opt/fastjob
 ```
 
 ---
@@ -111,7 +111,7 @@ Run these **only once** on the first deploy. `migrate` is safe to re-run on subs
 
 ## 5. Nginx configuration
 
-Install Nginx and Certbot, then create `/etc/nginx/sites-available/resumelink`:
+Install Nginx and Certbot, then create `/etc/nginx/sites-available/fastjob`:
 
 ```nginx
 server {
@@ -146,7 +146,7 @@ server {
 Enable and reload:
 
 ```bash
-ln -s /etc/nginx/sites-available/resumelink /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/fastjob /etc/nginx/sites-enabled/
 certbot --nginx -d yourdomain.com -d www.yourdomain.com
 nginx -t && systemctl reload nginx
 ```
@@ -220,20 +220,20 @@ docker compose logs -f celery_beat   # Beat scheduler ticks
 The repo ships `scripts/backup_db.sh` — a `pg_dump | gzip | aws s3 cp` one-shot designed for nightly cron.
 
 ```bash
-# /etc/cron.d/resumelink-backup
-0 3 * * *  root  /opt/resumelink/scripts/backup_db.sh >> /var/log/resumelink-backup.log 2>&1
+# /etc/cron.d/fastjob-backup
+0 3 * * *  root  /opt/fastjob/scripts/backup_db.sh >> /var/log/fastjob-backup.log 2>&1
 ```
 
-Required env vars (put them in `/etc/default/resumelink-backup` and `source` it in the cron line, or use `--env-file` if running inside Docker):
+Required env vars (put them in `/etc/default/fastjob-backup` and `source` it in the cron line, or use `--env-file` if running inside Docker):
 
 | Variable | Example |
 |---|---|
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` | Managed PostgreSQL credentials |
-| `BACKUP_BUCKET` | `resumelink-backups` (separate from your CV bucket) |
+| `BACKUP_BUCKET` | `fastjob-backups` (separate from your CV bucket) |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Scoped to the backup bucket only |
 | `AWS_S3_ENDPOINT_URL` | `https://nyc3.digitaloceanspaces.com` |
 
-The script writes `resumelink-YYYYMMDD-HHMMSS.sql.gz` into `s3://$BACKUP_BUCKET/postgres/`. Set a **bucket lifecycle policy** to expire objects older than N days (DigitalOcean Spaces dashboard → Settings → Lifecycle rules) so the bucket doesn't grow forever.
+The script writes `fastjob-YYYYMMDD-HHMMSS.sql.gz` into `s3://$BACKUP_BUCKET/postgres/`. Set a **bucket lifecycle policy** to expire objects older than N days (DigitalOcean Spaces dashboard → Settings → Lifecycle rules) so the bucket doesn't grow forever.
 
 Alternative: if you're using managed PostgreSQL from DigitalOcean / AWS RDS, enable the provider's built-in automated backups instead — they integrate with point-in-time recovery, which `pg_dump` does not.
 

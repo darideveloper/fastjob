@@ -34,7 +34,7 @@ def create_checkout(request, package_id):
             {
                 "price_data": {
                     "currency": "eur",
-                    "product_data": {"name": f"ResumeLink — {package.name}"},
+                    "product_data": {"name": f"FastJob — {package.name}"},
                     "unit_amount": package.price_cents,
                 },
                 "quantity": 1,

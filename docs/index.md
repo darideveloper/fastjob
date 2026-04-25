@@ -1,12 +1,12 @@
-# ResumeLink — Documentation
+# FastJob — Documentation
 
-**ResumeLink** is a Django SaaS (server-side rendered) that helps job-seekers automatically send their CV to a curated database of companies, using **their own Gmail or Outlook account via OAuth2**. The platform is engineered for maximum email deliverability: no PDF attachments, randomized email content, slow-drip sending, and per-company cooldown windows.
+**FastJob** is a Django SaaS (server-side rendered) that helps job-seekers automatically send their CV to a curated database of companies, using **their own Gmail or Outlook account via OAuth2**. The platform is engineered for maximum email deliverability: no PDF attachments, randomized email content, slow-drip sending, and per-company cooldown windows.
 
 ---
 
-## Why ResumeLink exists
+## Why FastJob exists
 
-Mass-mailing a CV using generic tools (SendGrid, Mailchimp, even a Gmail alias) lands in the spam folder or gets the sender blacklisted within hours. ResumeLink solves this by:
+Mass-mailing a CV using generic tools (SendGrid, Mailchimp, even a Gmail alias) lands in the spam folder or gets the sender blacklisted within hours. FastJob solves this by:
 
 - **Sending from the user's real inbox** — preserves sender reputation, passes SPF/DKIM naturally.
 - **Never attaching a PDF** — attachments trigger spam filters; we send a unique UUID-obfuscated download link instead.

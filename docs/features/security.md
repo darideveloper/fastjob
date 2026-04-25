@@ -1,6 +1,6 @@
 # Security
 
-ResumeLink's threat model centres on two high-value targets: OAuth tokens (give email-send access to users' inboxes) and CV files (private PII). Everything else is standard Django hardening.
+FastJob's threat model centres on two high-value targets: OAuth tokens (give email-send access to users' inboxes) and CV files (private PII). Everything else is standard Django hardening.
 
 ---
 

@@ -1,6 +1,6 @@
 # Admin Panel
 
-ResumeLink's admin is standard Django Admin (`/admin/`) with custom list views and the Excel importer. Only `is_staff = True` users can access it. It's the primary operational interface for everything that isn't user-facing.
+FastJob's admin is standard Django Admin (`/admin/`) with custom list views and the Excel importer. Only `is_staff = True` users can access it. It's the primary operational interface for everything that isn't user-facing.
 
 ---
 

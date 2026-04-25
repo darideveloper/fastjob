@@ -1,6 +1,6 @@
 # Email Templates
 
-`EmailTemplate` rows are the variation layer that makes ResumeLink emails look like personal messages instead of bulk mail. The engine picks one at random for every send; admins create and manage them through the admin panel.
+`EmailTemplate` rows are the variation layer that makes FastJob emails look like personal messages instead of bulk mail. The engine picks one at random for every send; admins create and manage them through the admin panel.
 
 ---
 

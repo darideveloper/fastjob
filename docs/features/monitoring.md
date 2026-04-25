@@ -1,6 +1,6 @@
 # Monitoring & Testing
 
-ResumeLink uses structured console logging (Docker/PaaS friendly), optional Sentry for error tracking, and a pytest suite covering the mailing engine and critical business logic.
+FastJob uses structured console logging (Docker/PaaS friendly), optional Sentry for error tracking, and a pytest suite covering the mailing engine and critical business logic.
 
 ---
 

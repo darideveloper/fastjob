@@ -1,6 +1,6 @@
 # Companies Database
 
-The `Company` model is the address book for outbound CVs. It contains the set of companies ResumeLink can mail, plus metadata (area, location) that users can filter by. Companies are loaded in bulk by admin staff via an Excel importer.
+The `Company` model is the address book for outbound CVs. It contains the set of companies FastJob can mail, plus metadata (area, location) that users can filter by. Companies are loaded in bulk by admin staff via an Excel importer.
 
 ---
 

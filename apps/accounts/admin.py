@@ -22,7 +22,7 @@ class UserAdmin(BaseUserAdmin):
     inlines = [CVInline]
 
     fieldsets = BaseUserAdmin.fieldsets + (
-        ("ResumeLink", {
+        ("FastJob", {
             "fields": ("credits_remaining", "is_campaign_active", "active_cv", "area_filter", "location_filter", "stripe_customer_id"),
         }),
     )

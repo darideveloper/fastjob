@@ -1,4 +1,4 @@
-# ResumeLink
+# FastJob
 
 Django SaaS que envía CVs a bases de datos de empresas desde la **propia cuenta de Gmail u Outlook del usuario** vía OAuth2. Diseñada para máxima entregabilidad (sin adjuntos, slow-drip, plantillas aleatorias).
 
@@ -17,7 +17,7 @@ Django SaaS que envía CVs a bases de datos de empresas desde la **propia cuenta
 ## Local setup
 
 ```bash
-git clone <repo> faztjob && cd faztjob
+git clone <repo> fastjob && cd fastjob
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # editar con tus credenciales

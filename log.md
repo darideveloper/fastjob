@@ -1,4 +1,4 @@
-# ResumeLink — Development Log
+# FastJob — Development Log
 
 A running record of what's been built, what's in progress, and what's pending.
 Newest entries at the top.
@@ -79,7 +79,7 @@ Newest entries at the top.
 - **CI pipeline** — `.github/workflows/ci.yml` runs on push/PR to `main`. Steps: `manage.py check`, `makemigrations --check --dry-run`, `pytest -q`. Uses `DJANGO_SETTINGS_MODULE=config.test_settings` so no GitHub secrets / external services needed.
 - **`social_account_removed` handler** — `apps/accounts/signals.py` auto-pauses the user's campaign when they unlink their OAuth account. Avoids the engine churning through `FAILED` logs on every tick after a disconnect.
 - **Stripe Customer Portal** — `POST /payments/portal/` (view `billing_portal`). Gated on ≥1 completed `StripePayment`. Looks up the Stripe customer by email (`stripe.Customer.list(email=...)`) — no local `customer_id` column, trading one extra API call for avoiding a migration. Link surfaced on dashboard under the credits card as "Facturación".
-- **DB backup script** — `scripts/backup_db.sh` — `pg_dump | gzip` → S3-compatible Spaces upload. Env-driven (DB + AWS creds + `BACKUP_BUCKET`). Designed for nightly cron: `0 3 * * * root /opt/resumelink/scripts/backup_db.sh >> /var/log/resumelink-backup.log 2>&1`. Retention handled at the bucket level via lifecycle policy (documented in `deploy.md`).
+- **DB backup script** — `scripts/backup_db.sh` — `pg_dump | gzip` → S3-compatible Spaces upload. Env-driven (DB + AWS creds + `BACKUP_BUCKET`). Designed for nightly cron: `0 3 * * * root /opt/fastjob/scripts/backup_db.sh >> /var/log/fastjob-backup.log 2>&1`. Retention handled at the bucket level via lifecycle policy (documented in `deploy.md`).
 - **Celery monitoring** — documented Flower as a docker-compose sidecar in `deploy.md`; not wired into the default stack (keeps the production bundle lean, avoids exposing another port). Users who need queue visibility can opt in.
 
 ### Tests (44 total, all pass; 9 new)
