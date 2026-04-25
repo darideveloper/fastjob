@@ -89,20 +89,20 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = "accounts.User"
 
-LANGUAGE_CODE = "es"
-TIME_ZONE = "Europe/Madrid"
-USE_I18N = True
-USE_TZ = True
+LANGUAGE_CODE = config("LANGUAGE_CODE", default="es")
+TIME_ZONE = config("TIME_ZONE", default="Europe/Madrid")
+USE_I18N = config("USE_I18N", default=True, cast=bool)
+USE_TZ = config("USE_TZ", default=True, cast=bool)
 
 # Static files
-STATIC_URL = "/static/"
+STATIC_URL = config("STATIC_URL", default="/static/")
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-SITE_ID = 1
+SITE_ID = config("SITE_ID", default=1, cast=int)
 SITE_DOMAIN = config("SITE_DOMAIN", default="localhost:8000")
 SITE_NAME = config("SITE_NAME", default="ResumeLink")
 
@@ -112,14 +112,14 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/dashboard/"
-LOGOUT_REDIRECT_URL = "/"
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+LOGIN_URL = config("LOGIN_URL", default="/accounts/login/")
+LOGIN_REDIRECT_URL = config("LOGIN_REDIRECT_URL", default="/dashboard/")
+LOGOUT_REDIRECT_URL = config("LOGOUT_REDIRECT_URL", default="/")
+ACCOUNT_LOGOUT_REDIRECT_URL = config("ACCOUNT_LOGOUT_REDIRECT_URL", default="/")
 
 # django-allauth
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_VERIFICATION = config("ACCOUNT_EMAIL_VERIFICATION", default="none")
 ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_USERNAME_REQUIRED = False
 SOCIALACCOUNT_AUTO_SIGNUP = True
@@ -163,7 +163,7 @@ AWS_S3_FILE_OVERWRITE = False
 AWS_QUERYSTRING_AUTH = True
 AWS_QUERYSTRING_EXPIRE = 300  # 5 minutes for signed CV URLs
 
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+DEFAULT_FILE_STORAGE = config("DEFAULT_FILE_STORAGE", default="storages.backends.s3boto3.S3Boto3Storage")
 
 # Celery
 CELERY_BROKER_URL = config("REDIS_URL", default="redis://localhost:6379/0")
@@ -178,7 +178,7 @@ STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
 # Email (system notifications only)
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
@@ -262,21 +262,21 @@ if SENTRY_DSN:
 # ---------------------------------------------------------------------------
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
-SESSION_COOKIE_AGE = 604800  # 1 week (default Django: 2 weeks)
+SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=604800, cast=int)  # 1 week
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
-CSRF_COOKIE_HTTPONLY = True  # No client JS reads the CSRF token in this app
+CSRF_COOKIE_HTTPONLY = config("CSRF_COOKIE_HTTPONLY", default=True, cast=bool)
 
 # Hard caps on request body size (defense in depth alongside Nginx + view-level checks).
 # DATA_UPLOAD_MAX_MEMORY_SIZE limits non-file form data per request; multipart file
 # bytes are excluded from this counter (the 10 MB CV cap is enforced in upload_cv).
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB streamed-to-disk threshold
+DATA_UPLOAD_MAX_MEMORY_SIZE = config("DATA_UPLOAD_MAX_MEMORY_SIZE", default=5 * 1024 * 1024, cast=int)
+FILE_UPLOAD_MAX_MEMORY_SIZE = config("FILE_UPLOAD_MAX_MEMORY_SIZE", default=5 * 1024 * 1024, cast=int)
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)
-SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)  # one-way door
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
-X_FRAME_OPTIONS = "DENY"
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
+SECURE_CONTENT_TYPE_NOSNIFF = config("SECURE_CONTENT_TYPE_NOSNIFF", default=True, cast=bool)
+SECURE_REFERRER_POLICY = config("SECURE_REFERRER_POLICY", default="strict-origin-when-cross-origin")
+X_FRAME_OPTIONS = config("X_FRAME_OPTIONS", default="DENY")
 CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 
 # Tells Django it's behind a TLS-terminating proxy (DO App Platform, Heroku, Nginx).
