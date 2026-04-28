@@ -203,6 +203,23 @@ $RECYCLE.BIN/
 .aider*
 .cursorrules
 .continue/
+# Other agent runtimes / project-level instruction files. These are local
+# tooling state, not source of truth — keep them out of the repo. The
+# leading `/` anchors to the repo root so we don't accidentally ignore
+# nested AGENTS.md / CLAUDE.md files (e.g. `openspec/AGENTS.md`, which
+# IS part of the OpenSpec scaffolding and should stay tracked).
+.gemini/
+/AGENTS.md
+/CLAUDE.md
+
+# =============================================================================
+# OpenSpec
+# =============================================================================
+# In-flight proposals under openspec/changes/ are working drafts. They land
+# in the repo only once moved to changes/archive/. Convention from
+# openspec-ignoring-proposals.md.
+openspec/changes/*
+!openspec/changes/archive/
 
 # =============================================================================
 # Misc
