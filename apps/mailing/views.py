@@ -49,7 +49,13 @@ def cv_download(request, token):
             },
             ExpiresIn=settings.AWS_QUERYSTRING_EXPIRE,
         )
-        return redirect(url)
+        # H13: presigned URL contains a time-bounded signature. Caching the
+        # 302 (in a CDN, browser, or corporate proxy) would let someone
+        # who replays the cached redirect fetch the CV after the link's
+        # cv_download_token has been revoked or its rate-limit hit.
+        response = redirect(url)
+        response["Cache-Control"] = "no-store"
+        return response
     except Exception:
         return render(request, "mailing/cv_not_found.html", status=500)
 

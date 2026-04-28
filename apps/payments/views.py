@@ -25,8 +25,7 @@ def packages(request):
 def create_checkout(request, package_id):
     package = get_object_or_404(CreditPackage, pk=package_id, is_active=True)
 
-    scheme = "https" if not settings.DEBUG else "http"
-    base_url = f"{scheme}://{settings.SITE_DOMAIN}"
+    base_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}"
 
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
@@ -98,8 +97,7 @@ def billing_portal(request):
         request.user.stripe_customer_id = customer_id
         request.user.save(update_fields=["stripe_customer_id"])
 
-    scheme = "https" if not settings.DEBUG else "http"
-    return_url = f"{scheme}://{settings.SITE_DOMAIN}/dashboard/"
+    return_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
 
     session = stripe.billing_portal.Session.create(
         customer=customer_id,

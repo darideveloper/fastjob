@@ -107,6 +107,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SITE_ID = 1
 SITE_DOMAIN = config("SITE_DOMAIN", default="localhost:8000")
 SITE_NAME = config("SITE_NAME", default="FastJob")
+# H12: scheme used to build absolute URLs in outbound emails and Stripe
+# return URLs. Decoupled from DEBUG so a developer running with DEBUG=True
+# behind an HTTPS-terminating proxy still emits `https://` links.
+SITE_SCHEME = config("SITE_SCHEME", default="https")
 
 # Authentication
 AUTHENTICATION_BACKENDS = [

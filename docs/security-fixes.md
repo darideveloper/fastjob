@@ -17,12 +17,12 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
 | Tier | Count | Done |
 |---|---|---|
 | ❌ Critical | 9 | 9 |
-| ⚠️ Hardening — quick wins | 14 | 9 |
+| ⚠️ Hardening — quick wins | 14 | 14 |
 | ⚠️ Hardening — medium effort | 8 | 0 |
 | ⚠️ Hardening — heavy lift | 4 | 0 |
 | 🔍 Verify (runtime tests) | 6 | 0 |
 | 🛡️ CI gates | 4 | 1 |
-| **Total** | **45** | **19** |
+| **Total** | **45** | **24** |
 
 ---
 
@@ -224,29 +224,33 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
   - Acceptance: simulated kill mid-loop leaves either all CVs deleted or none — no partial state.
   - Done: 2026-04-27 — `transaction.atomic()` wrapping added to all three call sites: `delete_account` (CV loop + `user.delete()` inside one block; `logout()` moved AFTER the atomic block so a rollback doesn't log out a still-alive account); `delete_cv` (row delete + active_cv fallback `user.save()` together); `delete_user` management command (CV loop + `user.delete()`). New file `apps/dashboard/tests/test_atomic_deletes.py` injects a `RuntimeError` mid-flow and asserts the DB rolls back to the pre-call state — `delete_account` test patches `User.delete` to raise after partial work, `delete_cv` test patches the fallback `User.save` to raise. Full suite: 93 passed.
 
-- [ ] **H11** — `str.format_map(SafeDict)` for templates
+- [x] **H11** — `str.format_map(SafeDict)` for templates
   - Source: §1.6, §2.3, §2.4
   - File: `apps/mailing/models.py:65-67` (`EmailTemplate.render`)
   - Change: introduce `class SafeDict(dict): def __missing__(self, key): return f"{{{key}}}"` and call `subject.format_map(SafeDict(context))`. Drops attribute walks (`{user.__class__}`).
   - Acceptance: a template with `{cv_url.__class__}` renders as the literal string, not the type repr.
+  - Done: 2026-04-27 — implemented in `apps/mailing/models.py` with two pieces because `format_map` alone did NOT block attribute walks (the format-spec mini-language still parses `{x.attr}` and `{x[k]}` regardless of the mapping type). Added `class SafeDict(dict)` with `__missing__` returning the literal `{key}`, and a custom `class _SafeFormatter(string.Formatter)` overriding `get_field` to split on `.` and `[` and use only the head. Render now calls `_SAFE_FORMATTER.vformat(text, (), context)`. New file `apps/mailing/tests/test_template_render.py` (5 cases) verifies: known placeholders resolve; unknown keys render literally; `{cv_url.__class__}` renders as the bare value; nested chains `{cv_url.__class__.__mro__[1]}` are flattened; `{cv_url[0]}` is flattened. Updated `test_admin_preview_surfaces_template_errors` to use a malformed `{unclosed` brace (still raises ValueError) since unknown placeholders no longer trigger the preview error path. All 41 mailing tests pass.
 
-- [ ] **H12** — decouple URL scheme from `DEBUG`
+- [x] **H12** — decouple URL scheme from `DEBUG`
   - Source: §2.3, §6
   - Files: `config/settings.py`, `apps/mailing/engine.py:139`, `apps/mailing/tasks.py:117`, `apps/payments/views.py:27, 100`
   - Change: introduce `SITE_SCHEME = config("SITE_SCHEME", default="https")` in settings; replace four occurrences of `scheme = "https" if not settings.DEBUG else "http"` with `scheme = settings.SITE_SCHEME`.
   - Acceptance: `DEBUG=True SITE_SCHEME=https` produces `https://` URLs in re-link emails and Stripe success URLs.
+  - Done: 2026-04-27 — `SITE_SCHEME = config("SITE_SCHEME", default="https")` added to `config/settings.py` next to `SITE_DOMAIN`. All four `scheme = "https" if not settings.DEBUG else "http"` lines deleted; the f-strings now read `f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}..."`. New file `apps/mailing/tests/test_url_scheme.py` proves: (1) `DEBUG=True + SITE_SCHEME=https` → cv_url + unsubscribe_url start with `https://`; (2) `DEBUG=False + SITE_SCHEME=http` → http URLs (the inverse case for local dev behind plain HTTP); (3) the default value is `https` (secure-by-default). Send path is mocked via `monkeypatch.setattr("apps.mailing.engine._send_via_gmail", ...)` so no real SMTP/Gmail call is made.
 
-- [ ] **H13** — `Cache-Control: no-store` on `/cv/<uuid>/` redirect
+- [x] **H13** — `Cache-Control: no-store` on `/cv/<uuid>/` redirect
   - Source: §1.1, §2.2
   - File: `apps/mailing/views.py:52` (`cv_download`)
   - Change: build the redirect via `response = redirect(url); response["Cache-Control"] = "no-store"; return response`.
   - Acceptance: response headers include `Cache-Control: no-store`.
+  - Done: 2026-04-27 — `apps/mailing/views.py:cv_download` now assigns the redirect to a variable, sets `response["Cache-Control"] = "no-store"`, then returns. Existing test `test_cv_download_redirects_to_signed_url` extended with `assert resp["Cache-Control"] == "no-store"`.
 
-- [ ] **H14** — `EmailTemplate.body_html` size cap
+- [x] **H14** — `EmailTemplate.body_html` size cap
   - Source: §4
   - File: `apps/mailing/models.py` (`EmailTemplate` model), new migration
   - Change: add `validators=[MaxLengthValidator(50000)]` to `body_html`. Add `clean()` method that re-checks if validators are bypassed.
   - Acceptance: admin form rejects a body over 50K chars.
+  - Done: 2026-04-27 — `EMAIL_BODY_MAX_LENGTH = 50_000` constant + `validators=[MaxLengthValidator(EMAIL_BODY_MAX_LENGTH)]` on `body_html`. `EmailTemplate.clean()` re-checks length and raises `ValidationError({"body_html": ...})` (defence-in-depth: admin form save calls `full_clean()` → `clean()`, so a future change that drops the field validator still hits the same error). Migration `apps/mailing/migrations/0004_alter_emailtemplate_body_html.py` applied. Help text updated to reflect the limit. Three new test cases in `test_template_render.py`: oversize raises `ValidationError`; at-cap is accepted; `clean()` alone rejects oversize independently of `full_clean()`. Suite: 104 passed.
 
 ---
 

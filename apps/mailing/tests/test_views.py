@@ -83,6 +83,10 @@ def test_cv_download_redirects_to_signed_url(
 
     assert resp.status_code == 302
     assert resp.url == fake_signed
+    # H13: presigned-URL redirect must NOT be cached anywhere — a CDN or
+    # browser cache could otherwise replay the redirect after the token
+    # has been revoked or the rate-limit hit.
+    assert resp["Cache-Control"] == "no-store"
 
 
 @pytest.mark.django_db

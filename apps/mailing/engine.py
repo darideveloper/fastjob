@@ -144,8 +144,7 @@ def send_cv_email(user, company, template, log):
     Raises TokenExpiredError if the token cannot be refreshed.
     Raises Exception for other send failures.
     """
-    scheme = "https" if not settings.DEBUG else "http"
-    base_url = f"{scheme}://{settings.SITE_DOMAIN}"
+    base_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}"
     cv_url = f"{base_url}/cv/{log.cv_download_token}/"
     unsubscribe_url = f"{base_url}/unsubscribe/{log.unsubscribe_token}/"
 

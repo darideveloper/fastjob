@@ -119,8 +119,7 @@ def send_relink_notification(user_pk):
     except User.DoesNotExist:
         return
 
-    scheme = "https" if not settings.DEBUG else "http"
-    relink_url = f"{scheme}://{settings.SITE_DOMAIN}/accounts/login/"
+    relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
 
     send_mail(
         subject="FastJob: Vuelve a conectar tu cuenta de correo",

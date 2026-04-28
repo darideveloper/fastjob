@@ -20,7 +20,10 @@ def test_admin_preview_renders_with_placeholders(client, staff_user, email_templ
 
 @pytest.mark.django_db
 def test_admin_preview_surfaces_template_errors(client, staff_user, email_template):
-    email_template.subject = "Hola {unknown_placeholder}"
+    # H11 changed unknown-placeholder behavior: SafeDict now renders them
+    # literally instead of raising, so we trigger the error path with a
+    # malformed brace — that still bubbles a ValueError out of vformat.
+    email_template.subject = "Hola {unclosed"
     email_template.save(update_fields=["subject"])
     client.force_login(staff_user)
     resp = client.get(f"/admin/mailing/emailtemplate/{email_template.pk}/preview/")
