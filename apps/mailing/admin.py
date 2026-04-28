@@ -3,9 +3,18 @@ from django.http import Http404
 from django.shortcuts import render
 from django.urls import path
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 from .models import EmailTemplate, MailingLog, SystemSettings
+
+# Strict CSP applied inside the preview iframe. `default-src 'none'` blocks
+# scripts/objects/frames; `style-src 'unsafe-inline'` keeps inline styles working
+# (templates rely on them); images allow data: + https: so legitimate logos load.
+PREVIEW_CSP = (
+    "default-src 'none'; "
+    "style-src 'unsafe-inline'; "
+    "img-src data: https:; "
+    "font-src https: data:"
+)
 
 
 @admin.register(SystemSettings)
@@ -68,12 +77,28 @@ class EmailTemplateAdmin(admin.ModelAdmin):
             body_html = ""
             error = str(exc)
 
+        # Wrap the rendered body in a self-contained HTML doc that carries a
+        # strict CSP meta tag. The doc is then placed in an iframe `srcdoc` in
+        # the template — Django's auto-escape attribute-encodes the value, and
+        # `sandbox` (without allow-scripts) blocks JS as a second line of
+        # defence in browsers that ignore the meta CSP. Together these prevent
+        # one staff user's malicious template from running JS in another's
+        # admin session.
+        preview_doc = (
+            "<!doctype html><html><head>"
+            f'<meta http-equiv="Content-Security-Policy" content="{PREVIEW_CSP}">'
+            '<meta charset="utf-8">'
+            "</head><body>"
+            f"{body_html}"
+            "</body></html>"
+        ) if body_html else ""
+
         context = {
             **self.admin_site.each_context(request),
             "title": f"Vista previa — {obj.name}",
             "template_obj": obj,
             "subject": subject,
-            "body_html": mark_safe(body_html) if body_html else "",
+            "preview_doc": preview_doc,
             "error": error,
             "sample_values": PREVIEW_CONTEXT,
         }

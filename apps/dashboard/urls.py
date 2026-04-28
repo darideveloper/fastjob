@@ -9,4 +9,5 @@ urlpatterns = [
     path("filtros/", views.update_filters, name="update_filters"),
     path("campana/", views.toggle_campaign, name="toggle_campaign"),
     path("eliminar-cuenta/", views.delete_account, name="delete_account"),
+    path("exportar-datos/", views.export_data, name="export_data"),
 ]

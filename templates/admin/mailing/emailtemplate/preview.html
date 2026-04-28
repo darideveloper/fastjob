@@ -26,7 +26,9 @@
         <strong>Para:</strong> hr@empresa-ejemplo.com<br>
         <strong>Asunto:</strong> {{ subject }}
       </div>
-      <div style="padding:20px;">{{ body_html }}</div>
+      <iframe sandbox srcdoc="{{ preview_doc }}"
+              style="width:100%; min-height:400px; border:0; padding:20px; box-sizing:border-box;"
+              title="Vista previa del cuerpo del correo"></iframe>
     </div>
   {% endif %}
 </div>

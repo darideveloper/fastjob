@@ -3,6 +3,11 @@ from django.db import models
 
 
 class User(AbstractUser):
+    # OAuth flows assume one canonical account per email. Without the unique
+    # constraint, the same email can be registered twice (e.g. once via Google
+    # and once via Microsoft) and login becomes ambiguous — `authenticate()`
+    # picks an arbitrary row.
+    email = models.EmailField(unique=True)
     credits_remaining = models.IntegerField(default=0)
     is_campaign_active = models.BooleanField(default=False)
     active_cv = models.ForeignKey(
@@ -45,9 +50,3 @@ class CV(models.Model):
 
     def __str__(self):
         return self.name or (self.file.name.rsplit("/", 1)[-1] if self.file else f"CV #{self.pk}")
-
-    def delete(self, *args, **kwargs):
-        # Explicitly drop the S3 object so the bucket doesn't accumulate orphans.
-        if self.file:
-            self.file.delete(save=False)
-        super().delete(*args, **kwargs)

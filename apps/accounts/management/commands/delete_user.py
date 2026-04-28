@@ -7,6 +7,7 @@ Requires --yes to bypass the interactive confirmation.
 """
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 
 class Command(BaseCommand):
@@ -32,9 +33,13 @@ class Command(BaseCommand):
 
         cv_count = user.cvs.count()
         log_count = user.mailing_logs.count()
-        for cv in user.cvs.all():
-            cv.delete()  # Overridden delete() removes the S3 object too.
-        user.delete()
+        # Atomic: a SIGTERM during the CV loop must not leave a user row
+        # without its associated CVs. Either the whole account is gone
+        # or nothing changed.
+        with transaction.atomic():
+            for cv in user.cvs.all():
+                cv.delete()  # pre_delete signal removes the S3 object too.
+            user.delete()
 
         self.stdout.write(self.style.SUCCESS(
             f"Deleted user {email} — removed {cv_count} CV(s), {log_count} mailing log(s)."

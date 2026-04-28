@@ -16,13 +16,13 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
 
 | Tier | Count | Done |
 |---|---|---|
-| ❌ Critical | 9 | 3 |
+| ❌ Critical | 9 | 9 |
 | ⚠️ Hardening — quick wins | 14 | 9 |
 | ⚠️ Hardening — medium effort | 8 | 0 |
 | ⚠️ Hardening — heavy lift | 4 | 0 |
 | 🔍 Verify (runtime tests) | 6 | 0 |
 | 🛡️ CI gates | 4 | 1 |
-| **Total** | **45** | **13** |
+| **Total** | **45** | **19** |
 
 ---
 
@@ -40,25 +40,25 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
 
 ### C1. Atomic credit decrement / increment (race fix)
 
-- [ ] **C1** — replace read-modify-write with `F()` expressions
+- [x] **C1** — replace read-modify-write with `F()` expressions
   - Source: §2.7
   - Files: `apps/mailing/tasks.py:84-85`, `apps/payments/views.py:144-145`
   - Change: use `User.objects.filter(pk=user.pk).update(credits_remaining=F("credits_remaining") - 1)` for the decrement; symmetric `+ payment.credits_granted` for the webhook addition. Follow with `user.refresh_from_db(fields=["credits_remaining"])` if the value is read later in the same scope.
   - Acceptance: a concurrency test (two parallel `process_mailing_queue` invocations against one user with `credits_remaining=2`) ends with `credits_remaining=0`, not `1`.
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — `apps/mailing/tasks.py:87-90` decrements via `F("credits_remaining") - 1` + `refresh_from_db`; `apps/payments/views.py:149-155` increments via `F("credits_remaining") + payment.credits_granted` (single `update()` that also conditionally caches the Stripe customer ID). Coverage: `test_credit_decrement_survives_lost_update_pattern` (mailing) + `test_webhook_credit_increment_uses_atomic_update` + `test_webhook_does_not_double_credit_on_replay` (payments) all pass.
 
 ### C2. Cross-staff stored XSS in email-template preview
 
-- [ ] **C2** — sandbox the admin preview
+- [x] **C2** — sandbox the admin preview
   - Source: §1.6, §2.4, §7
   - Files: `apps/mailing/admin.py` (`preview_view`), `templates/admin/mailing/emailtemplate/preview.html`
   - Change: render `body_html` inside an `<iframe srcdoc="...">` with a strict CSP (`script-src 'none'`), OR run `bleach.clean(body_html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS)` before `mark_safe`. Iframe-srcdoc preferred (stronger isolation, no shared cookies).
   - Acceptance: a template containing `<script>alert(1)</script>` previewed by a different staff user does not execute in the admin origin (verified in DevTools console: no script invocation).
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — `mark_safe` removed from `preview_view`; body wrapped in a self-contained HTML doc with `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; font-src https: data:">`. Template renders it via `<iframe sandbox srcdoc="{{ preview_doc }}">` (Django auto-escapes the attribute; `sandbox` without `allow-scripts` is the second line of defence). New regression test `test_admin_preview_isolates_xss_in_iframe` injects `<script>alert("xss")</script>` and asserts the raw tag appears nowhere in the admin-origin DOM (only HTML-attribute-escaped inside `srcdoc`). All 4 preview tests pass.
 
 ### C3. Password-reset attack path on OAuth-only accounts
 
-- [ ] **C3** — disable password / secondary-email URLs from allauth
+- [x] **C3** — disable password / secondary-email URLs from allauth
   - Source: §1.2
   - Files: `config/urls.py:9` (replace `include("allauth.urls")` with explicit list), `apps/accounts/adapters.py`
   - Change: mount only the OAuth-relevant subset of allauth URLs:
@@ -71,7 +71,7 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
     ```
     Drop `password_*` and `email/`.
   - Acceptance: `GET /accounts/password/reset/` returns 404. `GET /accounts/email/` returns 404. OAuth login still succeeds end-to-end.
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — `config/urls.py` no longer includes `allauth.urls`. Mounted explicitly: `account_login`, `account_logout`, `socialaccount.urls` at `/accounts/3rdparty/`, and Google/Microsoft provider modules at `/accounts/` (the providers' own `urlpatterns` already carry `google/` and `microsoft/` prefixes — mounting them at `/accounts/google/` would have produced `/accounts/google/google/login/` and broken the OAuth redirect URIs registered in the provider consoles). `resolve()` returns 404 for `/accounts/password/{reset,change,set}/`, `/accounts/email/`, `/accounts/confirm-email/`, `/accounts/inactive/`. OAuth entry points still reverse: `account_login → /accounts/login/`, `google_login → /accounts/google/login/`, `microsoft_login → /accounts/microsoft/login/`. New file `apps/accounts/tests/test_url_surface.py` (12 parametrized assertions) locks the surface. Full suite: 81 passed.
 
 ### C4. `SECRET_KEY` placeholder fail-closed guard
 
@@ -89,12 +89,12 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
 
 ### C5. `User.email` uniqueness constraint
 
-- [ ] **C5** — make email unique at the model + DB level
+- [x] **C5** — make email unique at the model + DB level
   - Source: §6
   - Files: `apps/accounts/models.py`, new migration under `apps/accounts/migrations/`
   - Change: add `email = models.EmailField(unique=True)` to `User`. Generate migration; precede with a data migration that detects pre-existing duplicates and fails loudly (so ops investigates rather than the schema migration crashing).
   - Acceptance: migration applies cleanly. `User.objects.create(email="x@y.com"); User.objects.create(email="x@y.com")` raises `IntegrityError`.
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — `User.email = models.EmailField(unique=True)` declared. Migration pair: `0003_assert_no_duplicate_emails.py` (RunPython that groups by email, raises a `RuntimeError` listing offenders if any group has count>1) → `0004_alter_user_email.py` (Django-generated `AlterField` with `unique=True`). Both applied cleanly against the dev DB. New file `apps/accounts/tests/test_email_uniqueness.py` proves the IntegrityError path (wrapped in `transaction.atomic()` so the failure doesn't poison the outer pytest-django transaction) plus a model-meta sanity assertion. Full suite: 83 passed.
 
 ### C6. Flower default password
 
@@ -130,16 +130,16 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
 
 ### C8. GDPR Article 20 (data portability) export endpoint
 
-- [ ] **C8** — add `/dashboard/exportar-datos/` data-export view
+- [x] **C8** — add `/dashboard/exportar-datos/` data-export view
   - Source: §15
   - Files: `apps/dashboard/views.py` (new view + URL), `apps/dashboard/urls.py`, optional template for confirmation page
   - Change: build a zip containing `user.json`, `cvs/*.pdf`, `mailing_logs.csv`, `payments.csv`. Rate-limit to 1/day/user. Stream the response (don't load all CVs into memory).
   - Acceptance: a logged-in user can download their data zip; the zip contains all four artefacts; second request within 24h returns 429.
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — new `export_data` view in `apps/dashboard/views.py`, mounted at `path("exportar-datos/", views.export_data, name="export_data")` (full path `/dashboard/exportar-datos/`). Stack: `@login_required`, `@require_GET`, `@ratelimit(key="user", rate="1/d", block=True)`. Archive built into a `SpooledTemporaryFile(max_size=5 MiB)` (in-memory then spills to disk) wrapped in `zipfile.ZipFile(ZIP_DEFLATED)`, returned as `FileResponse(as_attachment=True)`. Members: `user.json` (helper `_serialize_user` excludes hashed password and Django internals like `is_staff`), `mailing_logs.csv` + `payments.csv` (both built via `csv.writer` over an `iterator(chunk_size=200)` queryset), and `cvs/<pk>_<filename>.pdf` per CV. New file `apps/dashboard/tests/test_export_data.py` covers (1) anonymous-user redirect, (2) URL shape, (3) all four artefacts present + content sanity (user email, payment row count, CV path under `cvs/`), (4) no cross-user leakage (other user's CVs/logs absent), (5) second request within 24h → 429 (with `RATELIMIT_ENABLE=True`). Full suite: 91 passed.
 
 ### C9. CV delete-override misses cascade and admin bulk-delete
 
-- [ ] **C9** — replace `CV.delete()` override with a `pre_delete` signal
+- [x] **C9** — replace `CV.delete()` override with a `pre_delete` signal
   - Source: §2.2, §4
   - File: `apps/accounts/models.py:35-53`
   - Change: remove the `delete()` override; register `pre_delete` instead so cascade and bulk-delete paths fire S3 cleanup:
@@ -150,7 +150,7 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
             instance.file.delete(save=False)
     ```
   - Acceptance: `User.objects.filter(...).delete()` (cascade path) and admin bulk-delete both leave zero orphaned objects in the Spaces bucket. Existing per-row admin delete and `delete_account` continue to work.
-  - Done: _PR / commit / date_
+  - Done: 2026-04-27 — `CV.delete()` override removed from `apps/accounts/models.py`. New receiver `cv_pre_delete` in `apps/accounts/signals.py` (already loaded via `AccountsConfig.ready()`) calls `instance.file.delete(save=False)` for every CV row about to be removed. New file `apps/accounts/tests/test_cv_file_cleanup.py` covers all three deletion paths by mocking `FieldFile.delete` and asserting call counts: per-row `cv.delete()` → 1 call; `user.delete()` cascade across 3 CVs → 3 calls; `CV.objects.filter(...).delete()` bulk → 3 calls. Full suite: 86 passed.
 
 ---
 
@@ -217,11 +217,12 @@ Working checklist derived from `docs/security-check.md` verdicts (§1–§17). G
   - Acceptance: a template with `Test\r\nBcc: x@evil.com` in the subject sends a single recipient (no Bcc header injected).
   - Done: 2026-04-25 — strip applied in `send_cv_email` right after `template.render(...)`. New pytest `test_send_cv_email_strips_crlf_from_subject` decodes the actual base64 MIME payload, parses it via `email.message_from_string`, asserts `msg["Bcc"] is None` and the only `To` header is the company email.
 
-- [ ] **H10** — wrap destructive ops in `transaction.atomic()`
+- [x] **H10** — wrap destructive ops in `transaction.atomic()`
   - Source: §1.3, §9
   - Files: `apps/dashboard/views.py:138-159` (`delete_account`), `apps/accounts/management/commands/delete_user.py`, `apps/dashboard/views.py:84-98` (`delete_cv`)
   - Change: wrap the per-CV loop + `user.delete()` + `user.save()` block(s) in `with transaction.atomic():`.
   - Acceptance: simulated kill mid-loop leaves either all CVs deleted or none — no partial state.
+  - Done: 2026-04-27 — `transaction.atomic()` wrapping added to all three call sites: `delete_account` (CV loop + `user.delete()` inside one block; `logout()` moved AFTER the atomic block so a rollback doesn't log out a still-alive account); `delete_cv` (row delete + active_cv fallback `user.save()` together); `delete_user` management command (CV loop + `user.delete()`). New file `apps/dashboard/tests/test_atomic_deletes.py` injects a `RuntimeError` mid-flow and asserts the DB rolls back to the pre-call state — `delete_account` test patches `User.delete` to raise after partial work, `delete_cv` test patches the fallback `User.save` to raise. Full suite: 93 passed.
 
 - [ ] **H11** — `str.format_map(SafeDict)` for templates
   - Source: §1.6, §2.3, §2.4
