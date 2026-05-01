@@ -1,5 +1,8 @@
 import openpyxl
+from django.db import transaction
+
 from .models import Company
+from .queries import bust_filter_caches
 
 
 EXPECTED_HEADERS = {"email", "name"}
@@ -58,4 +61,6 @@ def import_companies_from_xlsx(file_obj):
             updated += 1
 
     wb.close()
+    # Bust once per import on transaction commit rather than once per row via signals.
+    transaction.on_commit(bust_filter_caches)
     return created, updated, errors

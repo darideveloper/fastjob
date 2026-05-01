@@ -12,7 +12,8 @@ from django.core.mail import send_mail
 from django.db.models import F
 from django.utils import timezone
 
-from apps.companies.models import Blacklist, Company
+from apps.companies.models import Blacklist
+from apps.companies.queries import matching_companies_qs
 from apps.mailing.engine import TokenExpiredError, send_cv_email
 from apps.mailing.models import EmailTemplate, MailingLog, SystemSettings
 
@@ -53,14 +54,11 @@ def process_mailing_queue(self):
         if last_log and (now - last_log.sent_at) < send_interval:
             continue
 
-        companies = Company.objects.exclude(email__in=blacklisted_emails).exclude(
-            id__in=recently_contacted_ids
+        companies = (
+            matching_companies_qs(user.area_filter or None, user.location_filter or None)
+            .exclude(email__in=blacklisted_emails)
+            .exclude(id__in=recently_contacted_ids)
         )
-
-        if user.area_filter:
-            companies = companies.filter(area__icontains=user.area_filter)
-        if user.location_filter:
-            companies = companies.filter(location__icontains=user.location_filter)
 
         company = companies.order_by("?").first()
         if not company:

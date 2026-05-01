@@ -24,6 +24,7 @@ urlpatterns = [
     path("accounts/", include("allauth.socialaccount.providers.microsoft.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("payments/", include("apps.payments.urls")),
+    path("", include("apps.companies.urls")),
     path("healthz", healthz, name="healthz"),
     path("", include("apps.mailing.urls")),
     path("", TemplateView.as_view(template_name="home.html"), name="home"),

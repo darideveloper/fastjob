@@ -1,5 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Panel de Control — FastJob{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/combobox.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,22 +129,28 @@
       <!-- Filters -->
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 class="font-bold text-lg mb-4">Filtros de búsqueda</h2>
-        <form method="post" action="{% url 'update_filters' %}">
+        <form method="post" action="{% url 'update_filters' %}" data-filter-widget>
           {% csrf_token %}
           <div class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Sector / Área</label>
-              <input type="text" name="area_filter" value="{{ user.area_filter }}"
-                placeholder="ej. Tecnología, Diseño, Marketing…"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"/>
+              <div data-combobox="area"
+                   data-name="area_filter"
+                   data-value="{{ user.area_filter }}"
+                   data-placeholder="Todos los sectores…"></div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-              <input type="text" name="location_filter" value="{{ user.location_filter }}"
-                placeholder="ej. Madrid, Barcelona, Remoto…"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"/>
+              <div data-combobox="location"
+                   data-name="location_filter"
+                   data-value="{{ user.location_filter }}"
+                   data-placeholder="Todas las ubicaciones…"></div>
             </div>
           </div>
+          <p class="mt-3 text-sm text-gray-500">
+            Empresas que coinciden:
+            <span data-company-counter class="font-semibold text-brand">—</span>
+          </p>
           <button type="submit"
             class="mt-4 w-full border border-brand text-brand hover:bg-indigo-50 font-semibold py-2.5 rounded-xl transition text-sm">
             Guardar filtros

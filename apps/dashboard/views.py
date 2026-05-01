@@ -113,9 +113,25 @@ def delete_cv(request, cv_id):
 @login_required
 @require_POST
 def update_filters(request):
+    from apps.companies.queries import get_filter_options
+
     user = request.user
-    user.area_filter = request.POST.get("area_filter", "").strip()
-    user.location_filter = request.POST.get("location_filter", "").strip()
+    area = request.POST.get("area_filter", "").strip()
+    location = request.POST.get("location_filter", "").strip()
+
+    options = get_filter_options()
+    allowed_areas = {a.lower() for a in options["areas"]}
+    allowed_locations = {loc.lower() for loc in options["locations"]}
+
+    if area and area.lower() not in allowed_areas:
+        messages.error(request, "Sector no válido. Selecciona una opción de la lista.")
+        return redirect("dashboard")
+    if location and location.lower() not in allowed_locations:
+        messages.error(request, "Ubicación no válida. Selecciona una opción de la lista.")
+        return redirect("dashboard")
+
+    user.area_filter = area
+    user.location_filter = location
     user.save(update_fields=["area_filter", "location_filter"])
     messages.success(request, "Filtros actualizados.")
     return redirect("dashboard")

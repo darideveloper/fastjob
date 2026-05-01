@@ -100,9 +100,10 @@ def test_task_excludes_companies_in_cooldown(
 def test_task_respects_user_area_filter(
     google_linked_user, email_template, settings_obj
 ):
-    """Only companies matching the user's area filter should be eligible."""
+    """Exact-match only: a filter of 'Tecnología' must NOT match 'Tecnología Industrial'."""
     Company.objects.create(email="a@x.com", name="A", area="Finanzas", location="")
     Company.objects.create(email="b@x.com", name="B", area="Tecnología", location="")
+    Company.objects.create(email="c@x.com", name="C", area="Tecnología Industrial", location="")
 
     google_linked_user.area_filter = "Tecnología"
     google_linked_user.save()
@@ -111,9 +112,26 @@ def test_task_respects_user_area_filter(
         process_mailing_queue()
 
     assert mock_send.call_count == 1
-    # the chosen company's area must match the filter
     chosen_company = mock_send.call_args[0][1]
-    assert "tecnología" in chosen_company.area.lower()
+    assert chosen_company.area.lower() == "tecnología"
+
+
+@pytest.mark.django_db
+def test_task_user_filter_is_case_insensitive(
+    google_linked_user, email_template, settings_obj
+):
+    """Lowercase filter value must still match a company with capitalized area."""
+    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="")
+
+    google_linked_user.area_filter = "tecnología"
+    google_linked_user.save()
+
+    with patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    assert mock_send.call_count == 1
+    chosen_company = mock_send.call_args[0][1]
+    assert chosen_company.area == "Tecnología"
 
 
 @pytest.mark.django_db

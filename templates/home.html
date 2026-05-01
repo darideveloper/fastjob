@@ -1,5 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}FastJob — Envía tu CV a cientos de empresas{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/combobox.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <!-- Hero -->
@@ -96,4 +101,49 @@
     </div>
   </div>
 </section>
+
+<!-- Company Finder -->
+<section class="py-20 bg-white" id="buscar-empresas">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl font-bold mb-3">¿Cuántas empresas coinciden con tu perfil?</h2>
+    <p class="text-gray-500 max-w-xl mx-auto mb-10">
+      Selecciona tu sector y ubicación para ver cuántas empresas de nuestra base de datos encajan contigo antes de empezar.
+    </p>
+
+    <div class="max-w-lg mx-auto" data-filter-widget>
+      <div class="grid sm:grid-cols-2 gap-4 mb-6">
+        <div class="text-left">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Sector / Área</label>
+          <div data-combobox="area"
+               data-name=""
+               data-value=""
+               data-placeholder="Todos los sectores…"></div>
+        </div>
+        <div class="text-left">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+          <div data-combobox="location"
+               data-name=""
+               data-value=""
+               data-placeholder="Todas las ubicaciones…"></div>
+        </div>
+      </div>
+
+      <div class="bg-indigo-50 rounded-2xl py-8 px-6 mb-6">
+        <p class="text-6xl font-extrabold text-brand mb-1">
+          <span data-company-counter>—</span>
+        </p>
+        <p class="text-gray-600 font-medium">empresas coinciden con tu búsqueda</p>
+      </div>
+
+      <a href="/payments/paquetes/"
+         class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-bold px-8 py-4 rounded-xl transition shadow-lg text-lg">
+        Ver paquetes y empezar
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
