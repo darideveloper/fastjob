@@ -21,7 +21,7 @@
       <input type="email" name="confirm_email" required
         class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm mb-4"
         placeholder="{{ user.email }}"/>
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
         <a href="{% url 'dashboard' %}" class="text-sm text-gray-500 hover:underline">← Volver</a>
         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl">
           Eliminar permanentemente

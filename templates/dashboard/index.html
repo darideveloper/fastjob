@@ -40,7 +40,7 @@
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
       <p class="text-sm text-gray-500 mb-1">Créditos disponibles</p>
       <p class="text-3xl font-extrabold text-brand">{{ user.credits_remaining }}</p>
-      <div class="flex gap-3 mt-1">
+      <div class="flex flex-wrap gap-3 mt-1">
         <a href="{% url 'payment_packages' %}" class="text-xs text-brand hover:underline">Comprar más →</a>
         <form method="post" action="{% url 'billing_portal' %}" class="inline">
           {% csrf_token %}
@@ -84,13 +84,13 @@
         {% if cvs %}
           <ul class="space-y-2 mb-4">
             {% for cv in cvs %}
-              <li class="flex items-center justify-between p-3 rounded-xl border
+              <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-xl border
                   {% if cv.pk == user.active_cv_id %}border-green-300 bg-green-50{% else %}border-gray-200{% endif %}">
                 <div class="min-w-0">
                   <p class="text-sm font-medium text-gray-800 truncate">{{ cv }}</p>
                   <p class="text-xs text-gray-400">{{ cv.created_at|date:"d/m/Y" }}</p>
                 </div>
-                <div class="flex gap-2 shrink-0">
+                <div class="flex gap-2 shrink-0 flex-wrap">
                   {% if cv.pk == user.active_cv_id %}
                     <span class="text-xs font-semibold text-green-700">Activo</span>
                   {% else %}
@@ -114,10 +114,30 @@
           {% csrf_token %}
           <input type="text" name="name" placeholder="Nombre (opcional, ej. CV Senior Dev)"
             class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"/>
-          <label class="block">
-            <input type="file" name="cv_file" accept=".pdf" required
-              class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-brand hover:file:bg-indigo-100 cursor-pointer"/>
-          </label>
+          <div class="flex flex-wrap items-center gap-3">
+            <label for="cv-file-input"
+                   class="inline-flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-brand text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Seleccionar archivo
+            </label>
+            <input id="cv-file-input" type="file" name="cv_file" accept=".pdf" required class="sr-only"/>
+            <span data-filename class="text-sm text-gray-500 truncate min-w-0">Sin archivo seleccionado</span>
+          </div>
+          <script>
+            (function () {
+              var input = document.getElementById('cv-file-input');
+              if (!input) return;
+              var label = input.parentElement.querySelector('[data-filename]');
+              if (!label) return;
+              input.addEventListener('change', function () {
+                label.textContent = input.files && input.files.length
+                  ? input.files[0].name
+                  : 'Sin archivo seleccionado';
+              });
+            })();
+          </script>
           <button type="submit"
             class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-2.5 rounded-xl transition text-sm">
             Subir CV
@@ -172,7 +192,7 @@
         <h2 class="font-bold text-lg mb-4">Actividad reciente</h2>
         {% if recent_logs %}
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full min-w-[640px] text-sm">
               <thead>
                 <tr class="border-b border-gray-100">
                   <th class="text-left py-2 text-gray-500 font-medium">Empresa</th>

@@ -237,3 +237,5 @@ openspec/changes/*
 TODO.local.md
 NOTES.local.md
 data/
+
+.playwright-cli/

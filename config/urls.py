@@ -1,7 +1,7 @@
 from allauth.account.views import LoginView, LogoutView
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
+from django.views.generic import RedirectView, TemplateView
 
 from config.health import healthz
 
@@ -13,6 +13,14 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/login/", LoginView.as_view(), name="account_login"),
     path("accounts/logout/", LogoutView.as_view(), name="account_logout"),
+    # `LoginView.get_context_data` calls reverse("account_signup") to populate
+    # `signup_url`. With C3 we do not mount a signup form, so the name must
+    # still resolve — register it as a redirect to the OAuth login page.
+    path(
+        "accounts/signup/",
+        RedirectView.as_view(pattern_name="account_login", permanent=False),
+        name="account_signup",
+    ),
     # `socialaccount.urls` was historically mounted at `/accounts/3rdparty/`
     # by allauth.urls; preserve that shape so `socialaccount_connections` keeps
     # the same path. Provider URL modules carry their own `google/` /

@@ -32,7 +32,8 @@
           FastJob
         </a>
 
-        <div class="flex items-center gap-4">
+        <!-- Desktop cluster (md+) -->
+        <div class="hidden md:flex md:items-center md:gap-4">
           {% if user.is_authenticated %}
             <span class="text-sm text-gray-600 hidden sm:block">{{ user.email }}</span>
             <span class="inline-flex items-center gap-1 bg-indigo-50 text-brand text-sm font-semibold px-3 py-1 rounded-full">
@@ -51,6 +52,46 @@
             </a>
           {% endif %}
         </div>
+
+        <!-- Mobile hamburger toggle (< md) -->
+        <div class="md:hidden">
+          <button type="button"
+                  id="navbar-toggle"
+                  aria-controls="navbar-drawer"
+                  aria-expanded="false"
+                  aria-label="Abrir menú"
+                  class="inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-brand">
+            <svg data-icon="open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+            <svg data-icon="closed" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile drawer (< md) -->
+    <div id="navbar-drawer" class="hidden md:hidden border-t border-gray-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3">
+        {% if user.is_authenticated %}
+          <span class="text-sm text-gray-600">{{ user.email }}</span>
+          <span class="inline-flex items-center gap-1 bg-indigo-50 text-brand text-sm font-semibold px-3 py-1 rounded-full self-start">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ user.credits_remaining }} créditos
+          </span>
+          <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium">Panel</a>
+          <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium">Comprar</a>
+          <a href="/accounts/logout/" class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg font-medium transition self-start">Salir</a>
+        {% else %}
+          <a href="/accounts/login/" class="text-sm font-medium text-gray-700 hover:text-brand">Iniciar sesión</a>
+          <a href="/accounts/google/login/?next=/dashboard/" class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-dark transition self-start">
+            Empezar gratis
+          </a>
+        {% endif %}
       </div>
     </div>
   </nav>
@@ -86,6 +127,39 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    (function () {
+      var toggle = document.getElementById('navbar-toggle');
+      var drawer = document.getElementById('navbar-drawer');
+      if (!toggle || !drawer) return;
+      var iconOpen = toggle.querySelector('[data-icon="open"]');
+      var iconClosed = toggle.querySelector('[data-icon="closed"]');
+
+      function setOpen(open) {
+        drawer.classList.toggle('hidden', !open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (iconOpen) iconOpen.classList.toggle('hidden', open);
+        if (iconClosed) iconClosed.classList.toggle('hidden', !open);
+      }
+
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        setOpen(drawer.classList.contains('hidden'));
+      });
+      document.addEventListener('click', function (e) {
+        if (drawer.classList.contains('hidden')) return;
+        if (drawer.contains(e.target) || toggle.contains(e.target)) return;
+        setOpen(false);
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !drawer.classList.contains('hidden')) {
+          setOpen(false);
+          toggle.focus();
+        }
+      });
+    })();
+  </script>
 
   {% block extra_js %}{% endblock %}
 </body>
