@@ -59,6 +59,7 @@ Each feature doc covers: **tech specs**, **user perspective**, **admin perspecti
 | Re-link notifications | [`features/notifications.md`](features/notifications.md) | Email to user when OAuth token expires; auto-pauses campaign. |
 | Security | [`features/security.md`](features/security.md) | Rate limiting, security headers, CSRF, cookie hardening. |
 | Monitoring & testing | [`features/monitoring.md`](features/monitoring.md) | Structured logging, Sentry, pytest suite. |
+| Local Subdomain Setup | [`local-subdomain-setup.md`](local-subdomain-setup.md) | Guide for unified dev scripts and localtunnel subdomains. |
 
 ---
 

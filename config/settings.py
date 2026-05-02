@@ -283,7 +283,7 @@ SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)  #
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="https://fastjob.loca.lt,http://fastjob.loca.lt", cast=Csv())
 
 # Tells Django it's behind a TLS-terminating proxy (DO App Platform, Heroku, Nginx).
 if config("TRUST_PROXY_SSL_HEADER", default=False, cast=bool):

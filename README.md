@@ -16,6 +16,8 @@ Django SaaS que envía CVs a bases de datos de empresas desde la **propia cuenta
 
 ## Local setup
 
+Requisitos previos: tener instalado `tmux` y `npm` (para `localtunnel`).
+
 ```bash
 git clone <repo> fastjob && cd fastjob
 python -m venv .venv && source .venv/bin/activate
@@ -28,15 +30,12 @@ docker-compose up -d db redis
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py setup_periodic_tasks   # registra la tarea de Celery en la DB
-python manage.py runserver
+
+# Levanta todos los servicios de desarrollo (Django, Celery, Stripe CLI y Localtunnel)
+./dev.sh
 ```
 
-En dos terminales separadas:
-
-```bash
-celery -A config worker -l info
-celery -A config beat   -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-```
+El entorno local estará disponible **exclusivamente** a través de `https://fastjob.loca.lt` (sin puertos adicionales). Asegúrate de usar esta URL para acceder a la aplicación y configurar los Webhooks y OAuth redirects.
 
 ## Configuración de servicios externos
 
