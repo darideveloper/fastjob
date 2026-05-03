@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Paquetes de Créditos — FastJob{% endblock %}
+{% block title %}Paquetes de Envíos — FastJob{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-12">
   <div class="text-center mb-12">
-    <h1 class="text-3xl font-bold mb-3">Elige tu paquete</h1>
-    <p class="text-gray-500">Cada crédito = un CV enviado. Sin suscripciones, sin sorpresas.</p>
+    <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Elige tu paquete</h1>
+    <p class="text-gray-500">Cada envío = un CV a una empresa. Sin suscripciones, sin sorpresas.</p>
   </div>
 
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -55,7 +55,7 @@
             class="w-full font-bold py-3 rounded-xl transition text-sm
             {% if forloop.counter == 2 %}bg-brand hover:bg-brand-dark text-white shadow-lg
             {% else %}border border-brand text-brand hover:bg-indigo-50{% endif %}">
-            Comprar {{ package.credits }} créditos
+            Comprar {{ package.credits }} envíos
           </button>
         </form>
       </div>

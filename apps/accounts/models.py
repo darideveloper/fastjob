@@ -8,7 +8,7 @@ class User(AbstractUser):
     # and once via Microsoft) and login becomes ambiguous — `authenticate()`
     # picks an arbitrary row.
     email = models.EmailField(unique=True)
-    credits_remaining = models.IntegerField(default=0)
+    credits_remaining = models.IntegerField(default=0, verbose_name="Envíos disponibles")
     is_campaign_active = models.BooleanField(default=False)
     active_cv = models.ForeignKey(
         "accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"

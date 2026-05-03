@@ -4,12 +4,12 @@
 TBD - created by archiving change add-mobile-responsive-layout. Update Purpose after archive.
 ## Requirements
 ### Requirement: Mobile-collapsing global navbar
-The global navbar in `templates/base.html` SHALL collapse its right-hand link cluster (and credits chip, when authenticated) behind a single hamburger toggle button on viewports below the `md` breakpoint (768 px). On viewports `≥ md`, the existing horizontal layout MUST be preserved unchanged. The hamburger button MUST be a real `<button>` (not a checkbox hack), MUST expose `aria-controls` and `aria-expanded`, and MUST be reachable by keyboard.
+The global navbar in `templates/base.html` SHALL collapse its right-hand link cluster (and envíos chip, when authenticated) behind a single hamburger toggle button on viewports below the `md` breakpoint (768 px). On viewports `≥ md`, the existing horizontal layout MUST be preserved unchanged. The hamburger button MUST be a real `<button>` (not a checkbox hack), MUST expose `aria-controls` and `aria-expanded`, and MUST be reachable by keyboard.
 
 #### Scenario: Authenticated mobile user opens the drawer
-- **GIVEN** a logged-in user with 50 credits at viewport 375 × 667
+- **GIVEN** a logged-in user with 50 envíos at viewport 375 × 667
 - **WHEN** the user clicks the hamburger toggle button
-- **THEN** a drawer becomes visible containing the user email, the credits chip, "Panel", "Comprar", and "Salir" stacked vertically
+- **THEN** a drawer becomes visible containing the user email, the envíos chip, "Panel", "Comprar", and "Salir" stacked vertically
 - **AND** `aria-expanded` on the toggle is set to `"true"`
 
 #### Scenario: Anonymous mobile visitor opens the drawer

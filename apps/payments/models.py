@@ -5,18 +5,18 @@ class CreditPackage(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     price_eur = models.DecimalField(max_digits=8, decimal_places=2)
-    credits = models.IntegerField()
+    credits = models.IntegerField(verbose_name="Envíos")
     stripe_price_id = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
-        verbose_name = "Paquete de Créditos"
-        verbose_name_plural = "Paquetes de Créditos"
+        verbose_name = "Paquete de Envíos"
+        verbose_name_plural = "Paquetes de Envíos"
         ordering = ["order", "price_eur"]
 
     def __str__(self):
-        return f"{self.name} — {self.credits} créditos por {self.price_eur}€"
+        return f"{self.name} — {self.credits} envíos por {self.price_eur}€"
 
     @property
     def price_cents(self):

@@ -41,7 +41,7 @@ FastJob is a Django-based SaaS designed to automate the process of sending CVs t
 - **Commit Messages**: Follows [Conventional Commits](https://www.conventionalcommits.org/) (e.g., `feat(mailing): add new email template`).
 
 ## Domain Context
-- **Credits**: Users buy credits to send CVs. One credit equals one email sent to one company.
+- **Envíos**: Users buy envíos to send CVs. One envío equals one email sent to one company.
 - **Campaigns**: A set of parameters (filters, active status) that governs the automated sending process for a user.
 - **Blacklist**: A list of emails that have unsubscribed, preventing further sends to them.
 - **Cool-down**: A per-company limit (default 12 hours) to avoid double-emailing the same company too quickly.

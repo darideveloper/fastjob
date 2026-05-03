@@ -147,7 +147,7 @@ def toggle_campaign(request):
         if not user.has_cv:
             messages.error(request, "Debes subir tu CV antes de iniciar la campaña.")
         elif user.credits_remaining <= 0:
-            messages.error(request, "No tienes créditos disponibles. Compra un paquete para continuar.")
+            messages.error(request, "No tienes envíos disponibles. Compra un paquete para continuar.")
         elif not user.linked_provider:
             messages.error(request, "Debes vincular tu cuenta de Google o Microsoft.")
         else:
