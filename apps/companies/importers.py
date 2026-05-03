@@ -5,13 +5,14 @@ from .models import Company, Area, Location
 from .queries import bust_filter_caches
 
 
-EXPECTED_HEADERS = {"email", "name"}
+EXPECTED_HEADERS = {"email", "empresa"}
 
 
 def import_companies_from_xlsx(file_obj):
     """
     Parse an .xlsx file and bulk-upsert Company rows.
-    Expected columns: name, email, area (optional), location (optional).
+    Expected columns (Spanish): empresa, email, actividad, direccion, cp, poblacion,
+    provincia, comunidad, telefono, fax, website.
     Returns (created, updated, errors) counts.
     """
     wb = openpyxl.load_workbook(file_obj, read_only=True, data_only=True)
@@ -44,9 +45,20 @@ def import_companies_from_xlsx(file_obj):
             return str(val).strip() if val is not None else ""
 
         email = get("email").lower()
-        name = get("name")
-        area_name = get("area")
-        location_name = get("location")
+        name = get("empresa").lower()
+        
+        # Split actividad by ':' and take first part (e.g. "ROPA DIVERSA: ESTABLECIMIENTOS" -> "ROPA DIVERSA")
+        raw_actividad = get("actividad")
+        area_name = raw_actividad.split(":")[0].strip().lower() if raw_actividad else ""
+        
+        location_name = get("poblacion").lower()
+        address = get("direccion").lower()
+        zip_code = get("cp")
+        province = get("provincia").lower()
+        community = get("comunidad").lower()
+        phone = get("telefono")
+        fax = get("fax")
+        website = get("website").lower()
 
         if not email or "@" not in email:
             errors.append(f"Fila {row_num}: email inválido '{email}'")
@@ -71,6 +83,13 @@ def import_companies_from_xlsx(file_obj):
             "name": name,
             "area": area_obj,
             "location": location_obj,
+            "address": address,
+            "zip_code": zip_code,
+            "province": province,
+            "community": community,
+            "phone": phone,
+            "fax": fax,
+            "website": website,
         }
         _, is_new = Company.objects.update_or_create(email=email, defaults=defaults)
         if is_new:

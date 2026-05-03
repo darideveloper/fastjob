@@ -29,7 +29,7 @@ def make_xlsx(headers, rows):
 @pytest.mark.django_db
 def test_import_creates_new_companies():
     f = make_xlsx(
-        ["name", "email", "area", "location"],
+        ["empresa", "email", "actividad", "poblacion"],
         [
             ["Acme", "hr@acme.com", "Tech", "Madrid"],
             ["Beta", "jobs@beta.io", "Design", "Barcelona"],
@@ -40,30 +40,49 @@ def test_import_creates_new_companies():
     assert updated == 0
     assert errors == []
     assert Company.objects.count() == 2
+    assert Company.objects.get(email="hr@acme.com").name == "acme"
+
+
+@pytest.mark.django_db
+def test_import_with_spanish_headers_and_splitting():
+    f = make_xlsx(
+        ["EMPRESA", "EMAIL", "ACTIVIDAD", "POBLACION", "DIRECCION"],
+        [
+            ["KIKO MILANO", "0383@stores.com", "COSMETICOS: ESTABLECIMIENTOS", "TORREVIEJA", "HABANERAS"],
+        ],
+    )
+    created, updated, errors = import_companies_from_xlsx(f)
+    assert created == 1
+    assert errors == []
+    c = Company.objects.get(email="0383@stores.com")
+    assert c.name == "kiko milano"
+    assert c.area.name == "cosmeticos"
+    assert c.location.name == "torrevieja"
+    assert c.address == "habaneras"
 
 
 @pytest.mark.django_db
 def test_import_updates_existing_by_email():
     from apps.companies.models import Area, Location
-    old_area, _ = Area.objects.get_or_create(name="Old")
-    old_loc, _ = Location.objects.get_or_create(name="Old")
-    Company.objects.create(email="hr@acme.com", name="Old Name", area=old_area, location=old_loc)
+    old_area, _ = Area.objects.get_or_create(name="old")
+    old_loc, _ = Location.objects.get_or_create(name="old")
+    Company.objects.create(email="hr@acme.com", name="old name", area=old_area, location=old_loc)
     f = make_xlsx(
-        ["name", "email", "area", "location"],
+        ["empresa", "email", "actividad", "poblacion"],
         [["Acme", "hr@acme.com", "Tech", "Madrid"]],
     )
     created, updated, _ = import_companies_from_xlsx(f)
     assert created == 0
     assert updated == 1
     c = Company.objects.get(email="hr@acme.com")
-    assert c.name == "Acme"
-    assert c.area.name == "Tech"
+    assert c.name == "acme"
+    assert c.area.name == "tech"
 
 
 @pytest.mark.django_db
 def test_import_skips_rows_with_bad_email():
     f = make_xlsx(
-        ["name", "email"],
+        ["empresa", "email"],
         [
             ["Good Co", "hr@good.com"],
             ["Bad Co", "not-an-email"],
@@ -77,7 +96,7 @@ def test_import_skips_rows_with_bad_email():
 
 @pytest.mark.django_db
 def test_import_fails_gracefully_without_required_headers():
-    f = make_xlsx(["name"], [["Only Name"]])  # missing email column
+    f = make_xlsx(["empresa"], [["Only Name"]])  # missing email column
     created, updated, errors = import_companies_from_xlsx(f)
     assert created == 0
     assert updated == 0
@@ -91,7 +110,6 @@ def test_import_handles_empty_file():
     wb.save(buf)
     buf.seek(0)
     created, updated, errors = import_companies_from_xlsx(buf)
-    # Either zero-creation with error or explicit "empty" signal — both are OK.
     assert created == 0
     assert updated == 0
 
@@ -99,7 +117,7 @@ def test_import_handles_empty_file():
 @pytest.mark.django_db
 def test_import_is_case_insensitive_for_email():
     f = make_xlsx(
-        ["name", "email"],
+        ["empresa", "email"],
         [["Acme", "HR@ACME.COM"]],
     )
     import_companies_from_xlsx(f)

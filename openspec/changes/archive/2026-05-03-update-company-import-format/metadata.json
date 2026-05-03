@@ -1,0 +1,9 @@
+{
+  "change-id": "update-company-import-format",
+  "title": "Update Company Import Format and Data Normalization",
+  "description": "Expand Company model, update importer for new Excel format, and enforce lowercase normalization.",
+  "status": "proposed",
+  "created_at": "2026-05-03T10:00:00Z",
+  "author": "Gemini CLI",
+  "specs_affected": ["companies"]
+}

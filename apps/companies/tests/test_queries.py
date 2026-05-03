@@ -125,12 +125,12 @@ def test_filter_options_sorted_alphabetically():
 
 @pytest.mark.django_db
 def test_filter_options_cached_avoids_repeat_queries(django_assert_num_queries):
-    a, _ = Area.objects.get_or_create(name="Tecnología")
-    Company.objects.create(email="a@x.com", name="A", area=a)
+    a, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a)
     get_filter_options()
     with django_assert_num_queries(0):
         opts = get_filter_options()
-    assert "Tecnología" in opts["areas"]
+    assert "tecnología" in opts["areas"]
 
 
 # ---------------------------------------------------------------------------
@@ -139,22 +139,22 @@ def test_filter_options_cached_avoids_repeat_queries(django_assert_num_queries):
 
 @pytest.mark.django_db
 def test_get_company_count_no_filters():
-    a1, _ = Area.objects.get_or_create(name="Tecnología")
-    l1, _ = Location.objects.get_or_create(name="Madrid")
-    a2, _ = Area.objects.get_or_create(name="Diseño")
-    l2, _ = Location.objects.get_or_create(name="Barcelona")
-    Company.objects.create(email="a@x.com", name="A", area=a1, location=l1)
-    Company.objects.create(email="b@x.com", name="B", area=a2, location=l2)
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
     assert get_company_count() == 2
 
 
 @pytest.mark.django_db
 def test_get_company_count_with_filter():
-    a1, _ = Area.objects.get_or_create(name="Tecnología")
-    a2, _ = Area.objects.get_or_create(name="Diseño")
-    Company.objects.create(email="a@x.com", name="A", area=a1)
-    Company.objects.create(email="b@x.com", name="B", area=a2)
-    assert get_company_count(area="Tecnología") == 1
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
+    Company.objects.create(email="b@x.com", name="b", area=a2)
+    assert get_company_count(area="tecnología") == 1
 
 
 # ---------------------------------------------------------------------------
@@ -163,44 +163,44 @@ def test_get_company_count_with_filter():
 
 @pytest.mark.django_db
 def test_bust_invalidates_options_cache():
-    a1, _ = Area.objects.get_or_create(name="Tecnología")
-    Company.objects.create(email="a@x.com", name="A", area=a1)
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
     get_filter_options()
 
-    a2, _ = Area.objects.get_or_create(name="Diseño")
-    Company.objects.create(email="b@x.com", name="B", area=a2)
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    Company.objects.create(email="b@x.com", name="b", area=a2)
     bust_filter_caches()
 
     opts = get_filter_options()
-    assert "Diseño" in opts["areas"]
+    assert "diseño" in opts["areas"]
 
 
 @pytest.mark.django_db
 def test_bust_on_company_save():
-    a1, _ = Area.objects.get_or_create(name="Tecnología")
-    Company.objects.create(email="a@x.com", name="A", area=a1)
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
     get_filter_options()
 
-    a2, _ = Area.objects.get_or_create(name="Diseño")
-    Company.objects.create(email="b@x.com", name="B", area=a2)
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    Company.objects.create(email="b@x.com", name="b", area=a2)
 
     opts = get_filter_options()
-    assert "Diseño" in opts["areas"]
+    assert "diseño" in opts["areas"]
 
 
 @pytest.mark.django_db
 def test_bust_on_company_delete():
-    a1, _ = Area.objects.get_or_create(name="Tecnología")
-    c = Company.objects.create(email="a@x.com", name="A", area=a1)
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    c = Company.objects.create(email="a@x.com", name="a", area=a1)
     get_filter_options()
 
     # Deleting a company shouldn't remove the Area from managed taxonomy
     c.delete()
     opts = get_filter_options()
-    assert "Tecnología" in opts["areas"]
+    assert "tecnología" in opts["areas"]
 
     # Deleting the Area itself should remove it from options
     a1.delete()
     bust_filter_caches()
     opts = get_filter_options()
-    assert "Tecnología" not in opts["areas"]
+    assert "tecnología" not in opts["areas"]

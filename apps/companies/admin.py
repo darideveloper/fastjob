@@ -22,16 +22,35 @@ class LocationAdmin(admin.ModelAdmin):
 class XlsxImportForm(forms.Form):
     xlsx_file = forms.FileField(
         label="Archivo Excel (.xlsx)",
-        help_text="Columnas requeridas: name, email. Opcionales: area, location",
+        help_text="Columnas requeridas: empresa, email. Opcionales: actividad, direccion, cp, poblacion, provincia, comunidad, telefono, fax, website",
     )
 
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "area", "location", "last_received_at", "created_at")
-    list_filter = ("area", "location")
-    search_fields = ("name", "email", "area__name", "location__name")
+    list_display = ("name", "email", "area", "location", "province", "created_at")
+    list_filter = ("area", "location", "province", "community")
+    search_fields = ("name", "email", "area__name", "location__name", "address", "website")
     ordering = ("name",)
+    fieldsets = (
+        (None, {
+            "fields": ("name", "email")
+        }),
+        ("Taxonomía", {
+            "fields": ("area", "location")
+        }),
+        ("Ubicación", {
+            "fields": ("address", "zip_code", "province", "community")
+        }),
+        ("Contacto", {
+            "fields": ("phone", "fax", "website")
+        }),
+        ("Metadatos", {
+            "fields": ("last_received_at", "created_at"),
+            "classes": ("collapse",)
+        }),
+    )
+    readonly_fields = ("created_at",)
     change_list_template = "admin/companies/company/change_list.html"
 
     def get_urls(self):
