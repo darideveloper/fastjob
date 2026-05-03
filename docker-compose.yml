@@ -35,7 +35,7 @@ services:
     # Using expose instead of ports prevents Coolify from forcing port suffixes in the UI
     expose:
       - '8000'
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout ${GUNICORN_TIMEOUT:-300}
     environment:
       - SERVICE_FQDN_WEB_8000=${SERVICE_FQDN_WEB_8000:-}
       - SERVICE_URL_WEB_8000=${SERVICE_URL_WEB_8000:-}
@@ -62,7 +62,8 @@ services:
       - SITE_NAME=${SITE_NAME:-FastJob}
       - EMAIL_HOST=${EMAIL_HOST:?EMAIL_HOST must be set}
       - EMAIL_PORT=${EMAIL_PORT:-587}
-      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-False}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER:?EMAIL_HOST_USER must be set}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:?EMAIL_HOST_PASSWORD must be set}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:?DEFAULT_FROM_EMAIL must be set}
@@ -107,6 +108,8 @@ services:
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - EMAIL_HOST=${EMAIL_HOST}
       - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-False}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-False}
       - EMAIL_HOST_USER=${EMAIL_HOST_USER}
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
       - SENTRY_DSN=${SENTRY_DSN}
