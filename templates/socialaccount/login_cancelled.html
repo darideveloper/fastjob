@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Login Cancelled" %} — FastJob{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16 text-center">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div class="text-brand mb-4 flex justify-center">
+      <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-bold mb-2 text-gray-900">Inicio de sesión cancelado</h1>
+    <p class="text-gray-500 mb-8">Has cancelado el proceso de inicio de sesión con tu cuenta social.</p>
+    <a href="{% url 'account_login' %}" class="inline-flex items-center justify-center w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm">
+      Volver a intentar
+    </a>
+  </div>
+</div>
+{% endblock %}

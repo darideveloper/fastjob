@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Signup" %} — FastJob{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-16">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-bold mb-2">Completar registro</h1>
+      <p class="text-gray-500 text-sm">Estás a un paso de comenzar. Por favor, confirma tus datos.</p>
+    </div>
+
+    <form id="signup_form" method="post" action="{% url 'socialaccount_signup' %}" class="space-y-4">
+      {% csrf_token %}
+      
+      {% for field in form %}
+        <div class="space-y-1">
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+            {{ field.label }}
+          </label>
+          {{ field }}
+          {% if field.errors %}
+            {% for error in field.errors %}
+              <p class="text-xs text-red-600 font-medium">{{ error }}</p>
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+      {% endif %}
+
+      <div class="pt-4">
+        <button type="submit" class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm">
+          {% trans "Sign Up" %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  /* Base styles for django form inputs rendered via {{ field }} */
+  input[type="text"], input[type="email"], select, textarea {
+    display: block;
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid #E5E7EB; /* gray-200 */
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: all 0.2s;
+    outline: none;
+  }
+  input[type="text"]:focus, input[type="email"]:focus {
+    border-color: #4F46E5; /* brand */
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  }
+</style>
+{% endblock %}

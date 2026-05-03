@@ -36,7 +36,7 @@
     textInput.autocomplete = 'off';
     textInput.className = [
       'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm',
-      'focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white'
+      'focus:outline-none focus:ring-2 focus:ring-brand-ring bg-white'
     ].join(' ');
     container.appendChild(textInput);
 
@@ -73,7 +73,7 @@
       filtered.forEach(function (opt) {
         var li = document.createElement('li');
         li.textContent = opt;
-        li.className = 'px-3 py-2 text-sm text-gray-800 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer';
+        li.className = 'px-3 py-2 text-sm text-gray-800 hover:bg-brand-soft hover:text-brand-dark cursor-pointer';
         li.addEventListener('mousedown', function (e) {
           e.preventDefault();
           hidden.value = opt;
@@ -107,19 +107,19 @@
 
     textInput.addEventListener('keydown', function (e) {
       var items = dropdown.querySelectorAll('li');
-      var activeEl = dropdown.querySelector('li.bg-indigo-100');
+      var activeEl = dropdown.querySelector('li.bg-brand-muted');
       var idx = Array.from(items).indexOf(activeEl);
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (activeEl) activeEl.classList.remove('bg-indigo-100');
+        if (activeEl) activeEl.classList.remove('bg-brand-muted');
         var next = items[idx + 1] || items[0];
-        if (next) next.classList.add('bg-indigo-100');
+        if (next) next.classList.add('bg-brand-muted');
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (activeEl) activeEl.classList.remove('bg-indigo-100');
+        if (activeEl) activeEl.classList.remove('bg-brand-muted');
         var prev = idx > 0 ? items[idx - 1] : items[items.length - 1];
-        if (prev) prev.classList.add('bg-indigo-100');
+        if (prev) prev.classList.add('bg-brand-muted');
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (activeEl) activeEl.dispatchEvent(new MouseEvent('mousedown'));
