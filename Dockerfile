@@ -14,6 +14,19 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Required for collectstatic to upload to S3 during build
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_STORAGE_BUCKET_NAME
+ARG AWS_S3_ENDPOINT_URL
+ARG STORAGE_AWS
+
+ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
+    AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
+    AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME} \
+    AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL} \
+    STORAGE_AWS=${STORAGE_AWS}
+
 RUN python manage.py collectstatic --noinput
 
 # Non-root runtime user (defence-in-depth against in-container code execution).

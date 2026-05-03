@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from config.storage_backends import PrivateMediaStorage
 
 
 class LowercaseFieldsMixin:
@@ -105,7 +106,7 @@ class CompanyImportBatch(models.Model):
         ("FAILED", "Fallido"),
     )
 
-    file = models.FileField(upload_to="imports/companies/")
+    file = models.FileField(upload_to="imports/companies/", storage=PrivateMediaStorage())
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_count = models.PositiveIntegerField(default=0)
     updated_count = models.PositiveIntegerField(default=0)
