@@ -12,7 +12,7 @@ import pytest
 from django.utils import timezone
 
 from apps.companies.models import Blacklist, Company
-from apps.mailing.engine import TokenExpiredError
+from apps.mailing.engine import TokenExpiredError, TokenRefreshTransientError
 from apps.mailing.models import MailingLog, SystemSettings
 from apps.mailing.tasks import process_mailing_queue
 
@@ -189,6 +189,45 @@ def test_task_does_nothing_without_active_templates(
         process_mailing_queue()
 
     mock_send.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_transient_refresh_error_does_not_pause_campaign(
+    google_linked_user, company, email_template, settings_obj
+):
+    """5xx / 429 / network failures inside the engine must NOT pause the campaign."""
+    with patch(
+        "apps.mailing.tasks.send_cv_email",
+        side_effect=TokenRefreshTransientError("upstream 503"),
+    ), patch("apps.mailing.tasks.send_relink_notification") as mock_relink:
+        process_mailing_queue()
+
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active is True
+    # No credit deducted for a failed send.
+    assert google_linked_user.credits_remaining == 10
+    # Relink email must NOT have been queued.
+    mock_relink.delay.assert_not_called()
+    # The attempt is logged as FAILED with the transient message captured.
+    failed = MailingLog.objects.filter(status=MailingLog.Status.FAILED)
+    assert failed.count() == 1
+    assert "upstream 503" in failed.first().error_message
+
+
+@pytest.mark.django_db
+def test_terminal_refresh_error_pauses_campaign_and_emails_user(
+    google_linked_user, company, email_template, settings_obj
+):
+    """Regression guard: existing TokenExpiredError flow stays intact."""
+    with patch(
+        "apps.mailing.tasks.send_cv_email",
+        side_effect=TokenExpiredError("invalid_grant"),
+    ), patch("apps.mailing.tasks.send_relink_notification") as mock_relink:
+        process_mailing_queue()
+
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active is False
+    mock_relink.delay.assert_called_once_with(google_linked_user.pk)
 
 
 @pytest.mark.django_db

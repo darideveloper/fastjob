@@ -1,99 +1,234 @@
 """
 Mailing engine: sends CVs via user-linked Google or Microsoft OAuth2 accounts.
-Handles token refresh and raises TokenExpiredError when re-auth is needed.
+
+Two failure modes are surfaced to callers:
+
+- ``TokenExpiredError``  — terminal: the refresh token is dead (revoked, expired,
+  scope mismatch). The worker pauses the campaign and asks the user to re-link.
+- ``TokenRefreshTransientError`` — retryable: upstream outage, rate limit, or
+  network blip. The worker should log + skip this user-tick without pausing.
+
+Refresh requests persist any rotated ``refresh_token`` returned by the provider
+(Microsoft rotates on every call; Google rotates rarely). The refresh+save block
+is serialized via ``select_for_update`` so two concurrent workers cannot clobber
+each other's rotated value.
 """
 import base64
 import logging
+import time
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import requests
+from allauth.socialaccount.models import SocialToken
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
 
 class TokenExpiredError(Exception):
-    pass
+    """Refresh failed for a reason the user must act on (re-link required)."""
+
+
+class TokenRefreshTransientError(Exception):
+    """Refresh failed for a reason that will likely succeed on the next tick."""
+
+
+# OAuth-protocol error codes that mean "the refresh token itself is dead."
+# Anything else returned with a 4xx is treated conservatively as terminal too;
+# only HTTP 5xx / 429 / network errors are classified as transient.
+_TERMINAL_OAUTH_ERRORS = frozenset(
+    {"invalid_grant", "invalid_client", "unauthorized_client"}
+)
+
+
+def _classify_refresh_failure(resp_or_exc):
+    """Map a failed refresh response or raised exception to the right exception
+    instance. Returns the exception (caller raises it) so the call sites stay
+    one-liners.
+    """
+    if isinstance(resp_or_exc, (requests.Timeout, requests.ConnectionError)):
+        return TokenRefreshTransientError(f"network error: {resp_or_exc.__class__.__name__}")
+
+    resp = resp_or_exc
+    status = getattr(resp, "status_code", None)
+
+    if status == 429 or (status is not None and 500 <= status < 600):
+        return TokenRefreshTransientError(f"upstream {status}")
+
+    # 4xx with a recognized OAuth-protocol error → terminal.
+    try:
+        err = resp.json().get("error", "unknown") if resp is not None else "unknown"
+    except ValueError:
+        err = "unparseable"
+
+    if status in (401, 403) or err in _TERMINAL_OAUTH_ERRORS:
+        return TokenExpiredError(f"refresh denied: status={status} error={err}")
+
+    # Unknown 4xx — be conservative and treat as terminal so users get notified.
+    return TokenExpiredError(f"refresh failed: status={status} error={err}")
 
 
 def _get_social_token(user):
-    social = user.socialaccount_set.select_related().first()
+    """Return ``(provider, social_account, social_token)`` for the user.
+
+    Selection rule: when a user has linked more than one provider, the most
+    recently linked ``SocialAccount`` (by ``date_joined`` descending) wins. For
+    that account, the most recently saved ``SocialToken`` (by ``id`` descending)
+    is returned. Both orderings are explicit so we never inherit the database's
+    default row order — that has bitten us before with non-deterministic test
+    flakes and surprise provider switches.
+    """
+    social = user.socialaccount_set.order_by("-date_joined").first()
     if not social:
         raise TokenExpiredError("No linked OAuth account found.")
-    token = social.socialtoken_set.first()
+    token = social.socialtoken_set.order_by("-id").first()
     if not token:
         raise TokenExpiredError("No OAuth token found.")
     return social.provider, social, token
 
 
-def _refresh_google_token(token):
+def _log_refresh(provider, user_pk, outcome, latency_ms, rotated):
+    """Emit exactly one structured log record per refresh attempt.
+
+    Token values are never logged — only the metadata operators need to detect
+    rotation regressions and transient-error spikes.
+    """
+    logger.info(
+        "oauth_refresh provider=%s user_pk=%s outcome=%s latency_ms=%s rotated=%s",
+        provider, user_pk, outcome, latency_ms, rotated,
+        extra={
+            "provider": provider,
+            "user_pk": user_pk,
+            "outcome": outcome,
+            "latency_ms": latency_ms,
+            "rotated": rotated,
+        },
+    )
+
+
+def _user_pk_for_token(token):
+    try:
+        return token.account.user_id
+    except Exception:
+        return None
+
+
+def _refresh_token_locked(token, provider, post_url, post_data, post_extra=None):
+    """Common refresh path: lock row, double-check expiry, POST, persist rotation.
+
+    Returns the (possibly cached) access token string. Raises
+    ``TokenExpiredError`` or ``TokenRefreshTransientError`` per the classifier.
+    """
+    user_pk = _user_pk_for_token(token)
+
+    # Cheap path: if the in-memory copy still has comfortable runway, skip the
+    # lock entirely. Saves both a row lock and an HTTP round-trip.
     if token.expires_at and token.expires_at > timezone.now() + timedelta(seconds=60):
+        _log_refresh(provider, user_pk, "hit_cache", 0, False)
         return token.token
 
+    with transaction.atomic():
+        # Re-read under FOR UPDATE so two workers cannot both refresh and clobber
+        # each other's rotated refresh_token.
+        locked = SocialToken.objects.select_for_update().get(pk=token.pk)
+
+        if locked.expires_at and locked.expires_at > timezone.now() + timedelta(seconds=60):
+            # Another worker refreshed this row while we were waiting on the lock.
+            token.token = locked.token
+            token.token_secret = locked.token_secret
+            token.expires_at = locked.expires_at
+            _log_refresh(provider, user_pk, "hit_cache", 0, False)
+            return locked.token
+
+        t0 = time.monotonic()
+        try:
+            resp = requests.post(post_url, data=post_data, timeout=10, **(post_extra or {}))
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            latency_ms = int((time.monotonic() - t0) * 1000)
+            _log_refresh(provider, user_pk, "transient_error", latency_ms, False)
+            raise _classify_refresh_failure(exc) from exc
+
+        latency_ms = int((time.monotonic() - t0) * 1000)
+
+        if resp.status_code != 200:
+            classified = _classify_refresh_failure(resp)
+            outcome = (
+                "transient_error"
+                if isinstance(classified, TokenRefreshTransientError)
+                else "terminal_error"
+            )
+            try:
+                err = resp.json().get("error", "unknown")
+            except ValueError:
+                err = "unparseable"
+            logger.error(
+                "%s token refresh failed: status=%d error=%s",
+                provider.capitalize(), resp.status_code, err,
+            )
+            _log_refresh(provider, user_pk, outcome, latency_ms, False)
+            raise classified
+
+        data = resp.json()
+        rotated = "refresh_token" in data and data["refresh_token"] != locked.token_secret
+
+        locked.token = data["access_token"]
+        locked.expires_at = timezone.now() + timedelta(seconds=data.get("expires_in", 3600))
+        update_fields = ["token", "expires_at"]
+        if "refresh_token" in data:
+            locked.token_secret = data["refresh_token"]
+            update_fields.append("token_secret")
+        locked.save(update_fields=update_fields)
+
+        # Mirror the freshly persisted state onto the caller's in-memory token
+        # so subsequent reads (e.g. send-time diagnostics) stay consistent.
+        token.token = locked.token
+        token.token_secret = locked.token_secret
+        token.expires_at = locked.expires_at
+
+        _log_refresh(
+            provider, user_pk,
+            "rotated" if rotated else "refreshed",
+            latency_ms, rotated,
+        )
+        return locked.token
+
+
+def _refresh_google_token(token):
     provider_settings = settings.SOCIALACCOUNT_PROVIDERS.get("google", {})
     app_conf = provider_settings.get("APP", {})
-
-    resp = requests.post(
-        "https://oauth2.googleapis.com/token",
-        data={
+    return _refresh_token_locked(
+        token,
+        provider="google",
+        post_url="https://oauth2.googleapis.com/token",
+        post_data={
             "client_id": app_conf.get("client_id"),
             "client_secret": app_conf.get("secret"),
             "refresh_token": token.token_secret,
             "grant_type": "refresh_token",
         },
-        timeout=10,
     )
-
-    if resp.status_code != 200:
-        try:
-            err = resp.json().get("error", "unknown")
-        except ValueError:
-            err = "unparseable"
-        logger.error("Google token refresh failed: status=%d error=%s", resp.status_code, err)
-        raise TokenExpiredError("Google token expired and could not be refreshed.")
-
-    data = resp.json()
-    token.token = data["access_token"]
-    token.expires_at = timezone.now() + timedelta(seconds=data.get("expires_in", 3600))
-    token.save(update_fields=["token", "expires_at"])
-    return token.token
 
 
 def _refresh_microsoft_token(token):
-    if token.expires_at and token.expires_at > timezone.now() + timedelta(seconds=60):
-        return token.token
-
     provider_settings = settings.SOCIALACCOUNT_PROVIDERS.get("microsoft", {})
     app_conf = provider_settings.get("APP", {})
-
-    resp = requests.post(
-        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        data={
+    tenant = getattr(settings, "MICROSOFT_TENANT", "common") or "common"
+    return _refresh_token_locked(
+        token,
+        provider="microsoft",
+        post_url=f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+        post_data={
             "client_id": app_conf.get("client_id"),
             "client_secret": app_conf.get("secret"),
             "refresh_token": token.token_secret,
             "grant_type": "refresh_token",
             "scope": "Mail.Send User.Read offline_access",
         },
-        timeout=10,
     )
-
-    if resp.status_code != 200:
-        try:
-            err = resp.json().get("error", "unknown")
-        except ValueError:
-            err = "unparseable"
-        logger.error("Microsoft token refresh failed: status=%d error=%s", resp.status_code, err)
-        raise TokenExpiredError("Microsoft token expired and could not be refreshed.")
-
-    data = resp.json()
-    token.token = data["access_token"]
-    token.expires_at = timezone.now() + timedelta(seconds=data.get("expires_in", 3600))
-    token.save(update_fields=["token", "expires_at"])
-    return token.token
 
 
 def _send_via_gmail(access_token, from_email, to_email, subject, body_html):

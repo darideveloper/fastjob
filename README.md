@@ -50,6 +50,8 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 
 > **Importante:** el ajuste `access_type=offline` + `prompt=consent` ya está configurado en `settings.py`. Sin ello, Google no emite refresh tokens y el motor dejará de funcionar cuando expire el access token (normalmente a la hora).
 
+> **Producción vs Testing:** mientras la pantalla de consentimiento esté en estado **Testing**, los refresh tokens de Google caducan a los **7 días** sin importar la actividad del usuario. Antes de desplegar a producción, mueve la consent screen a **Production**. La variable de entorno `GOOGLE_OAUTH_PROJECT_MODE=testing` hace que `/healthz` emita un warning recordándolo.
+
 ### Microsoft OAuth2 (Graph Mail.Send)
 
 1. Azure Portal → App registrations → New registration.
@@ -57,6 +59,22 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 3. API permissions → Microsoft Graph → Delegated → `Mail.Send`, `User.Read`, `offline_access`.
 4. Certificates & secrets → New client secret → copia el valor inmediatamente.
 5. Copia los valores a `.env` (`MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`).
+6. Si registraste la app como **single-tenant**, fija `MICROSOFT_TENANT=<tu-tenant-guid>` en `.env`. Por defecto el motor usa `common` (multi-tenant + cuentas personales) — usar `common` con una app single-tenant produce un `400 invalid_grant` en cada refresh.
+
+### OAuth — variables operacionales
+
+| Variable | Valor por defecto | Cuándo cambiarla |
+|---|---|---|
+| `GOOGLE_OAUTH_PROJECT_MODE` | `production` | Pon `testing` mientras la consent screen no esté aprobada. `/healthz` mostrará un warning. |
+| `MICROSOFT_TENANT` | `common` | Pon el tenant GUID si la app de Azure es single-tenant. |
+
+Verifica la configuración antes de cada deploy:
+
+```bash
+python manage.py check_oauth_config
+```
+
+Sale con código no-cero si Microsoft no resuelve o Google está caído. Para confirmar que la rotación de refresh tokens funciona en producción, busca en los logs líneas con `outcome=rotated provider=microsoft` después del primer refresh post-deploy.
 
 ### Stripe
 

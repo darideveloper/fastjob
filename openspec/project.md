@@ -48,7 +48,7 @@ FastJob is a Django-based SaaS designed to automate the process of sending CVs t
 
 ## Important Constraints
 - **Deliverability**: Avoid any patterns that look like mass-spam (no attachments, varied templates, slow rate).
-- **OAuth Tokens**: Must handle token refreshing and notify users if tokens expire irrecoverably.
+- **OAuth Tokens**: Long-running token correctness is governed by the OAuth requirements in `specs/mailing/spec.md` — rotated refresh tokens must be persisted (Microsoft rotates on every refresh), transient upstream errors must not pause campaigns, and `GOOGLE_OAUTH_PROJECT_MODE` / `MICROSOFT_TENANT` env vars are surfaced via `/healthz` and `manage.py check_oauth_config`.
 - **Privacy**: CVs are sensitive; access via links must be time-limited and logged.
 
 ## External Dependencies

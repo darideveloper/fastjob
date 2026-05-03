@@ -132,6 +132,15 @@ SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
 
+# OAuth operational guardrails — see openspec/specs/mailing/spec.md.
+# Set GOOGLE_OAUTH_PROJECT_MODE=testing if the Google Cloud OAuth consent screen
+# is still in "Testing" status — the /healthz endpoint will surface a warning so
+# the 7-day refresh-token expiry does not silently brick long-running campaigns.
+GOOGLE_OAUTH_PROJECT_MODE = config("GOOGLE_OAUTH_PROJECT_MODE", default="production")
+# Microsoft tenant segment used in the token endpoint URL. "common" supports
+# multi-tenant + personal accounts; set to a tenant GUID for single-tenant apps.
+MICROSOFT_TENANT = config("MICROSOFT_TENANT", default="common")
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {

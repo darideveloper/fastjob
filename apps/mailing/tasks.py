@@ -14,7 +14,11 @@ from django.utils import timezone
 
 from apps.companies.models import Blacklist
 from apps.companies.queries import matching_companies_qs
-from apps.mailing.engine import TokenExpiredError, send_cv_email
+from apps.mailing.engine import (
+    TokenExpiredError,
+    TokenRefreshTransientError,
+    send_cv_email,
+)
 from apps.mailing.models import EmailTemplate, MailingLog, SystemSettings
 
 logger = logging.getLogger(__name__)
@@ -90,6 +94,16 @@ def process_mailing_queue(self):
             company.save(update_fields=["last_received_at"])
             recently_contacted_ids.add(company.id)
             logger.info("Sent CV: user_pk=%s → company_pk=%s", user.pk, company.pk)
+
+        except TokenRefreshTransientError as exc:
+            # Upstream blip (5xx, 429, network). Do not pause the campaign — the
+            # next beat tick will retry naturally.
+            log.status = MailingLog.Status.FAILED
+            log.error_message = str(exc)
+            log.save(update_fields=["status", "error_message"])
+            logger.warning(
+                "Transient OAuth refresh error for user_pk=%s: %s", user.pk, exc
+            )
 
         except TokenExpiredError as exc:
             log.status = MailingLog.Status.FAILED
