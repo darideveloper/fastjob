@@ -104,7 +104,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SITE_ID = 1
-SITE_DOMAIN = config("SITE_DOMAIN")
+SITE_DOMAIN = config("SITE_DOMAIN", default="localhost")
 SITE_NAME = config("SITE_NAME", default="FastJob")
 # H12: scheme used to build absolute URLs in outbound emails and Stripe
 # return URLs. Decoupled from DEBUG so a developer running with DEBUG=True
@@ -338,7 +338,7 @@ SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)  #
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="http://localhost", cast=Csv())
 
 # Verify essential configuration
 if not ALLOWED_HOSTS or not CSRF_TRUSTED_ORIGINS or not SITE_DOMAIN:
