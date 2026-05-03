@@ -45,8 +45,10 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 2. APIs & Services → Library → habilita **Gmail API**.
 3. APIs & Services → OAuth consent screen → External → añade el scope `https://www.googleapis.com/auth/gmail.send`.
 4. Credentials → Create Credentials → OAuth client ID → Web application.
-5. Authorized redirect URI: `http://localhost:8000/accounts/google/login/callback/`
+5. Authorized redirect URI: `https://fastjob.loca.lt/accounts/google/login/callback/` (Google allows `http://localhost:8000` for local dev, but `https` is required when using `localtunnel`).
 6. Copia `client_id` y `secret` a `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+
+> **Importante:** si usas `localtunnel`, asegúrate de que `TRUST_PROXY_SSL_HEADER=True` está en tu `.env` para que Django genere URLs `https`.
 
 > **Importante:** el ajuste `access_type=offline` + `prompt=consent` ya está configurado en `settings.py`. Sin ello, Google no emite refresh tokens y el motor dejará de funcionar cuando expire el access token (normalmente a la hora).
 
@@ -55,11 +57,13 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 ### Microsoft OAuth2 (Graph Mail.Send)
 
 1. Azure Portal → App registrations → New registration.
-2. Redirect URI: `http://localhost:8000/accounts/microsoft/login/callback/`
+2. Redirect URI: `https://fastjob.loca.lt/accounts/microsoft/login/callback/` (**HTTPS es obligatorio** para Microsoft en dominios que no sean `localhost`).
 3. API permissions → Microsoft Graph → Delegated → `Mail.Send`, `User.Read`, `offline_access`.
 4. Certificates & secrets → New client secret → copia el valor inmediatamente.
 5. Copia los valores a `.env` (`MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`).
 6. Si registraste la app como **single-tenant**, fija `MICROSOFT_TENANT=<tu-tenant-guid>` en `.env`. Por defecto el motor usa `common` (multi-tenant + cuentas personales) — usar `common` con una app single-tenant produce un `400 invalid_grant` en cada refresh.
+
+> **Localtunnel:** Microsoft Entra ID rechazará `http://fastjob.loca.lt`. Debes usar la URL `https` y tener `TRUST_PROXY_SSL_HEADER=True` en tu `.env`.
 
 ### OAuth — variables operacionales
 

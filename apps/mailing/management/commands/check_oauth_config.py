@@ -60,6 +60,15 @@ class Command(BaseCommand):
                 "expire after 7 days."
             ))
 
+        site_domain = getattr(settings, "SITE_DOMAIN", "")
+        site_scheme = getattr(settings, "SITE_SCHEME", "http")
+        if site_scheme == "http" and "localhost" not in site_domain:
+            self.stdout.write(self.style.WARNING(
+                f"WARN SITE_SCHEME=http but SITE_DOMAIN={site_domain}. "
+                "Microsoft OAuth requires HTTPS for non-localhost domains. "
+                "Ensure TRUST_PROXY_SSL_HEADER=True if behind a proxy."
+            ))
+
         if failures:
             for line in failures:
                 self.stderr.write(self.style.ERROR(line))

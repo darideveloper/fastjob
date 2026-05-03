@@ -150,9 +150,17 @@ The `ss -tuln` loop ensures that if you are working on multiple Django projects 
 
 ### Single Domain Access
 By using the subdomain, you avoid "Port Hunting" in your browser. Always access the app via `https://project-name.loca.lt`. This is critical for:
-1. **OAuth2**: Google/Microsoft only allow redirects to authorized domains.
+1. **OAuth2**: Google/Microsoft only allow redirects to authorized domains. **Microsoft requires HTTPS** for all non-localhost domains.
 2. **Webhooks**: Services like Stripe need a public URL to send events.
 3. **Cookies/Sessions**: Prevents cross-project session interference on `localhost`.
+
+### Mandatory HTTPS for OAuth (Microsoft/Google)
+When using `localtunnel`, you are accessing your app via HTTPS, but the proxy (`localtunnel`) forwards traffic to your local port via HTTP. To ensure Django knows it is secure and generates `https://` links for OAuth redirects, you MUST:
+
+1.  **Set `TRUST_PROXY_SSL_HEADER=True`** in your `.env`.
+2.  **Ensure `SECURE_PROXY_SSL_HEADER` is configured** in `settings.py` (this is usually gated by the environment variable).
+
+Without this, Microsoft OAuth will fail with a redirect URI mismatch because Django will generate a `redirect_uri` starting with `http://`.
 
 ### Tmux Usage
 - `Ctrl+b` then `n`: Next window.

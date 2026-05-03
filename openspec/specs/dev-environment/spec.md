@@ -4,12 +4,14 @@
 TBD - created by archiving change add-dev-script. Update Purpose after archive.
 ## Requirements
 ### Requirement: Development Environment Domain Support
-The application MUST support incoming requests from the development localtunnel subdomain (`fastjob.loca.lt`).
+The application MUST support incoming requests from the development localtunnel subdomain (`fastjob.loca.lt`) and correctly handle HTTPS termination.
 
-#### Scenario: A developer runs the application locally and accesses it via localtunnel.
+#### Scenario: A developer initiates Microsoft OAuth login via localtunnel.
 - **Given** the application is running via `localtunnel` at `https://fastjob.loca.lt`
-- **When** the developer accesses the application from that URL
-- **Then** the application accepts the connection without `ALLOWED_HOSTS` errors and validates CSRF requests correctly.
+- **AND** `TRUST_PROXY_SSL_HEADER` is set to `True`
+- **When** the developer clicks "Login with Microsoft"
+- **Then** the generated `redirect_uri` sent to Microsoft MUST use the `https` scheme.
+- **AND** the URI MUST be `https://fastjob.loca.lt/accounts/microsoft/login/callback/`.
 
 ### Requirement: Unified Local Development Script
 The project MUST provide a unified script (`dev.sh`) to start all local development processes.

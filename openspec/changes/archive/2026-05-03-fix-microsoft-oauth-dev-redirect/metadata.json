@@ -1,0 +1,8 @@
+{
+  "id": "fix-microsoft-oauth-dev-redirect",
+  "title": "Fix Microsoft OAuth Redirect URI in Development",
+  "description": "Ensures that Microsoft OAuth redirect URIs use HTTPS when running behind a localtunnel proxy.",
+  "status": "proposed",
+  "author": "Gemini CLI",
+  "created_at": "2026-05-02T10:00:00Z"
+}
