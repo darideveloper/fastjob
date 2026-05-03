@@ -3,7 +3,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
-from apps.companies.models import Company
+from apps.companies.models import Company, Area, Location
 
 
 @pytest.fixture(autouse=True)
@@ -15,27 +15,31 @@ def clear_cache():
 
 @pytest.mark.django_db
 def test_update_filters_valid_area_saves(client, user_with_cv):
-    Company.objects.create(email="hr@a.com", name="A", area="Tecnología", location="Madrid")
+    a, _ = Area.objects.get_or_create(name="Tecnología")
+    l, _ = Location.objects.get_or_create(name="Madrid")
+    Company.objects.create(email="hr@a.com", name="A", area=a, location=l)
     client.force_login(user_with_cv)
     resp = client.post(reverse("update_filters"), {"area_filter": "Tecnología", "location_filter": ""})
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
-    assert user_with_cv.area_filter == "Tecnología"
+    assert user_with_cv.area_filter.name == "Tecnología"
 
 
 @pytest.mark.django_db
 def test_update_filters_invalid_area_rejected(client, user_with_cv):
-    Company.objects.create(email="hr@a.com", name="A", area="Tecnología", location="")
+    a, _ = Area.objects.get_or_create(name="Tecnología")
+    Company.objects.create(email="hr@a.com", name="A", area=a, location=None)
     client.force_login(user_with_cv)
     resp = client.post(reverse("update_filters"), {"area_filter": "Bricolaje", "location_filter": ""})
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
-    assert user_with_cv.area_filter == ""
+    assert user_with_cv.area_filter is None
 
 
 @pytest.mark.django_db
 def test_update_filters_invalid_area_shows_error(client, user_with_cv):
-    Company.objects.create(email="hr@a.com", name="A", area="Tecnología", location="")
+    a, _ = Area.objects.get_or_create(name="Tecnología")
+    Company.objects.create(email="hr@a.com", name="A", area=a, location=None)
     client.force_login(user_with_cv)
     client.post(reverse("update_filters"), {"area_filter": "Fantasía", "location_filter": ""})
     resp = client.get(reverse("dashboard"))
@@ -44,21 +48,23 @@ def test_update_filters_invalid_area_shows_error(client, user_with_cv):
 
 @pytest.mark.django_db
 def test_update_filters_empty_string_clears_filter(client, user_with_cv):
-    user_with_cv.area_filter = "Tecnología"
+    a, _ = Area.objects.get_or_create(name="Tecnología")
+    user_with_cv.area_filter = a
     user_with_cv.save(update_fields=["area_filter"])
-    Company.objects.create(email="hr@a.com", name="A", area="Tecnología", location="")
+    Company.objects.create(email="hr@a.com", name="A", area=a, location=None)
     client.force_login(user_with_cv)
     resp = client.post(reverse("update_filters"), {"area_filter": "", "location_filter": ""})
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
-    assert user_with_cv.area_filter == ""
+    assert user_with_cv.area_filter is None
 
 
 @pytest.mark.django_db
 def test_update_filters_invalid_location_rejected(client, user_with_cv):
-    Company.objects.create(email="hr@a.com", name="A", area="", location="Madrid")
+    l, _ = Location.objects.get_or_create(name="Madrid")
+    Company.objects.create(email="hr@a.com", name="A", area=None, location=l)
     client.force_login(user_with_cv)
     resp = client.post(reverse("update_filters"), {"area_filter": "", "location_filter": "Marte"})
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
-    assert user_with_cv.location_filter == ""
+    assert user_with_cv.location_filter is None

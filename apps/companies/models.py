@@ -2,11 +2,43 @@ from django.db import models
 from django.utils import timezone
 
 
+class Area(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        verbose_name = "Sector"
+        verbose_name_plural = "Sectores"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Location(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        verbose_name = "Localidad"
+        verbose_name_plural = "Localidades"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Company(models.Model):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=300)
-    area = models.CharField(max_length=200, blank=True)
-    location = models.CharField(max_length=200, blank=True)
+    area = models.ForeignKey(
+        Area, on_delete=models.SET_NULL, null=True, blank=True, related_name="companies"
+    )
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="companies",
+    )
     last_received_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

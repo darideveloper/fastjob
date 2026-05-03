@@ -8,40 +8,24 @@ OPTIONS_TTL = 300  # 5 minutes
 COUNT_TTL = 60  # 1 minute
 
 
-def _get_distinct_values(field):
-    from .models import Company
-
-    raw = (
-        Company.objects.exclude(**{field: ""})
-        .values_list(field, flat=True)
-        .distinct()
-    )
-    seen = {}
-    for v in raw:
-        stripped = " ".join(v.split())
-        if not stripped:
-            continue
-        key = stripped.lower()
-        if key not in seen:
-            seen[key] = stripped
-    return sorted(seen.values(), key=str.lower)
-
-
 def get_filter_options():
-    """Return {"areas": [...], "locations": [...]} from DB distinct values, cached 5 min."""
+    """Return {"areas": [...], "locations": [...]} from Managed Taxonomy, cached 5 min."""
+    from .models import Area, Location
+
     cached = cache.get(OPTIONS_CACHE_KEY)
     if cached is not None:
         return cached
+
     result = {
-        "areas": _get_distinct_values("area"),
-        "locations": _get_distinct_values("location"),
+        "areas": list(Area.objects.values_list("name", flat=True).order_by("name")),
+        "locations": list(Location.objects.values_list("name", flat=True).order_by("name")),
     }
     cache.set(OPTIONS_CACHE_KEY, result, OPTIONS_TTL)
     return result
 
 
 def matching_companies_qs(area=None, location=None):
-    """Return a Company QS filtered by area/location using iexact matching.
+    """Return a Company QS filtered by area/location name.
 
     Empty/None values mean 'no filter on that field'. Callers are responsible
     for applying any additional exclusions (blacklist, cooldown, etc.).
@@ -50,9 +34,9 @@ def matching_companies_qs(area=None, location=None):
 
     qs = Company.objects.all()
     if area:
-        qs = qs.filter(area__iexact=area)
+        qs = qs.filter(area__name__iexact=area)
     if location:
-        qs = qs.filter(location__iexact=location)
+        qs = qs.filter(location__name__iexact=location)
     return qs
 
 

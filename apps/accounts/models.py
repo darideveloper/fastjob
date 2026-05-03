@@ -13,8 +13,20 @@ class User(AbstractUser):
     active_cv = models.ForeignKey(
         "accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
-    area_filter = models.CharField(max_length=200, blank=True)
-    location_filter = models.CharField(max_length=200, blank=True)
+    area_filter = models.ForeignKey(
+        "companies.Area",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    location_filter = models.ForeignKey(
+        "companies.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
     stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True)
 
     class Meta:

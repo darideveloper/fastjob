@@ -1,7 +1,7 @@
 import openpyxl
 from django.db import transaction
 
-from .models import Company
+from .models import Company, Area, Location
 from .queries import bust_filter_caches
 
 
@@ -31,6 +31,10 @@ def import_companies_from_xlsx(file_obj):
     created = updated = 0
     errors = []
 
+    # Local cache to avoid excessive DB lookups for taxonomy
+    area_cache = {}
+    location_cache = {}
+
     for row_num, row in enumerate(rows[1:], start=2):
         def get(col):
             idx = header_map.get(col)
@@ -41,6 +45,8 @@ def import_companies_from_xlsx(file_obj):
 
         email = get("email").lower()
         name = get("name")
+        area_name = get("area")
+        location_name = get("location")
 
         if not email or "@" not in email:
             errors.append(f"Fila {row_num}: email inválido '{email}'")
@@ -49,10 +55,22 @@ def import_companies_from_xlsx(file_obj):
             errors.append(f"Fila {row_num}: nombre vacío")
             continue
 
+        area_obj = None
+        if area_name:
+            if area_name not in area_cache:
+                area_cache[area_name], _ = Area.objects.get_or_create(name=area_name)
+            area_obj = area_cache[area_name]
+
+        location_obj = None
+        if location_name:
+            if location_name not in location_cache:
+                location_cache[location_name], _ = Location.objects.get_or_create(name=location_name)
+            location_obj = location_cache[location_name]
+
         defaults = {
             "name": name,
-            "area": get("area"),
-            "location": get("location"),
+            "area": area_obj,
+            "location": location_obj,
         }
         _, is_new = Company.objects.update_or_create(email=email, defaults=defaults)
         if is_new:

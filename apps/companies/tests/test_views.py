@@ -5,7 +5,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
-from apps.companies.models import Company
+from apps.companies.models import Company, Area, Location
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,9 @@ def test_filter_options_anonymous_returns_200(client):
 
 @pytest.mark.django_db
 def test_filter_options_payload_contains_no_identifying_fields(client):
-    Company.objects.create(email="hr@acme.com", name="Acme", area="Tecnología", location="Madrid")
+    a, _ = Area.objects.get_or_create(name="Tecnología")
+    l, _ = Location.objects.get_or_create(name="Madrid")
+    Company.objects.create(email="hr@acme.com", name="Acme", area=a, location=l)
     resp = client.get(reverse("company_filter_options"))
     data = resp.json()
     keys = set(data.keys())
@@ -37,8 +39,12 @@ def test_filter_options_payload_contains_no_identifying_fields(client):
 
 @pytest.mark.django_db
 def test_filter_options_returns_distinct_sorted_values(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="Madrid")
-    Company.objects.create(email="b@x.com", name="B", area="Diseño", location="Barcelona")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    l1, _ = Location.objects.get_or_create(name="Madrid")
+    a2, _ = Area.objects.get_or_create(name="Diseño")
+    l2, _ = Location.objects.get_or_create(name="Barcelona")
+    Company.objects.create(email="a@x.com", name="A", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="B", area=a2, location=l2)
     resp = client.get(reverse("company_filter_options"))
     data = resp.json()
     assert "Tecnología" in data["areas"]
@@ -57,23 +63,31 @@ def test_company_count_anonymous_returns_200(client):
 
 @pytest.mark.django_db
 def test_company_count_no_params_equals_total(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="Madrid")
-    Company.objects.create(email="b@x.com", name="B", area="Diseño", location="Barcelona")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    l1, _ = Location.objects.get_or_create(name="Madrid")
+    a2, _ = Area.objects.get_or_create(name="Diseño")
+    l2, _ = Location.objects.get_or_create(name="Barcelona")
+    Company.objects.create(email="a@x.com", name="A", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="B", area=a2, location=l2)
     resp = client.get(reverse("company_count"))
     assert resp.json()["count"] == 2
 
 
 @pytest.mark.django_db
 def test_company_count_with_valid_area_uses_iexact(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="")
-    Company.objects.create(email="b@x.com", name="B", area="Tecnología Industrial", location="")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    a2, _ = Area.objects.get_or_create(name="Tecnología Industrial")
+    Company.objects.create(email="a@x.com", name="A", area=a1)
+    Company.objects.create(email="b@x.com", name="B", area=a2)
     resp = client.get(reverse("company_count") + "?area=Tecnología")
     assert resp.json()["count"] == 1
 
 
 @pytest.mark.django_db
 def test_company_count_invalid_area_returns_400(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    Company.objects.create(email="a@x.com", name="A", area=a1)
+    # "Bricolaje" doesn't exist in Area model
     resp = client.get(reverse("company_count") + "?area=Bricolaje")
     assert resp.status_code == 400
     assert resp.json() == {"error": "invalid_filter"}
@@ -81,7 +95,9 @@ def test_company_count_invalid_area_returns_400(client):
 
 @pytest.mark.django_db
 def test_company_count_invalid_location_returns_400(client):
-    Company.objects.create(email="a@x.com", name="A", area="", location="Madrid")
+    l1, _ = Location.objects.get_or_create(name="Madrid")
+    Company.objects.create(email="a@x.com", name="A", location=l1)
+    # "Marte" doesn't exist in Location model
     resp = client.get(reverse("company_count") + "?location=Marte")
     assert resp.status_code == 400
     assert resp.json() == {"error": "invalid_filter"}
@@ -89,8 +105,11 @@ def test_company_count_invalid_location_returns_400(client):
 
 @pytest.mark.django_db
 def test_company_count_empty_param_means_no_filter(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="Madrid")
-    Company.objects.create(email="b@x.com", name="B", area="Diseño", location="Madrid")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    l1, _ = Location.objects.get_or_create(name="Madrid")
+    a2, _ = Area.objects.get_or_create(name="Diseño")
+    Company.objects.create(email="a@x.com", name="A", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="B", area=a2, location=l1)
     resp = client.get(reverse("company_count") + "?area=&location=Madrid")
     assert resp.json()["count"] == 2
 
@@ -104,7 +123,8 @@ def test_company_count_response_contains_only_count_key(client):
 
 @pytest.mark.django_db
 def test_company_count_error_response_contains_only_error_key(client):
-    Company.objects.create(email="a@x.com", name="A", area="Tecnología", location="")
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    Company.objects.create(email="a@x.com", name="A", area=a1)
     resp = client.get(reverse("company_count") + "?area=Fake")
     keys = set(resp.json().keys())
     assert keys == {"error"}

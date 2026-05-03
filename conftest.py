@@ -91,12 +91,14 @@ def microsoft_linked_user(user_with_cv):
 
 @pytest.fixture
 def company(db):
-    from apps.companies.models import Company
+    from apps.companies.models import Company, Area, Location
+    area, _ = Area.objects.get_or_create(name="Tecnología")
+    location, _ = Location.objects.get_or_create(name="Madrid")
     return Company.objects.create(
         email="hr@acme.com",
         name="Acme Corp",
-        area="Tecnología",
-        location="Madrid",
+        area=area,
+        location=location,
     )
 
 

@@ -148,32 +148,33 @@
 
       <!-- Filters -->
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 class="font-bold text-lg mb-4">Filtros de búsqueda</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-lg">Filtros de búsqueda</h2>
+          <div class="bg-brand-soft text-brand text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest border border-brand/20">
+            <span data-company-counter>—</span> empresas
+          </div>
+        </div>
         <form method="post" action="{% url 'update_filters' %}" data-filter-widget>
           {% csrf_token %}
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Sector / Área</label>
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Sector / Área</label>
               <div data-combobox="area"
                    data-name="area_filter"
-                   data-value="{{ user.area_filter }}"
+                   data-value="{{ user.area_filter.name|default:'' }}"
                    data-placeholder="Todos los sectores…"></div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Ubicación</label>
               <div data-combobox="location"
                    data-name="location_filter"
-                   data-value="{{ user.location_filter }}"
+                   data-value="{{ user.location_filter.name|default:'' }}"
                    data-placeholder="Todas las ubicaciones…"></div>
             </div>
           </div>
-          <p class="mt-3 text-sm text-gray-500">
-            Empresas que coinciden:
-            <span data-company-counter class="font-semibold text-brand">—</span>
-          </p>
           <button type="submit"
-            class="mt-4 w-full border border-brand text-brand hover:bg-brand-soft font-semibold py-2.5 rounded-xl transition text-sm">
-            Guardar filtros
+            class="mt-6 w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition shadow-md text-sm">
+            Actualizar búsqueda
           </button>
         </form>
       </div>

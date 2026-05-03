@@ -110,33 +110,32 @@
       Selecciona tu sector y ubicación para ver cuántas empresas de nuestra base de datos encajan contigo antes de empezar.
     </p>
 
-    <div class="max-w-lg mx-auto" data-filter-widget>
-      <div class="grid sm:grid-cols-2 gap-4 mb-6">
-        <div class="text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Sector / Área</label>
-          <div data-combobox="area"
-               data-name=""
-               data-value=""
-               data-placeholder="Todos los sectores…"></div>
+    <div class="max-w-3xl mx-auto" data-filter-widget>
+      <div class="bg-gray-50 p-4 sm:p-6 rounded-3xl border border-gray-100 mb-8">
+        <div class="flex flex-col md:flex-row items-end gap-4">
+          <div class="flex-1 text-left w-full">
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Sector / Área</label>
+            <div data-combobox="area"
+                 data-name=""
+                 data-value=""
+                 data-placeholder="Todos los sectores…"></div>
+          </div>
+          <div class="flex-1 text-left w-full">
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Ubicación</label>
+            <div data-combobox="location"
+                 data-name=""
+                 data-value=""
+                 data-placeholder="Todas las ubicaciones…"></div>
+          </div>
+          <div class="w-full md:w-40 text-center bg-white rounded-xl border border-gray-200 py-3 px-4 self-stretch flex flex-col justify-center shadow-sm">
+            <span class="block text-3xl font-black text-brand leading-none" data-company-counter>—</span>
+            <span class="block text-[10px] uppercase tracking-widest font-bold text-gray-400 mt-1">Empresas</span>
+          </div>
         </div>
-        <div class="text-left">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
-          <div data-combobox="location"
-               data-name=""
-               data-value=""
-               data-placeholder="Todas las ubicaciones…"></div>
-        </div>
-      </div>
-
-      <div class="bg-brand-soft rounded-2xl py-8 px-6 mb-6">
-        <p class="text-6xl font-extrabold text-brand mb-1">
-          <span data-company-counter>—</span>
-        </p>
-        <p class="text-gray-600 font-medium">empresas coinciden con tu búsqueda</p>
       </div>
 
       <a href="/payments/paquetes/"
-         class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl transition shadow-lg text-base sm:text-lg">
+         class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-bold px-8 py-4 rounded-xl transition shadow-lg text-lg">
         Ver paquetes y empezar
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

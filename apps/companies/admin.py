@@ -3,8 +3,20 @@ from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
-from .models import Company, Blacklist
+from .models import Company, Blacklist, Area, Location
 from .importers import import_companies_from_xlsx
+
+
+@admin.register(Area)
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+
+
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
 
 
 class XlsxImportForm(forms.Form):
@@ -18,7 +30,7 @@ class XlsxImportForm(forms.Form):
 class CompanyAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "area", "location", "last_received_at", "created_at")
     list_filter = ("area", "location")
-    search_fields = ("name", "email", "area", "location")
+    search_fields = ("name", "email", "area__name", "location__name")
     ordering = ("name",)
     change_list_template = "admin/companies/company/change_list.html"
 

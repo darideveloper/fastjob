@@ -44,7 +44,10 @@ def test_import_creates_new_companies():
 
 @pytest.mark.django_db
 def test_import_updates_existing_by_email():
-    Company.objects.create(email="hr@acme.com", name="Old Name", area="Old", location="Old")
+    from apps.companies.models import Area, Location
+    old_area, _ = Area.objects.get_or_create(name="Old")
+    old_loc, _ = Location.objects.get_or_create(name="Old")
+    Company.objects.create(email="hr@acme.com", name="Old Name", area=old_area, location=old_loc)
     f = make_xlsx(
         ["name", "email", "area", "location"],
         [["Acme", "hr@acme.com", "Tech", "Madrid"]],
@@ -54,7 +57,7 @@ def test_import_updates_existing_by_email():
     assert updated == 1
     c = Company.objects.get(email="hr@acme.com")
     assert c.name == "Acme"
-    assert c.area == "Tech"
+    assert c.area.name == "Tech"
 
 
 @pytest.mark.django_db

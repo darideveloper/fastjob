@@ -113,25 +113,33 @@ def delete_cv(request, cv_id):
 @login_required
 @require_POST
 def update_filters(request):
+    from apps.companies.models import Area, Location
     from apps.companies.queries import get_filter_options
 
     user = request.user
-    area = request.POST.get("area_filter", "").strip()
-    location = request.POST.get("location_filter", "").strip()
+    area_name = request.POST.get("area_filter", "").strip()
+    location_name = request.POST.get("location_filter", "").strip()
 
     options = get_filter_options()
     allowed_areas = {a.lower() for a in options["areas"]}
     allowed_locations = {loc.lower() for loc in options["locations"]}
 
-    if area and area.lower() not in allowed_areas:
-        messages.error(request, "Sector no válido. Selecciona una opción de la lista.")
-        return redirect("dashboard")
-    if location and location.lower() not in allowed_locations:
-        messages.error(request, "Ubicación no válida. Selecciona una opción de la lista.")
-        return redirect("dashboard")
+    area_obj = None
+    if area_name:
+        if area_name.lower() not in allowed_areas:
+            messages.error(request, "Sector no válido. Selecciona una opción de la lista.")
+            return redirect("dashboard")
+        area_obj = Area.objects.get(name__iexact=area_name)
 
-    user.area_filter = area
-    user.location_filter = location
+    location_obj = None
+    if location_name:
+        if location_name.lower() not in allowed_locations:
+            messages.error(request, "Ubicación no válida. Selecciona una opción de la lista.")
+            return redirect("dashboard")
+        location_obj = Location.objects.get(name__iexact=location_name)
+
+    user.area_filter = area_obj
+    user.location_filter = location_obj
     user.save(update_fields=["area_filter", "location_filter"])
     messages.success(request, "Filtros actualizados.")
     return redirect("dashboard")
@@ -214,8 +222,8 @@ def _serialize_user(user):
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "credits_remaining": user.credits_remaining,
         "is_campaign_active": user.is_campaign_active,
-        "area_filter": user.area_filter,
-        "location_filter": user.location_filter,
+        "area_filter": user.area_filter.name if user.area_filter else None,
+        "location_filter": user.location_filter.name if user.location_filter else None,
         "stripe_customer_id": user.stripe_customer_id or None,
         "active_cv_id": user.active_cv_id,
         "linked_provider": user.linked_provider,
