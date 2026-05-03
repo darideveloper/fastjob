@@ -36,7 +36,56 @@ Gunicorn (3 workers)    ◄── Docker service: web
 
 ---
 
-## 1. Server setup
+## Deploying to Coolify (One-Click)
+
+FastJob is optimized for [Coolify](https://coolify.io), a self-hosted PaaS. The project includes a "one-click ready" `docker-compose.yml` that handles SSL, reverse proxying, and service discovery automatically.
+
+### 1. Import the repository
+1.  In Coolify, go to **Resources** -> **New Resource**.
+2.  Select **Public Repository** or **Private Repository**.
+3.  Enter the URL of this repository.
+4.  Coolify will automatically detect the `docker-compose.yml` and its metadata.
+
+### 2. Configure Environment Variables
+Upon import, Coolify will parse the `environment` sections and prompt you for the following mandatory variables (marked with a red border in the UI):
+
+| Variable | Description |
+|---|---|
+| `SECRET_KEY` | A long, random string for Django security. |
+| `AWS_ACCESS_KEY_ID` | DigitalOcean Spaces access key. |
+| `AWS_SECRET_ACCESS_KEY` | DigitalOcean Spaces secret key. |
+| `AWS_STORAGE_BUCKET_NAME` | Your S3-compatible bucket name. |
+| `STRIPE_PUBLIC_KEY` | Stripe frontend key (`pk_live_...`). |
+| `STRIPE_SECRET_KEY` | Stripe backend key (`sk_live_...`). |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret. |
+| `EMAIL_HOST` | Your SMTP server (e.g., `smtp.gmail.com`). |
+| `EMAIL_HOST_USER` | SMTP username. |
+| `EMAIL_HOST_PASSWORD` | SMTP password or App Password. |
+| `DEFAULT_FROM_EMAIL` | The "From" address for system notifications. |
+| `FLOWER_BASIC_AUTH` | Credentials for the Flower dashboard (`user:password`). |
+
+**Coolify Magic Variables:**
+The following are handled automatically by Coolify and do not require manual entry:
+- `SERVICE_FQDN_WEB_8000`: Your dynamic deployment domain (e.g., `fastjob.es`).
+- `SERVICE_URL_WEB_8000`: Your dynamic deployment URL with protocol (e.g., `https://fastjob.es`).
+- `SERVICE_USER_POSTGRES` & `SERVICE_PASSWORD_POSTGRES`: Generated database credentials.
+- `COOLIFY_VOLUME_POSTGRES_DATA`: Managed persistent storage for the database.
+
+### 3. Deploy
+Click **Deploy**. Coolify will build the image, provision the PostgreSQL and Redis containers, and start the stack.
+
+### 4. Post-Deployment Setup
+Once the `web` container is healthy, run the initialization commands via the Coolify terminal or `docker exec`:
+
+```bash
+python manage.py migrate
+python manage.py setup_periodic_tasks
+python manage.py createsuperuser
+```
+
+---
+
+## Deploying to VPS (Manual Docker Compose)
 
 ```bash
 # On the server

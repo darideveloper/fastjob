@@ -1,61 +1,148 @@
-version: '3.9'
+# documentation: https://docs.fastjob.es
+# slogan: Self-hosted job application automation.
+# category: Productivity
+# tags: django, automation, job-search
+# port: 8000
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: fastjob
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-fastjob}
+      POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-postgres}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '9001:5432'
+      - ${COOLIFY_VOLUME_POSTGRES_DATA:-postgres_data}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
     restart: unless-stopped
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
-    volumes:
-      - .:/app
-    ports:
-      - '8000:8000'
-    env_file: .env
+    environment:
+      - SERVICE_FQDN_WEB_8000
+      - SERVICE_URL_WEB_8000
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=$${SERVICE_FQDN_WEB_8000},localhost,127.0.0.1
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/${POSTGRES_DB:-fastjob}
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_REDIS_URL=redis://redis:6379/1
+      - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-4}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:?AWS_STORAGE_BUCKET_NAME must be set}
+      - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME:-nyc3}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL:-https://nyc3.digitaloceanspaces.com}
+      - AWS_S3_CUSTOM_DOMAIN=${AWS_S3_CUSTOM_DOMAIN:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_OAUTH_PROJECT_MODE=${GOOGLE_OAUTH_PROJECT_MODE:-production}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID:-}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET:-}
+      - MICROSOFT_TENANT=${MICROSOFT_TENANT:-common}
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:?STRIPE_PUBLIC_KEY must be set}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY must be set}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET must be set}
+      - SITE_DOMAIN=$${SERVICE_FQDN_WEB_8000}
+      - SITE_SCHEME=https
+      - SITE_NAME=${SITE_NAME:-FastJob}
+      - EMAIL_HOST=${EMAIL_HOST:?EMAIL_HOST must be set}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:?EMAIL_HOST_USER must be set}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:?EMAIL_HOST_PASSWORD must be set}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:?DEFAULT_FROM_EMAIL must be set}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-True}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-True}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-True}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-True}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-False}
+      - TRUST_PROXY_SSL_HEADER=True
+      - CSRF_TRUSTED_ORIGINS=$${SERVICE_URL_WEB_8000}
+      - RATELIMIT_ENABLE=${RATELIMIT_ENABLE:-True}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   celery_worker:
     build: .
     restart: unless-stopped
     command: celery -A config worker -l info -c ${CELERY_WORKER_CONCURRENCY:-4}
-    volumes:
-      - .:/app
-    env_file: .env
+    environment:
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/${POSTGRES_DB:-fastjob}
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_REDIS_URL=redis://redis:6379/1
+      - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-4}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID:-}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   celery_beat:
     build: .
     restart: unless-stopped
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    volumes:
-      - .:/app
-    env_file: .env
+    environment:
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/${POSTGRES_DB:-fastjob}
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_REDIS_URL=redis://redis:6379/1
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-  # Optional queue/task inspector. NEVER expose port 5555 to the public
-  # internet — put it behind Nginx with HTTP Basic auth or IP restrict.
   flower:
     build: .
     restart: unless-stopped
@@ -64,11 +151,12 @@ services:
       --port=5555
       --url_prefix=flower
       --basic_auth=${FLOWER_BASIC_AUTH:?FLOWER_BASIC_AUTH must be set (format user:password)}
-    ports:
-      - '127.0.0.1:5555:5555'
-    env_file: .env
+    environment:
+      - SERVICE_URL_FLOWER_5555
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

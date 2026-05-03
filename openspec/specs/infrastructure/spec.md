@@ -1,28 +1,33 @@
 # infrastructure Specification
 
 ## Purpose
-TBD - created by archiving change standardize-env-vars. Update Purpose after archive.
-## Requirements
-### Requirement: Tunable Celery Worker Concurrency
-The system SHALL allow operators to configure the number of concurrent worker processes via the `CELERY_WORKER_CONCURRENCY` environment variable. This value MUST be passed to the Celery worker command in the containerized environment.
+Define the requirements for deploying the FastJob application to various environments (Production, Staging, PaaS). It ensures consistency in proxying, security headers, and service orchestration.
 
-#### Scenario: Operator increases worker concurrency
-- **GIVEN** the `celery_worker` service is running in Docker
-- **WHEN** the `CELERY_WORKER_CONCURRENCY` environment variable is set to `8`
-- **THEN** the Celery worker process starts with `--concurrency=8` (or `-c 8`)
+## ADDED Requirements
 
-### Requirement: Standardized Environment Variable Templates
-The project MUST maintain a synchronized `.env.example` file and deployment documentation (`docs/deploy.md`) that include all required and optional environment variables used by the application, including OAuth project modes and site metadata.
+### Requirement: Coolify One-Click Compatibility
+The infrastructure configuration MUST support automated deployment on Coolify with zero manual file editing.
 
-#### Scenario: New developer sets up the project
-- **WHEN** a developer copies `.env.example` to `.env`
-- **THEN** they find placeholders for `GOOGLE_OAUTH_PROJECT_MODE`, `MICROSOFT_TENANT`, and `SITE_NAME`, allowing them to configure these without digging into `settings.py`.
+#### Scenario: A user imports the repository into Coolify.
+- **Given** the user has a Coolify instance
+- **When** they import the FastJob repository
+- **Then** Coolify MUST automatically identify the `docker-compose.yml`
+- **AND** the configuration MUST use `SERVICE_URL_*` variables for proxying.
+- **AND** all database/redis connections MUST use internal service discovery.
 
-### Requirement: Redundant Database Configuration for Backups
-The system MUST support both a unified `DATABASE_URL` for application connectivity and individual `DB_*` variables for system-level backup utilities (`pg_dump`). Both sets MUST be documented as required for production environments.
+### Requirement: Health-Aware Orchestration
+Services MUST wait for their dependencies to be fully ready (healthy) before starting.
 
-#### Scenario: Production backup script execution
-- **GIVEN** the production `.env` contains both `DATABASE_URL` and `DB_PASSWORD`
-- **WHEN** `scripts/backup_db.sh` is executed
-- **THEN** it successfully connects to the database using the individual `DB_*` variables.
+#### Scenario: The stack is started via Docker Compose.
+- **When** `docker compose up` is executed
+- **Then** the `db` and `redis` services MUST perform healthchecks.
+- **AND** the `web` and `celery` services MUST NOT start until `db` and `redis` report a `healthy` status.
 
+### Requirement: Dynamic Host Security
+Application security headers (ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS) MUST dynamically adapt to the deployment URL.
+
+#### Scenario: The application is deployed to a dynamic Coolify subdomain.
+- **Given** Coolify assigns `https://fastjob-xyz.coolify.io` to the `web` service
+- **When** the application starts
+- **Then** `ALLOWED_HOSTS` MUST include `fastjob-xyz.coolify.io`.
+- **AND** `CSRF_TRUSTED_ORIGINS` MUST include `https://fastjob-xyz.coolify.io`.
