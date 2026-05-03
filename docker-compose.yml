@@ -15,7 +15,7 @@ services:
     volumes:
       - ${COOLIFY_VOLUME_POSTGRES_DATA:-postgres_data}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,6 +32,9 @@ services:
   web:
     build: .
     restart: unless-stopped
+    # The 'ports' section tells Coolify to unlock the Domain input in the UI
+    ports:
+      - '8000'
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
     environment:
       - SERVICE_FQDN_WEB_8000
@@ -87,7 +90,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/healthz"]
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:8000/healthz']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -146,12 +149,16 @@ services:
   flower:
     build: .
     restart: unless-stopped
+    # Exposing the port here allows you to assign a dedicated subdomain to Flower
+    ports:
+      - '5555'
     command: >
       celery -A config flower
       --port=5555
       --url_prefix=flower
       --basic_auth=${FLOWER_BASIC_AUTH:?FLOWER_BASIC_AUTH must be set (format user:password)}
     environment:
+      - SERVICE_FQDN_FLOWER_5555
       - SERVICE_URL_FLOWER_5555
       - REDIS_URL=redis://redis:6379/0
     depends_on:
