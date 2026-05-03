@@ -3,7 +3,7 @@ from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
-from .models import Company, Blacklist, Area, Location
+from .models import Company, Blacklist, Area, Location, CompanyImportBatch
 from .importers import import_companies_from_xlsx
 
 
@@ -64,11 +64,9 @@ class CompanyAdmin(admin.ModelAdmin):
         if request.method == "POST":
             form = XlsxImportForm(request.POST, request.FILES)
             if form.is_valid():
-                created, updated, errors = import_companies_from_xlsx(request.FILES["xlsx_file"])
-                if errors:
-                    for err in errors[:10]:
-                        messages.warning(request, err)
-                messages.success(request, f"Importación completada: {created} creadas, {updated} actualizadas.")
+                batch = CompanyImportBatch.objects.create(file=request.FILES["xlsx_file"])
+                process_company_import.delay(batch.id)
+                messages.success(request, "La importación ha comenzado en segundo plano. Puedes revisar el estado en la lista de Importaciones de Empresas.")
                 return redirect("..")
         else:
             form = XlsxImportForm()
@@ -87,3 +85,9 @@ class BlacklistAdmin(admin.ModelAdmin):
     search_fields = ("email",)
     list_filter = ("reason",)
     ordering = ("-added_at",)
+
+@admin.register(CompanyImportBatch)
+class CompanyImportBatchAdmin(admin.ModelAdmin):
+    list_display = ("id", "status", "created_count", "updated_count", "created_at")
+    list_filter = ("status", "created_at")
+    readonly_fields = ("status", "created_count", "updated_count", "error_log", "created_at", "updated_at")

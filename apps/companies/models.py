@@ -95,3 +95,29 @@ class Blacklist(LowercaseFieldsMixin, models.Model):
 
     def __str__(self):
         return self.email
+
+
+class CompanyImportBatch(models.Model):
+    STATUS_CHOICES = (
+        ("PENDING", "Pendiente"),
+        ("PROCESSING", "Procesando"),
+        ("COMPLETED", "Completado"),
+        ("FAILED", "Fallido"),
+    )
+
+    file = models.FileField(upload_to="imports/companies/")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    created_count = models.PositiveIntegerField(default=0)
+    updated_count = models.PositiveIntegerField(default=0)
+    error_log = models.JSONField(default=list, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Importación de Empresas"
+        verbose_name_plural = "Importaciones de Empresas"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Importación {self.id} - {self.get_status_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"

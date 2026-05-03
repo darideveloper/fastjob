@@ -5,6 +5,8 @@ Why this matters: this is the single entry point for hundreds of companies at
 a time. A silent bug here = bad data seeding the whole mailing system.
 """
 from io import BytesIO
+import os
+import tempfile
 
 import openpyxl
 import pytest
@@ -14,16 +16,16 @@ from apps.companies.models import Company
 
 
 def make_xlsx(headers, rows):
-    """Build an in-memory .xlsx for the importer to consume."""
+    """Build a temporary .xlsx file on disk for the importer to consume."""
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(headers)
     for row in rows:
         ws.append(row)
-    buf = BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return buf
+    fd, path = tempfile.mkstemp(suffix=".xlsx")
+    os.close(fd)
+    wb.save(path)
+    return path
 
 
 @pytest.mark.django_db
@@ -106,12 +108,13 @@ def test_import_fails_gracefully_without_required_headers():
 @pytest.mark.django_db
 def test_import_handles_empty_file():
     wb = openpyxl.Workbook()
-    buf = BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    created, updated, errors = import_companies_from_xlsx(buf)
+    fd, path = tempfile.mkstemp(suffix=".xlsx")
+    os.close(fd)
+    wb.save(path)
+    created, updated, errors = import_companies_from_xlsx(path)
     assert created == 0
     assert updated == 0
+    os.remove(path)
 
 
 @pytest.mark.django_db
