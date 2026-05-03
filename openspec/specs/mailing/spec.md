@@ -3,31 +3,22 @@
 ## Purpose
 TBD - created by archiving change add-company-filter-finder. Update Purpose after archive.
 ## Requirements
-### Requirement: Exact-Match Filter Semantics in Mailing Engine
-The slow-drip mailing engine SHALL match a user's `area_filter` and `location_filter` against `Company.area` and `Company.location` using case-insensitive **exact** equality, not substring matching. An empty filter value MUST mean "no filter on that field". The engine MUST source its eligible-company queryset from the same shared helper used by the dashboard's live counter, so that the two cannot drift.
+### Requirement: Mailing Engine Token Refresh
+The mailing engine MUST use credentials from the `SocialApp` database model for all OAuth2 token refresh operations. This ensures that credential updates in the database take immediate effect for background tasks.
 
-#### Scenario: Substring matches no longer leak across categories
-- **GIVEN** a user with `area_filter = "Tecnología"`
-- **AND** a `Company` with `area = "Tecnología Industrial"` exists in the database
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine does NOT consider that company as a match
-- **AND** the engine only considers companies whose `area` is exactly `"Tecnología"` (case-insensitive)
+#### Scenario: Token refresh retrieves credentials from DB
+- **GIVEN** a valid `SocialApp` record exists for the provider (e.g., 'google') with correct `client_id` and `secret`.
+- **AND** a user's `SocialToken` is expired.
+- **WHEN** the mailing engine attempts to refresh the token.
+- **THEN** it MUST query the `SocialApp` table for the provider's credentials.
+- **AND** use those credentials in the POST request to the provider's token endpoint.
+- **AND** the refresh succeeds if the credentials match the provider's records.
 
-#### Scenario: Case-insensitive exact match still applies
-- **GIVEN** a user with `area_filter = "tecnología"` (lowercase)
-- **AND** a `Company` with `area = "Tecnología"` (capitalized) exists in the database
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine considers that company as a match
-
-#### Scenario: Empty filter means "no filter"
-- **GIVEN** a user with `area_filter = ""` and `location_filter = "Madrid"`
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine considers all non-blacklisted, not-recently-contacted companies whose `location` is exactly `"Madrid"` (case-insensitive), regardless of `area`
-
-#### Scenario: Engine queryset matches the dashboard counter
-- **GIVEN** the dashboard counter reads `N` for a user's current filter pair
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine's eligible-company queryset for that user (before per-user cooldown is applied) has size `N`
+#### Scenario: Missing SocialApp record raises error
+- **GIVEN** no `SocialApp` record exists for a linked provider.
+- **WHEN** the mailing engine attempts a token refresh.
+- **THEN** it MUST raise a `TokenExpiredError` (or similar) indicating that the OAuth configuration is missing.
+- **AND** the error message MUST specify the missing provider.
 
 ### Requirement: One-Time Normalization of Existing User Filters
 On deployment of the exact-match semantics, a forward-only data migration SHALL normalize every existing user's `area_filter` and `location_filter`. Any value that does not appear (case-insensitively, after stripping whitespace) in the current `Company.area` / `Company.location` distinct set MUST be cleared to the empty string. Values that do appear MUST be preserved unchanged.

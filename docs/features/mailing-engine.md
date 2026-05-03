@@ -186,8 +186,8 @@ Tokens have two lifespans:
 
 ```python
 response = requests.post("https://oauth2.googleapis.com/token", data={
-    "client_id": GOOGLE_CLIENT_ID,
-    "client_secret": GOOGLE_CLIENT_SECRET,
+    "client_id": client_id, # from SocialApp
+    "client_secret": secret, # from SocialApp
     "refresh_token": token.token_secret,  # allauth stores refresh here
     "grant_type": "refresh_token",
 })

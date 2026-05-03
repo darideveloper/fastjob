@@ -46,7 +46,7 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 3. APIs & Services → OAuth consent screen → External → añade el scope `https://www.googleapis.com/auth/gmail.send`.
 4. Credentials → Create Credentials → OAuth client ID → Web application.
 5. Authorized redirect URI: `https://fastjob.loca.lt/accounts/google/login/callback/` (Google allows `http://localhost:8000` for local dev, but `https` is required when using `localtunnel`).
-6. Copia `client_id` y `secret` a `.env` (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+6. Añade los credentials al modelo `SocialApp` en Django Admin.
 
 > **Importante:** si usas `localtunnel`, asegúrate de que `TRUST_PROXY_SSL_HEADER=True` está en tu `.env` para que Django genere URLs `https`.
 

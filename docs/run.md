@@ -178,7 +178,7 @@ To test the actual login flow locally:
 2. OAuth consent screen → External → add `https://www.googleapis.com/auth/gmail.send` scope.
 3. Credentials → Create OAuth 2.0 Client ID → Web application.
 4. Authorized redirect URI: `http://localhost:8000/accounts/google/login/callback/`
-5. Copy client ID + secret → `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` in `.env`.
+5. Add the client ID + secret via Django Admin -> Social Applications.
 6. Restart the dev server.
 
 For Microsoft, see [`features/authentication.md`](features/authentication.md).

@@ -143,10 +143,6 @@ MICROSOFT_TENANT = config("MICROSOFT_TENANT", default="common")
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "APP": {
-            "client_id": config("GOOGLE_CLIENT_ID", default=""),
-            "secret": config("GOOGLE_CLIENT_SECRET", default=""),
-        },
         "SCOPE": [
             "openid",
             "email",
@@ -157,10 +153,6 @@ SOCIALACCOUNT_PROVIDERS = {
         "FETCH_USERINFO": True,
     },
     "microsoft": {
-        "APP": {
-            "client_id": config("MICROSOFT_CLIENT_ID", default=""),
-            "secret": config("MICROSOFT_CLIENT_SECRET", default=""),
-        },
         "SCOPE": ["Mail.Send", "User.Read", "offline_access"],
         "AUTH_PARAMS": {"prompt": "consent"},
     },

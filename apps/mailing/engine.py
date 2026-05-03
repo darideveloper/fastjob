@@ -21,7 +21,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import requests
-from allauth.socialaccount.models import SocialToken
+from allauth.socialaccount.models import SocialApp, SocialToken
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -197,16 +197,22 @@ def _refresh_token_locked(token, provider, post_url, post_data, post_extra=None)
         return locked.token
 
 
+def _get_social_app(provider):
+    app = SocialApp.objects.filter(provider=provider).first()
+    if not app:
+        raise TokenExpiredError(f"SocialApp configuration missing for {provider}.")
+    return app.client_id, app.secret
+
+
 def _refresh_google_token(token):
-    provider_settings = settings.SOCIALACCOUNT_PROVIDERS.get("google", {})
-    app_conf = provider_settings.get("APP", {})
+    client_id, secret = _get_social_app("google")
     return _refresh_token_locked(
         token,
         provider="google",
         post_url="https://oauth2.googleapis.com/token",
         post_data={
-            "client_id": app_conf.get("client_id"),
-            "client_secret": app_conf.get("secret"),
+            "client_id": client_id,
+            "client_secret": secret,
             "refresh_token": token.token_secret,
             "grant_type": "refresh_token",
         },
@@ -214,16 +220,15 @@ def _refresh_google_token(token):
 
 
 def _refresh_microsoft_token(token):
-    provider_settings = settings.SOCIALACCOUNT_PROVIDERS.get("microsoft", {})
-    app_conf = provider_settings.get("APP", {})
+    client_id, secret = _get_social_app("microsoft")
     tenant = getattr(settings, "MICROSOFT_TENANT", "common") or "common"
     return _refresh_token_locked(
         token,
         provider="microsoft",
         post_url=f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
         post_data={
-            "client_id": app_conf.get("client_id"),
-            "client_secret": app_conf.get("secret"),
+            "client_id": client_id,
+            "client_secret": secret,
             "refresh_token": token.token_secret,
             "grant_type": "refresh_token",
             "scope": "Mail.Send User.Read offline_access",

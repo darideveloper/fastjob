@@ -380,11 +380,7 @@ All variables from `.env.example` explained:
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `GOOGLE_CLIENT_ID` | Yes (for Google) | OAuth app client ID |
-| `GOOGLE_CLIENT_SECRET` | Yes (for Google) | OAuth app secret |
 | `GOOGLE_OAUTH_PROJECT_MODE` | No | `production` or `testing` |
-| `MICROSOFT_CLIENT_ID` | Yes (for Microsoft) | OAuth app client ID |
-| `MICROSOFT_CLIENT_SECRET` | Yes (for Microsoft) | OAuth app secret |
 | `MICROSOFT_TENANT` | No | Default: `common` |
 
 ### Stripe

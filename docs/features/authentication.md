@@ -202,7 +202,7 @@ def grant_signup_bonus(sender, request, user, **kwargs):
 4. Authorized redirect URI:
    - Local: `http://localhost:8000/accounts/google/login/callback/`
    - Prod: `https://<your-domain>/accounts/google/login/callback/`
-5. Copy client ID + secret into `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+5. Add the credentials to the `SocialApp` model via Django Admin.
 
 ### Microsoft OAuth app setup
 
@@ -213,16 +213,11 @@ def grant_signup_bonus(sender, request, user, **kwargs):
    - `User.Read`
    - `offline_access`
 4. Certificates & secrets → New client secret → **copy the value immediately** (it's shown once).
-5. Fill `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` in `.env`.
+5. Add the client ID + secret via Django Admin -> Social Applications.
 
 ### Env vars (summary)
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `GOOGLE_CLIENT_ID` | Yes (for Google users) | OAuth client identifier |
-| `GOOGLE_CLIENT_SECRET` | Yes (for Google users) | OAuth client secret |
-| `MICROSOFT_CLIENT_ID` | Yes (for MS users) | OAuth client identifier |
-| `MICROSOFT_CLIENT_SECRET` | Yes (for MS users) | OAuth client secret |
+(OAuth credentials are now managed via Django Admin's `SocialApp` model.)
 
 ---
 
@@ -248,6 +243,10 @@ Auth flows are **not** unit-tested end-to-end (would require mocking Google's se
 ## Related docs
 
 - [`mailing-engine.md`](mailing-engine.md) — how the stored tokens are actually used to send email.
+- [`notifications.md`](notifications.md) — what happens when tokens expire.
+- [`security.md`](security.md) — token-storage threat model.
+- [`user-dashboard.md`](user-dashboard.md) — what the user sees after login.
+ stored tokens are actually used to send email.
 - [`notifications.md`](notifications.md) — what happens when tokens expire.
 - [`security.md`](security.md) — token-storage threat model.
 - [`user-dashboard.md`](user-dashboard.md) — what the user sees after login.
