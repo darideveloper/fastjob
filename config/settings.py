@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-changeme-in-production")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
 # Fail-closed: refuse to boot in production with the placeholder SECRET_KEY.
 if not DEBUG and SECRET_KEY.startswith("django-insecure"):
@@ -105,7 +105,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SITE_ID = 1
-SITE_DOMAIN = config("SITE_DOMAIN", default="localhost:8000")
+SITE_DOMAIN = config("SITE_DOMAIN")
 SITE_NAME = config("SITE_NAME", default="FastJob")
 # H12: scheme used to build absolute URLs in outbound emails and Stripe
 # return URLs. Decoupled from DEBUG so a developer running with DEBUG=True
@@ -285,7 +285,12 @@ SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)  #
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 X_FRAME_OPTIONS = "DENY"
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="https://fastjob.loca.lt,http://fastjob.loca.lt", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
+
+# Verify essential configuration
+if not ALLOWED_HOSTS or not CSRF_TRUSTED_ORIGINS or not SITE_DOMAIN:
+    raise ImproperlyConfigured("ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, and SITE_DOMAIN must be set.")
+
 
 # Tells Django it's behind a TLS-terminating proxy (DO App Platform, Heroku, Nginx).
 if config("TRUST_PROXY_SSL_HEADER", default=False, cast=bool):

@@ -17,50 +17,43 @@ This document describes how to implement a unified development script (`dev.sh`)
 
 ## 🚀 Overview
 
-The goal is to start all project services (Django, Celery, Frontend, Tunnels) with a single command and access the application via a persistent, secure URL like `https://project-name.loca.lt`.
+The goal is to provide a seamless local development environment. While `localtunnel` is useful for external webhooks, for daily development we recommend using `fastjob.localhost` which resolves natively to `127.0.0.1` and avoids external dependencies.
 
 ## 📦 Prerequisites
 
 Ensure the following are installed on the development machine:
 - **`tmux`**: Terminal multiplexer for managing background processes.
-- **`localtunnel`**: Exposes local ports to the internet (`npm install -g localtunnel`).
+- **`localtunnel`**: Only required if exposing for external webhooks/OAuth.
 - **`python-decouple`**: For managing environment-based settings in Django.
 
 ---
 
 ## 🛠️ Step 1: Django Configuration
 
-To allow traffic from the localtunnel subdomain, update `settings.py`.
+To allow traffic, update `settings.py`. Note that hardcoded defaults have been removed to enforce explicit configuration.
 
-### `project/settings.py`
+### `config/settings.py`
 
 ```python
 from decouple import config, Csv
 
-# ALLOWED_HOSTS must include the localtunnel domain
-ALLOWED_HOSTS = config(
-    "ALLOWED_HOSTS", 
-    default="localhost,127.0.0.1,project-name.loca.lt", 
-    cast=Csv()
-)
+# ALLOWED_HOSTS must be set in .env
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 
-# CSRF_TRUSTED_ORIGINS is required for secure requests via the tunnel
-CSRF_TRUSTED_ORIGINS = config(
-    "CSRF_TRUSTED_ORIGINS", 
-    default="https://project-name.loca.lt,http://project-name.loca.lt", 
-    cast=Csv()
-)
+# CSRF_TRUSTED_ORIGINS is required for secure requests
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=Csv())
 ```
 
 ---
 
 ## ⚙️ Step 2: Environment Variables
 
-Update `.env.example` to provide the correct defaults for team members.
+Update `.env` to include `fastjob.localhost`.
 
 ```env
-ALLOWED_HOSTS=localhost,127.0.0.1,project-name.loca.lt
-CSRF_TRUSTED_ORIGINS=https://project-name.loca.lt
+ALLOWED_HOSTS=localhost,127.0.0.1,fastjob.localhost
+CSRF_TRUSTED_ORIGINS=http://fastjob.localhost:8000,https://fastjob.localhost
+SITE_DOMAIN=fastjob.localhost:8000
 ```
 
 ---
