@@ -292,23 +292,28 @@ All variables from `.env.example` explained:
 | `SECRET_KEY` | Yes | Cryptographic signing for sessions, CSRF, tokens |
 | `DEBUG` | Yes | Must be `False` in production |
 | `ALLOWED_HOSTS` | Yes | Comma-separated list of valid host headers |
+| `SITE_DOMAIN` | Yes | Your domain (e.g., `fastjob.es`) |
+| `SITE_NAME` | No | Default: `FastJob` |
+| `SITE_SCHEME` | No | Default: `https` |
 
 ### Database
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DB_NAME` | Yes | Database name |
-| `DB_USER` | Yes | Database user |
-| `DB_PASSWORD` | Yes | Database password |
-| `DB_HOST` | Yes | Database host |
+| `DATABASE_URL` | Yes | Unified connection string for Django |
+| `DB_NAME` | Yes | Database name (required for backups) |
+| `DB_USER` | Yes | Database user (required for backups) |
+| `DB_PASSWORD` | Yes | Database password (required for backups) |
+| `DB_HOST` | Yes | Database host (required for backups) |
 | `DB_PORT` | No | Default: `5432` |
 
-### Redis
+### Redis / Celery
 
 | Variable | Required | Purpose |
 |---|---|---|
 | `REDIS_URL` | Yes | Celery broker + result backend (db 0) |
 | `CACHE_REDIS_URL` | Yes | Django cache + rate limiting (db 1) |
+| `CELERY_WORKER_CONCURRENCY` | No | Default: `4` |
 
 ### DigitalOcean Spaces
 
@@ -320,6 +325,7 @@ All variables from `.env.example` explained:
 | `AWS_S3_REGION_NAME` | Yes | Region (e.g. `nyc3`, `ams3`) |
 | `AWS_S3_ENDPOINT_URL` | Yes | `https://<region>.digitaloceanspaces.com` |
 | `AWS_S3_CUSTOM_DOMAIN` | No | CDN domain if using Spaces CDN |
+| `BACKUP_BUCKET` | Yes | Bucket for database backups |
 
 ### OAuth
 
@@ -327,8 +333,10 @@ All variables from `.env.example` explained:
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | Yes (for Google) | OAuth app client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes (for Google) | OAuth app secret |
+| `GOOGLE_OAUTH_PROJECT_MODE` | No | `production` or `testing` |
 | `MICROSOFT_CLIENT_ID` | Yes (for Microsoft) | OAuth app client ID |
 | `MICROSOFT_CLIENT_SECRET` | Yes (for Microsoft) | OAuth app secret |
+| `MICROSOFT_TENANT` | No | Default: `common` |
 
 ### Stripe
 

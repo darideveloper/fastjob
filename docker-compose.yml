@@ -35,7 +35,7 @@ services:
   celery_worker:
     build: .
     restart: unless-stopped
-    command: celery -A config worker -l info -c 4
+    command: celery -A config worker -l info -c ${CELERY_WORKER_CONCURRENCY:-4}
     volumes:
       - .:/app
     env_file: .env
