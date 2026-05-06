@@ -1,7 +1,7 @@
 import openpyxl
 from django.db import transaction
 
-from .models import Company, Area, Location
+from .models import Blacklist, Company, Area, Location
 from .queries import bust_filter_caches
 
 
@@ -13,7 +13,7 @@ def import_companies_from_xlsx(file_path):
     Parse an .xlsx file and bulk-upsert Company rows.
     Expected columns (Spanish): empresa, email, actividad, direccion, cp, poblacion,
     provincia, comunidad, telefono, fax, website.
-    Returns (created, updated, errors) counts.
+    Returns (created, updated, errors, blacklisted_skipped) counts.
     """
     wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
     ws = wb.active
@@ -22,17 +22,23 @@ def import_companies_from_xlsx(file_path):
     try:
         first_row = next(rows_iter)
     except StopIteration:
-        return 0, 0, ["El archivo está vacío."]
+        return 0, 0, ["El archivo está vacío."], 0
 
     raw_headers = [str(h).strip().lower() if h else "" for h in first_row]
     header_map = {h: i for i, h in enumerate(raw_headers) if h}
 
     missing = EXPECTED_HEADERS - set(header_map.keys())
     if missing:
-        return 0, 0, [f"Columnas requeridas faltantes: {', '.join(missing)}"]
+        return 0, 0, [f"Columnas requeridas faltantes: {', '.join(missing)}"], 0
 
     created = updated = 0
+    blacklisted_skipped = 0
     errors = []
+
+    blacklisted_set = set(Blacklist.objects.values_list("email", flat=True))
+    # Track distinct blacklisted emails actually seen in this file so duplicates
+    # in dirty exports do not inflate the operator-visible counter.
+    seen_blacklisted = set()
 
     # Local cache to avoid excessive DB lookups for taxonomy
     area_cache = {}
@@ -94,6 +100,10 @@ def import_companies_from_xlsx(file_path):
                 "fax": fax,
                 "website": website,
             }
+            if email in blacklisted_set and email not in seen_blacklisted:
+                blacklisted_skipped += 1
+                seen_blacklisted.add(email)
+
             _, is_new = Company.objects.update_or_create(email=email, defaults=defaults)
             if is_new:
                 created += 1
@@ -103,4 +113,4 @@ def import_companies_from_xlsx(file_path):
     wb.close()
     # Bust once per import on transaction commit rather than once per row via signals.
     transaction.on_commit(bust_filter_caches)
-    return created, updated, errors
+    return created, updated, errors, blacklisted_skipped

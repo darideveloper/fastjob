@@ -758,3 +758,144 @@ def test_locked_recheck_short_circuits_when_other_worker_already_refreshed(
     mock_post.assert_not_called()
     # B returned the value A had persisted, not its stale in-memory one.
     assert result == "A-refreshed-this"
+
+
+# ===========================================================================
+# harden-unsubscribe-flow — List-Unsubscribe header tests
+# ===========================================================================
+
+@pytest.mark.django_db
+def test_send_emits_list_unsubscribe_headers_gmail(google_linked_user, company, email_template):
+    """MIME sent to Gmail must contain both RFC 2369 / RFC 8058 unsubscribe headers."""
+    log = MailingLog.objects.create(
+        user=google_linked_user,
+        company=company,
+        email_template=email_template,
+    )
+
+    with patch("apps.mailing.engine.requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+        send_cv_email(google_linked_user, company, email_template, log)
+
+    import base64
+    from email import message_from_string
+    from django.conf import settings
+
+    raw = mock_post.call_args.kwargs["json"]["raw"]
+    raw_padded = raw + "=" * (-len(raw) % 4)
+    mime_text = base64.urlsafe_b64decode(raw_padded).decode()
+    msg = message_from_string(mime_text)
+
+    expected_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/unsubscribe/{log.unsubscribe_token}/"
+    # MIME header values may be RFC 2822 folded (leading \n + whitespace for long values).
+    assert msg["List-Unsubscribe"].strip() == f"<{expected_url}>"
+    assert msg["List-Unsubscribe-Post"].strip() == "List-Unsubscribe=One-Click"
+
+
+@pytest.mark.django_db
+def test_send_emits_list_unsubscribe_headers_outlook(microsoft_linked_user, company, email_template):
+    """Graph payload must include internetMessageHeaders with both unsubscribe headers."""
+    log = MailingLog.objects.create(
+        user=microsoft_linked_user,
+        company=company,
+        email_template=email_template,
+    )
+
+    with patch("apps.mailing.engine.requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=202)
+        send_cv_email(microsoft_linked_user, company, email_template, log)
+
+    from django.conf import settings
+
+    payload = mock_post.call_args.kwargs["json"]
+    headers = {h["name"]: h["value"] for h in payload["message"]["internetMessageHeaders"]}
+
+    expected_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/unsubscribe/{log.unsubscribe_token}/"
+    assert headers["List-Unsubscribe"] == f"<{expected_url}>"
+    assert headers["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
+
+
+# ---------------------------------------------------------------------------
+# Graph fallback path — once-per-process WARNING, prefixed-header retry success
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_graph_fallback_succeeds_after_400(
+    microsoft_linked_user, company, email_template, monkeypatch
+):
+    """A 400 on the first Graph POST must trigger an x-prefixed retry that succeeds."""
+    import apps.mailing.engine as engine_module
+    monkeypatch.setattr(engine_module, "_graph_fallback_warned", False)
+
+    log = MailingLog.objects.create(
+        user=microsoft_linked_user, company=company, email_template=email_template
+    )
+
+    responses = [
+        MagicMock(status_code=400, text="header rejected"),
+        MagicMock(status_code=202),
+    ]
+
+    with patch("apps.mailing.engine.requests.post", side_effect=responses) as mock_post:
+        send_cv_email(microsoft_linked_user, company, email_template, log)
+
+    # Original sendMail + retry. (Token refresh short-circuits via the cache.)
+    assert mock_post.call_count == 2
+
+    retry_payload = mock_post.call_args_list[1].kwargs["json"]
+    headers = {h["name"]: h["value"] for h in retry_payload["message"]["internetMessageHeaders"]}
+    assert "x-list-unsubscribe" in headers
+    assert "x-list-unsubscribe-post" in headers
+    # Unprefixed names must be absent on the retry — Graph rejected them.
+    assert "List-Unsubscribe" not in headers
+    assert "List-Unsubscribe-Post" not in headers
+
+
+@pytest.mark.django_db
+def test_graph_fallback_warning_emitted_once_per_process(
+    microsoft_linked_user, company, email_template, caplog, monkeypatch
+):
+    """Repeated Graph fallbacks within a single process must emit exactly one WARNING.
+
+    Spec: `Repeated Graph fallbacks do NOT spam WARNING logs` — the retry happens
+    on every fallback, but the WARNING is gated by a process-level latch.
+    """
+    import logging as _logging
+    import apps.mailing.engine as engine_module
+    monkeypatch.setattr(engine_module, "_graph_fallback_warned", False)
+
+    log1 = MailingLog.objects.create(
+        user=microsoft_linked_user, company=company, email_template=email_template
+    )
+    log2 = MailingLog.objects.create(
+        user=microsoft_linked_user, company=company, email_template=email_template
+    )
+
+    # Two consecutive sends, each taking the 400-then-202 fallback path.
+    responses = [
+        MagicMock(status_code=400, text="header rejected"),
+        MagicMock(status_code=202),
+        MagicMock(status_code=400, text="header rejected"),
+        MagicMock(status_code=202),
+    ]
+
+    caplog.set_level(_logging.WARNING, logger="apps.mailing.engine")
+
+    with patch("apps.mailing.engine.requests.post", side_effect=responses) as mock_post:
+        send_cv_email(microsoft_linked_user, company, email_template, log1)
+        send_cv_email(microsoft_linked_user, company, email_template, log2)
+
+    # 4 POSTs total: (sendMail, retry) × 2 sends. Both sends succeed end-to-end.
+    assert mock_post.call_count == 4
+
+    fallback_warnings = [
+        r for r in caplog.records
+        if r.levelno == _logging.WARNING and "Graph rejected" in r.getMessage()
+    ]
+    assert len(fallback_warnings) == 1, (
+        f"Expected exactly one WARNING across both fallback sends, got {len(fallback_warnings)}"
+    )
+    rec = fallback_warnings[0]
+    assert rec.provider == "microsoft"
+    assert rec.status == 400
+    assert rec.fallback == "x-prefix"

@@ -29,6 +29,13 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+# Process-level latch: the Microsoft Graph "unprefixed List-Unsubscribe rejected"
+# fallback emits exactly one WARNING per worker process, regardless of how many
+# subsequent sends take the same fallback path. Without this gate every send
+# floods the log when a tenant persistently rejects the unprefixed header.
+_graph_fallback_warned = False
+
+
 class TokenExpiredError(Exception):
     """Refresh failed for a reason the user must act on (re-link required)."""
 
@@ -236,11 +243,14 @@ def _refresh_microsoft_token(token):
     )
 
 
-def _send_via_gmail(access_token, from_email, to_email, subject, body_html):
+def _send_via_gmail(access_token, from_email, to_email, subject, body_html, unsubscribe_url=None):
     msg = MIMEMultipart("alternative")
     msg["To"] = to_email
     msg["From"] = from_email
     msg["Subject"] = subject
+    if unsubscribe_url:
+        msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+        msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
     msg.attach(MIMEText(body_html, "html", "utf-8"))
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
@@ -256,23 +266,54 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html):
         raise Exception(f"Gmail API error {resp.status_code}: {resp.text}")
 
 
-def _send_via_microsoft(access_token, to_email, subject, body_html):
+def _send_via_microsoft(access_token, to_email, subject, body_html, unsubscribe_url=None):
+    message = {
+        "subject": subject,
+        "body": {"contentType": "HTML", "content": body_html},
+        "toRecipients": [{"emailAddress": {"address": to_email}}],
+    }
+    if unsubscribe_url:
+        message["internetMessageHeaders"] = [
+            {"name": "List-Unsubscribe", "value": f"<{unsubscribe_url}>"},
+            {"name": "List-Unsubscribe-Post", "value": "List-Unsubscribe=One-Click"},
+        ]
+
     resp = requests.post(
         "https://graph.microsoft.com/v1.0/me/sendMail",
         headers={
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         },
-        json={
-            "message": {
-                "subject": subject,
-                "body": {"contentType": "HTML", "content": body_html},
-                "toRecipients": [{"emailAddress": {"address": to_email}}],
-            },
-            "saveToSentItems": False,
-        },
+        json={"message": message, "saveToSentItems": False},
         timeout=15,
     )
+
+    if resp.status_code == 400 and unsubscribe_url:
+        # Fallback: some tenant configurations reject unprefixed header names.
+        # The retry must happen on every fallback, but the WARNING is gated to
+        # once-per-process so persistent-fallback tenants don't flood the log.
+        global _graph_fallback_warned
+        if not _graph_fallback_warned:
+            logger.warning(
+                "Graph rejected List-Unsubscribe headers; retrying with x- prefix",
+                extra={
+                    "provider": "microsoft",
+                    "status": resp.status_code,
+                    "fallback": "x-prefix",
+                },
+            )
+            _graph_fallback_warned = True
+        for hdr in message.get("internetMessageHeaders", []):
+            hdr["name"] = "x-" + hdr["name"].lower()
+        resp = requests.post(
+            "https://graph.microsoft.com/v1.0/me/sendMail",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json={"message": message, "saveToSentItems": False},
+            timeout=15,
+        )
 
     if resp.status_code not in (200, 202):
         raise Exception(f"Microsoft Graph error {resp.status_code}: {resp.text}")
@@ -305,11 +346,11 @@ def send_cv_email(user, company, template, log):
     if provider == "google":
         access_token = _refresh_google_token(token)
         from_email = user.email
-        _send_via_gmail(access_token, from_email, company.email, subject, body_html)
+        _send_via_gmail(access_token, from_email, company.email, subject, body_html, unsubscribe_url)
 
     elif provider == "microsoft":
         access_token = _refresh_microsoft_token(token)
-        _send_via_microsoft(access_token, company.email, subject, body_html)
+        _send_via_microsoft(access_token, company.email, subject, body_html, unsubscribe_url)
 
     else:
         raise ValueError(f"Unsupported provider: {provider}")

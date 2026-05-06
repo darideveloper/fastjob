@@ -12,7 +12,7 @@ import openpyxl
 import pytest
 
 from apps.companies.importers import import_companies_from_xlsx
-from apps.companies.models import Company
+from apps.companies.models import Blacklist, Company
 
 
 def make_xlsx(headers, rows):
@@ -37,10 +37,11 @@ def test_import_creates_new_companies():
             ["Beta", "jobs@beta.io", "Design", "Barcelona"],
         ],
     )
-    created, updated, errors = import_companies_from_xlsx(f)
+    created, updated, errors, blacklisted_skipped = import_companies_from_xlsx(f)
     assert created == 2
     assert updated == 0
     assert errors == []
+    assert blacklisted_skipped == 0
     assert Company.objects.count() == 2
     assert Company.objects.get(email="hr@acme.com").name == "acme"
 
@@ -53,7 +54,7 @@ def test_import_with_spanish_headers_and_splitting():
             ["KIKO MILANO", "0383@stores.com", "COSMETICOS: ESTABLECIMIENTOS", "TORREVIEJA", "HABANERAS"],
         ],
     )
-    created, updated, errors = import_companies_from_xlsx(f)
+    created, updated, errors, _ = import_companies_from_xlsx(f)
     assert created == 1
     assert errors == []
     c = Company.objects.get(email="0383@stores.com")
@@ -73,7 +74,7 @@ def test_import_updates_existing_by_email():
         ["empresa", "email", "actividad", "poblacion"],
         [["Acme", "hr@acme.com", "Tech", "Madrid"]],
     )
-    created, updated, _ = import_companies_from_xlsx(f)
+    created, updated, _, _skip = import_companies_from_xlsx(f)
     assert created == 0
     assert updated == 1
     c = Company.objects.get(email="hr@acme.com")
@@ -91,7 +92,7 @@ def test_import_skips_rows_with_bad_email():
             ["No Email", ""],
         ],
     )
-    created, _, errors = import_companies_from_xlsx(f)
+    created, _, errors, _skip = import_companies_from_xlsx(f)
     assert created == 1
     assert len(errors) == 2  # one for "not-an-email", one for empty
 
@@ -99,7 +100,7 @@ def test_import_skips_rows_with_bad_email():
 @pytest.mark.django_db
 def test_import_fails_gracefully_without_required_headers():
     f = make_xlsx(["empresa"], [["Only Name"]])  # missing email column
-    created, updated, errors = import_companies_from_xlsx(f)
+    created, updated, errors, _skip = import_companies_from_xlsx(f)
     assert created == 0
     assert updated == 0
     assert errors  # should report the missing column
@@ -111,7 +112,7 @@ def test_import_handles_empty_file():
     fd, path = tempfile.mkstemp(suffix=".xlsx")
     os.close(fd)
     wb.save(path)
-    created, updated, errors = import_companies_from_xlsx(path)
+    created, updated, errors, _skip = import_companies_from_xlsx(path)
     assert created == 0
     assert updated == 0
     os.remove(path)
@@ -125,3 +126,58 @@ def test_import_is_case_insensitive_for_email():
     )
     import_companies_from_xlsx(f)
     assert Company.objects.filter(email="hr@acme.com").exists()
+
+
+@pytest.mark.django_db
+def test_importer_counts_blacklisted_rows():
+    """Verifies the distinct-blacklisted-email count: each unique blacklisted
+    address in the file contributes 1 to the counter, and blacklisted Company
+    rows are still upserted so a future blacklist removal doesn't lose data.
+    """
+    Blacklist.objects.create(email="blacklisted@acme.com")
+    Blacklist.objects.create(email="also@blocked.com")
+
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["Acme", "blacklisted@acme.com"],
+            ["Blocked", "also@blocked.com"],
+            ["Normal", "normal@company.com"],
+        ],
+    )
+    created, updated, errors, blacklisted_skipped = import_companies_from_xlsx(f)
+
+    assert blacklisted_skipped == 2
+    assert created == 3  # all rows are still written to Company
+    assert errors == []
+    assert Company.objects.filter(email="blacklisted@acme.com").exists()
+    assert Company.objects.filter(email="also@blocked.com").exists()
+
+
+@pytest.mark.django_db
+def test_importer_counts_distinct_blacklisted_emails():
+    """Duplicate blacklisted emails in the input must count as ONE skip.
+
+    Dirty exports often repeat the same address with mixed casing or stray
+    whitespace. The counter tracks distinct emails, not raw rows — otherwise
+    operators see inflated numbers that don't reconcile against
+    `Company.objects.filter(email__in=Blacklist...).count()`.
+    """
+    Blacklist.objects.create(email="contact@kiko.es")
+
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["Kiko Store 1", "contact@kiko.es"],
+            ["Kiko Store 2", "Contact@KIKO.es"],
+            ["Kiko Store 3", "  contact@kiko.es  "],
+        ],
+    )
+    created, updated, errors, blacklisted_skipped = import_companies_from_xlsx(f)
+
+    assert blacklisted_skipped == 1
+    # The unique constraint on Company.email collapses the three rows into
+    # one upsert — first row creates, the next two update.
+    assert Company.objects.filter(email="contact@kiko.es").count() == 1
+    assert created + updated == 3
+    assert errors == []

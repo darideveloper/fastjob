@@ -88,6 +88,6 @@ class BlacklistAdmin(admin.ModelAdmin):
 
 @admin.register(CompanyImportBatch)
 class CompanyImportBatchAdmin(admin.ModelAdmin):
-    list_display = ("id", "status", "created_count", "updated_count", "created_at")
+    list_display = ("id", "status", "created_count", "updated_count", "blacklisted_skipped", "created_at")
     list_filter = ("status", "created_at")
-    readonly_fields = ("status", "created_count", "updated_count", "error_log", "created_at", "updated_at")
+    readonly_fields = ("status", "created_count", "updated_count", "blacklisted_skipped", "error_log", "created_at", "updated_at")

@@ -60,7 +60,9 @@ flowchart TB
 
     C -->|click download link| V
     V -->|pre-signed URL| S
-    C -->|click unsubscribe| V
+    C -->|GET unsubscribe link| V
+    V -->|render confirm form| C
+    C -->|POST confirm form| V
     V -->|insert Blacklist row| DB
 ```
 
@@ -146,7 +148,7 @@ flowchart LR
     Stripe -->|TLS + HMAC signature| Django
 ```
 
-- **Public endpoints** (`/cv/<uuid>/`, `/unsubscribe/<uuid>/`): rate-limited by IP, token is the only authentication.
+- **Public endpoints** (`/cv/<uuid>/`, `/unsubscribe/<uuid>/`): rate-limited by IP, token is the only authentication. The unsubscribe URL uses a **two-step flow**: `GET` renders a confirmation page (no state change — prevents email-client pre-fetch scanners from silently blacklisting recipients), and `POST` commits the unsubscribe. The view is `@csrf_exempt` because the recipient has no session; the UUID token in the URL is the authentication factor. The same POST endpoint is also the RFC 8058 one-click unsubscribe target included in `List-Unsubscribe` / `List-Unsubscribe-Post` email headers.
 - **User endpoints** (`/dashboard/*`): session cookie, CSRF protected.
 - **Admin endpoints** (`/admin/*`): `is_staff=True` gate, additional CSRF, no public exposure recommended.
 - **Webhook endpoint** (`/payments/webhook/`): signature-verified via `stripe.Webhook.construct_event`. No other auth.

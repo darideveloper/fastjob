@@ -144,6 +144,7 @@ class MailingLog(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.SENT)
     error_message = models.TextField(blank=True)
     company_email_snapshot = models.EmailField(blank=True)
+    unsubscribed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Registro de Envío"

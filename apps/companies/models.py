@@ -97,6 +97,16 @@ class Blacklist(LowercaseFieldsMixin, models.Model):
     def __str__(self):
         return self.email
 
+    @classmethod
+    def add(cls, email, reason="unsubscribe"):
+        normalized = (email or "").strip().lower()
+        if not normalized:
+            raise ValueError("empty email")
+        return cls.objects.get_or_create(
+            email=normalized,
+            defaults={"reason": reason, "added_at": timezone.now()},
+        )
+
 
 class CompanyImportBatch(models.Model):
     STATUS_CHOICES = (
@@ -110,6 +120,7 @@ class CompanyImportBatch(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_count = models.PositiveIntegerField(default=0)
     updated_count = models.PositiveIntegerField(default=0)
+    blacklisted_skipped = models.IntegerField(default=0)
     error_log = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

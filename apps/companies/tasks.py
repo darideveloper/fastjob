@@ -25,14 +25,15 @@ def process_company_import(batch_id):
             tmp.flush()
 
             # Process the local file
-            created, updated, errors = import_companies_from_xlsx(tmp.name)
+            created, updated, errors, blacklisted_skipped = import_companies_from_xlsx(tmp.name)
 
         batch.created_count = created
         batch.updated_count = updated
+        batch.blacklisted_skipped = blacklisted_skipped
         batch.error_log = errors
         batch.status = "COMPLETED"
     except Exception as e:
         batch.status = "FAILED"
         batch.error_log = [f"Error del sistema: {str(e)}", traceback.format_exc()]
 
-    batch.save(update_fields=["status", "created_count", "updated_count", "error_log", "updated_at"])
+    batch.save(update_fields=["status", "created_count", "updated_count", "blacklisted_skipped", "error_log", "updated_at"])
