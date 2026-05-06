@@ -10,7 +10,7 @@
     Las empresas existentes se actualizarán por email.
   </p>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="import-form">
     {% csrf_token %}
     <fieldset class="module aligned">
       <div class="form-row">
@@ -26,10 +26,81 @@
         </div>
       </div>
     </fieldset>
+
+    <div id="progress-container" style="display:none; margin: 1rem 0;">
+      <p style="margin-bottom: 0.4rem; color: #666;" id="progress-label">Subiendo archivo… <span id="progress-pct">0%</span></p>
+      <progress id="progress-bar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
+      <p id="processing-label" style="display:none; margin-top: 0.4rem; color: #666;">Guardando en el servidor, por favor espera…</p>
+    </div>
+
     <div class="submit-row">
-      <input type="submit" value="Importar" class="default"/>
-      <a href=".." class="closelink">Cancelar</a>
+      <input type="submit" value="Importar" class="default" id="submit-btn"/>
+      <a href=".." class="closelink" id="cancel-link">Cancelar</a>
     </div>
   </form>
 </div>
+
+<script>
+document.getElementById("import-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  var form = this;
+  var submitBtn = document.getElementById("submit-btn");
+  var cancelLink = document.getElementById("cancel-link");
+  var progressContainer = document.getElementById("progress-container");
+  var progressBar = document.getElementById("progress-bar");
+  var progressPct = document.getElementById("progress-pct");
+  var progressLabel = document.getElementById("progress-label");
+  var processingLabel = document.getElementById("processing-label");
+
+  submitBtn.disabled = true;
+  submitBtn.value = "Subiendo…";
+  cancelLink.style.pointerEvents = "none";
+  cancelLink.style.opacity = "0.4";
+  progressContainer.style.display = "block";
+
+  var xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener("progress", function (evt) {
+    if (evt.lengthComputable) {
+      var pct = Math.round((evt.loaded / evt.total) * 100);
+      progressBar.value = pct;
+      progressPct.textContent = pct + "%";
+    }
+  });
+
+  xhr.upload.addEventListener("loadend", function () {
+    // Browser has finished sending — server is now saving to S3
+    progressLabel.style.display = "none";
+    progressBar.style.display = "none";
+    processingLabel.style.display = "block";
+  });
+
+  xhr.addEventListener("load", function () {
+    if (xhr.status >= 200 && xhr.status < 400) {
+      // Django redirects on success — follow it
+      window.location.href = xhr.responseURL || "..";
+    } else {
+      submitBtn.disabled = false;
+      submitBtn.value = "Importar";
+      cancelLink.style.pointerEvents = "";
+      cancelLink.style.opacity = "";
+      progressContainer.style.display = "none";
+      alert("Error al subir el archivo. Por favor inténtalo de nuevo.");
+    }
+  });
+
+  xhr.addEventListener("error", function () {
+    submitBtn.disabled = false;
+    submitBtn.value = "Importar";
+    cancelLink.style.pointerEvents = "";
+    cancelLink.style.opacity = "";
+    progressContainer.style.display = "none";
+    alert("Error de red. Por favor inténtalo de nuevo.");
+  });
+
+  xhr.open("POST", form.action || window.location.href);
+  xhr.send(new FormData(form));
+});
+</script>
 {% endblock %}

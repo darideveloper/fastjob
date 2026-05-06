@@ -29,12 +29,13 @@ CACHES = {
 # Rate limiting off during tests — we test it explicitly when needed.
 RATELIMIT_ENABLE = False
 
-# No real file uploads.
-DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
-
-# Plain static-files storage — the production manifest storage needs a
-# `collectstatic` run before it can resolve URLs, which we skip in tests.
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+# No real file uploads; plain static-files storage (avoids collectstatic).
+# "private" alias is required by CV.file (storage="private").
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "private": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+}
 
 # Capture emails in memory.
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

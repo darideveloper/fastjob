@@ -9,7 +9,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import F
+from django.db.models import Count, F, Q
 from django.utils import timezone
 
 from apps.companies.models import Blacklist
@@ -32,13 +32,23 @@ def process_mailing_queue(self):
     cfg = SystemSettings.get()
     send_interval = timedelta(minutes=cfg.global_send_interval_minutes)
     cooldown = timedelta(hours=cfg.company_cooldown_hours)
+    daily_limit = cfg.max_emails_per_day_per_user
     now = timezone.now()
     cooldown_threshold = now - cooldown
+    day_threshold = now - timedelta(hours=24)
 
     active_users = User.objects.filter(
         is_campaign_active=True,
         credits_remaining__gt=0,
         active_cv__isnull=False,
+    ).annotate(
+        sent_last_24h=Count(
+            "mailing_logs",
+            filter=Q(
+                mailing_logs__status=MailingLog.Status.SENT,
+                mailing_logs__sent_at__gte=day_threshold,
+            ),
+        )
     )
 
     blacklisted_emails = set(Blacklist.objects.values_list("email", flat=True))
@@ -50,6 +60,9 @@ def process_mailing_queue(self):
     )
 
     for user in active_users:
+        if user.sent_last_24h >= daily_limit:
+            continue
+
         last_log = (
             MailingLog.objects.filter(user=user, status=MailingLog.Status.SENT)
             .order_by("-sent_at")

@@ -74,7 +74,7 @@ flowchart TB
 |---|---|---|
 | `apps/accounts` | Custom `User` model (extends `AbstractUser`), signup bonus signal, allauth adapter. | `models.py`, `signals.py`, `adapters.py` |
 | `apps/companies` | `Company` + `Blacklist` models, Excel importer, admin import view. | `models.py`, `importers.py`, `admin.py` |
-| `apps/mailing` | Core. `EmailTemplate`, `MailingLog`, `SystemSettings` (singleton), Celery task, engine, rate-limit middleware, public views (CV download + unsubscribe). | `tasks.py`, `engine.py`, `views.py`, `middleware.py` |
+| `apps/mailing` | Core. `EmailTemplate`, `MailingLog`, `SystemSettings` (singleton — fields: `global_send_interval_minutes`, `company_cooldown_hours`, `max_emails_per_day_per_user`), Celery task, engine, rate-limit middleware, public views (CV download + unsubscribe). | `tasks.py`, `engine.py`, `views.py`, `middleware.py` |
 | `apps/payments` | `CreditPackage`, `StripePayment`, Stripe Checkout + webhook handler. | `views.py`, `models.py` |
 | `apps/dashboard` | User-facing dashboard — CV upload, filters, campaign toggle. Authenticated views only. | `views.py` |
 

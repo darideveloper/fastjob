@@ -23,10 +23,15 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         (
             "Motor de Envío (Slow-Drip)",
             {
-                "fields": ("global_send_interval_minutes", "company_cooldown_hours"),
+                "fields": (
+                    "global_send_interval_minutes",
+                    "company_cooldown_hours",
+                    "max_emails_per_day_per_user",
+                ),
                 "description": (
                     "global_send_interval_minutes: minutos mínimos entre envíos por usuario. "
-                    "company_cooldown_hours: horas antes de que una empresa pueda recibir otro CV."
+                    "company_cooldown_hours: horas antes de que una empresa pueda recibir otro CV. "
+                    "max_emails_per_day_per_user: máximo de correos que un usuario puede enviar en 24 horas."
                 ),
             },
         )

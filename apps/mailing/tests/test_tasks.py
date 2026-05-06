@@ -20,9 +20,15 @@ from apps.mailing.tasks import process_mailing_queue
 @pytest.fixture
 def settings_obj(db):
     # Seed migration already inserted the singleton; update instead of create.
+    # max_emails_per_day_per_user is set high so unrelated tests are never
+    # accidentally capped by the daily limit.
     obj, _ = SystemSettings.objects.update_or_create(
         pk=1,
-        defaults={"global_send_interval_minutes": 5, "company_cooldown_hours": 12},
+        defaults={
+            "global_send_interval_minutes": 5,
+            "company_cooldown_hours": 12,
+            "max_emails_per_day_per_user": 1000,
+        },
     )
     return obj
 
@@ -261,3 +267,68 @@ def test_credit_decrement_survives_lost_update_pattern(google_linked_user):
 
     google_linked_user.refresh_from_db()
     assert google_linked_user.credits_remaining == 8  # both decrements survived
+
+
+# ── Daily email limit ────────────────────────────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_task_skips_user_at_daily_limit(
+    google_linked_user, company, email_template, settings_obj
+):
+    """User who has already hit max_emails_per_day_per_user is skipped."""
+    settings_obj.max_emails_per_day_per_user = 3
+    settings_obj.save()
+
+    for _ in range(3):
+        MailingLog.objects.create(
+            user=google_linked_user,
+            company=company,
+            email_template=email_template,
+            sent_at=timezone.now() - timedelta(hours=1),
+            status=MailingLog.Status.SENT,
+        )
+
+    with patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    mock_send.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_task_sends_when_one_below_daily_limit(
+    google_linked_user, company, email_template, settings_obj
+):
+    """User with sent_last_24h == limit - 1 must still receive an email."""
+    settings_obj.max_emails_per_day_per_user = 3
+    settings_obj.save()
+
+    # Use sent_at outside the 12h cooldown so the company is still eligible,
+    # but inside the 24h daily window so the limit is counted.
+    for _ in range(2):
+        MailingLog.objects.create(
+            user=google_linked_user,
+            company=company,
+            email_template=email_template,
+            sent_at=timezone.now() - timedelta(hours=13),
+            status=MailingLog.Status.SENT,
+        )
+
+    with patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    assert mock_send.call_count == 1
+
+
+@pytest.mark.django_db
+def test_task_skips_all_users_when_daily_limit_is_zero(
+    google_linked_user, company, email_template, settings_obj
+):
+    """A daily limit of 0 means no emails can be sent at all."""
+    settings_obj.max_emails_per_day_per_user = 0
+    settings_obj.save()
+
+    with patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    mock_send.assert_not_called()

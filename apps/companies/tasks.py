@@ -1,7 +1,6 @@
 import tempfile
 import traceback
 from celery import shared_task
-from django.core.files.storage import default_storage
 
 from .models import CompanyImportBatch
 from .importers import import_companies_from_xlsx
@@ -21,7 +20,7 @@ def process_company_import(batch_id):
         # Download the file to a local NamedTemporaryFile
         # This ensures openpyxl can read it efficiently even if using S3 storage
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=True) as tmp:
-            with default_storage.open(batch.file.name, "rb") as f:
+            with batch.file.open("rb") as f:
                 tmp.write(f.read())
             tmp.flush()
 

@@ -4,7 +4,7 @@ from django.urls import path
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
 from .models import Company, Blacklist, Area, Location, CompanyImportBatch
-from .importers import import_companies_from_xlsx
+from .tasks import process_company_import
 
 
 @admin.register(Area)

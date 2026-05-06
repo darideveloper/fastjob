@@ -42,7 +42,7 @@ def import_companies_from_xlsx(file_path):
         for row_num, row in enumerate(rows_iter, start=2):
             def get(col):
                 idx = header_map.get(col)
-                if idx is None:
+                if idx is None or idx >= len(row):
                     return ""
                 val = row[idx]
                 return str(val).strip() if val is not None else ""
@@ -54,14 +54,14 @@ def import_companies_from_xlsx(file_path):
             raw_actividad = get("actividad")
             area_name = raw_actividad.split(":")[0].strip().lower() if raw_actividad else ""
             
-            location_name = get("poblacion").lower()
-            address = get("direccion").lower()
-            zip_code = get("cp")
-            province = get("provincia").lower()
-            community = get("comunidad").lower()
-            phone = get("telefono")
-            fax = get("fax")
-            website = get("website").lower()
+            location_name = get("poblacion").lower()[:200]
+            address = get("direccion").lower()[:500]
+            zip_code = get("cp")[:20]
+            province = get("provincia").lower()[:100]
+            community = get("comunidad").lower()[:100]
+            phone = get("telefono")[:50]
+            fax = get("fax")[:50]
+            website = get("website").lower()[:500]
 
             if not email or "@" not in email:
                 errors.append(f"Fila {row_num}: email inválido '{email}'")

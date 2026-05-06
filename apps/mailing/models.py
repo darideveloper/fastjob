@@ -52,6 +52,10 @@ class SystemSettings(models.Model):
         default=12,
         help_text="Horas que deben pasar antes de que una empresa reciba otro CV",
     )
+    max_emails_per_day_per_user = models.IntegerField(
+        default=50,
+        help_text="Límite máximo de correos por usuario en 24 horas",
+    )
 
     class Meta:
         verbose_name = "Configuración del Sistema"
