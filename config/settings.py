@@ -345,7 +345,10 @@ CSRF_COOKIE_HTTPONLY = True  # No client JS reads the CSRF token in this app
 # Hard caps on request body size (defense in depth alongside Nginx + view-level checks).
 # DATA_UPLOAD_MAX_MEMORY_SIZE limits non-file form data per request; multipart file
 # bytes are excluded from this counter (the 10 MB CV cap is enforced in upload_cv).
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB
+# Set the cap a few MB above COMPANY_IMPORT_MAX_FILE_MB so the company-import upload
+# (largest legitimate request body) fits even with proxy-added overhead and never
+# trips RequestDataTooBig before our form-level size check has a chance to run.
+DATA_UPLOAD_MAX_MEMORY_SIZE = (COMPANY_IMPORT_MAX_FILE_MB + 5) * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB streamed-to-disk threshold
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)

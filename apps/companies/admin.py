@@ -3,8 +3,14 @@ import logging
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
-from django.core.exceptions import SuspiciousFileOperation
+from django.core.exceptions import (
+    RequestDataTooBig,
+    SuspiciousFileOperation,
+    SuspiciousMultipartForm,
+    TooManyFieldsSent,
+)
 from django.http import Http404, JsonResponse
+from django.http.multipartparser import MultiPartParserError
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
@@ -93,7 +99,35 @@ class CompanyAdmin(admin.ModelAdmin):
 
     def import_xlsx_view(self, request):
         if request.method == "POST":
-            form = XlsxImportForm(request.POST, request.FILES)
+            # Multipart parse can fail before form validation runs (oversize
+            # body, truncated upload from a proxy with a tighter body cap,
+            # malformed multipart). Django would normally surface these as a
+            # generic 400 HTML page, which the XHR client renders as the
+            # opaque "Error al subir el archivo" fallback. Catch them here so
+            # operators get the real exception name in JSON and the logs.
+            try:
+                form = XlsxImportForm(request.POST, request.FILES)
+            except (
+                RequestDataTooBig,
+                TooManyFieldsSent,
+                SuspiciousMultipartForm,
+                MultiPartParserError,
+            ) as exc:
+                logger.warning(
+                    "import_xlsx_view: multipart parse failed: %s: %s",
+                    type(exc).__name__,
+                    exc,
+                )
+                diagnostic = (
+                    f"No se pudo procesar la subida ({type(exc).__name__}): {exc}. "
+                    f"Verifica el tamaño del archivo (límite "
+                    f"{settings.COMPANY_IMPORT_MAX_FILE_MB} MB) y la configuración "
+                    f"del proxy."
+                )
+                if _is_xhr(request):
+                    return JsonResponse({"error": diagnostic}, status=400)
+                messages.error(request, diagnostic)
+                return redirect("..")
             if not form.is_valid():
                 if _is_xhr(request):
                     first_error = next(
