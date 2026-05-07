@@ -39,6 +39,9 @@ known_hosts
 # These are CV files containing real personal information — never commit.
 cvs/
 media/
+# Company-import .xlsx staging dir (COMPANY_IMPORT_LOCAL_PATH default).
+# Operator-uploaded files land here in local-only setups; never commit.
+imports/
 
 # Database dumps produced by scripts/backup_db.sh or manual pg_dump.
 *.sql

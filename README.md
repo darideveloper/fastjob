@@ -142,6 +142,24 @@ pytest    # pendiente de implementar — ver log.md
 - Celery beat + worker **deben** estar corriendo, o no se envía nada.
 - Configura `SECURE_PROXY_SSL_HEADER` si estás detrás de un reverse proxy.
 
+### Importación de empresas — volumen compartido
+
+El flujo de importación de `.xlsx` escribe los archivos en `COMPANY_IMPORT_LOCAL_PATH` (por defecto `/app/imports`) y el worker de Celery los lee desde la misma ruta.
+
+**Docker Compose (Coolify):** el volumen `imports_data` se declara en `docker-compose.yml` y se monta en `/app/imports` tanto en el servicio `web` como en `celery_worker`. No requiere configuración adicional.
+
+**Despliegues sin Docker o multi-host:** debes proporcionar una ruta de sistema de ficheros compartida (NFS, EFS, etc.) entre el proceso web y el worker, y configurar `COMPANY_IMPORT_LOCAL_PATH` con dicha ruta en ambos entornos. Verifica que la ruta existe y es escribible:
+
+```bash
+python manage.py check_company_import_storage
+```
+
+Después de las migraciones, registra la tarea de purga en Celery Beat:
+
+```bash
+python manage.py setup_company_import_periodics
+```
+
 ## Ver también
 
 - [`log.md`](log.md) — registro de cambios y tareas pendientes.

@@ -1,6 +1,13 @@
+from django.core.files.storage import storages
 from django.db import models
 from django.utils import timezone
-from config.storage_backends import PrivateMediaStorage
+
+
+def _imports_storage():
+    # Referenced by migration 0010_alter_companyimportbatch_file as
+    # apps.companies.models._imports_storage — renaming or moving requires a
+    # follow-up migration so historical playback still resolves the import.
+    return storages["imports"]
 
 
 class LowercaseFieldsMixin:
@@ -116,7 +123,7 @@ class CompanyImportBatch(models.Model):
         ("FAILED", "Fallido"),
     )
 
-    file = models.FileField(upload_to="imports/companies/", storage=PrivateMediaStorage())
+    file = models.FileField(upload_to="companies/%Y/%m/%d/", storage=_imports_storage, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_count = models.PositiveIntegerField(default=0)
     updated_count = models.PositiveIntegerField(default=0)

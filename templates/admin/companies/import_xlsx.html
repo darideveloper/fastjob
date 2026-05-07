@@ -70,7 +70,6 @@ document.getElementById("import-form").addEventListener("submit", function (e) {
   });
 
   xhr.upload.addEventListener("loadend", function () {
-    // Browser has finished sending — server is now saving to S3
     progressLabel.style.display = "none";
     progressBar.style.display = "none";
     processingLabel.style.display = "block";
@@ -78,7 +77,6 @@ document.getElementById("import-form").addEventListener("submit", function (e) {
 
   xhr.addEventListener("load", function () {
     if (xhr.status >= 200 && xhr.status < 400) {
-      // Django redirects on success — follow it
       window.location.href = xhr.responseURL || "..";
     } else {
       submitBtn.disabled = false;
@@ -86,7 +84,15 @@ document.getElementById("import-form").addEventListener("submit", function (e) {
       cancelLink.style.pointerEvents = "";
       cancelLink.style.opacity = "";
       progressContainer.style.display = "none";
-      alert("Error al subir el archivo. Por favor inténtalo de nuevo.");
+
+      var message = "Error al subir el archivo. Por favor inténtalo de nuevo.";
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data && data.error) {
+          message = data.error;
+        }
+      } catch (_) {}
+      alert(message);
     }
   });
 
@@ -100,6 +106,8 @@ document.getElementById("import-form").addEventListener("submit", function (e) {
   });
 
   xhr.open("POST", form.action || window.location.href);
+  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+  xhr.setRequestHeader("Accept", "application/json");
   xhr.send(new FormData(form));
 });
 </script>

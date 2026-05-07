@@ -171,6 +171,11 @@ AWS_QUERYSTRING_EXPIRE = 300  # 5 minutes for signed CV URLs
 
 import os
 
+# Company import local filesystem settings (shared between web and celery_worker via Docker volume)
+COMPANY_IMPORT_LOCAL_PATH = config("COMPANY_IMPORT_LOCAL_PATH", default=str(BASE_DIR / "imports"))
+COMPANY_IMPORT_MAX_FILE_MB = config("COMPANY_IMPORT_MAX_FILE_MB", default=25, cast=int)
+COMPANY_IMPORT_FILE_RETENTION_DAYS = config("COMPANY_IMPORT_FILE_RETENTION_DAYS", default=7, cast=int)
+
 # Storage settings
 STORAGE_AWS = config("STORAGE_AWS", default=False, cast=bool)
 
@@ -206,6 +211,10 @@ if STORAGE_AWS:
         "private": {
             "BACKEND": "config.storage_backends.PrivateMediaStorage",
         },
+        "imports": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": COMPANY_IMPORT_LOCAL_PATH, "base_url": None},
+        },
     }
 
     # 7. Optimization & Security
@@ -222,6 +231,10 @@ else:
         },
         "private": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "imports": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "OPTIONS": {"location": COMPANY_IMPORT_LOCAL_PATH, "base_url": None},
         },
     }
 

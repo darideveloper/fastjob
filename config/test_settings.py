@@ -31,10 +31,15 @@ RATELIMIT_ENABLE = False
 
 # No real file uploads; plain static-files storage (avoids collectstatic).
 # "private" alias is required by CV.file (storage="private").
+# "imports" alias is required by CompanyImportBatch.file (storage="imports").
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     "private": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "imports": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": COMPANY_IMPORT_LOCAL_PATH, "base_url": None},
+    },
 }
 
 # Capture emails in memory.
