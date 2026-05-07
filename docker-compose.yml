@@ -35,7 +35,13 @@ services:
     # Using expose instead of ports prevents Coolify from forcing port suffixes in the UI
     expose:
       - '8000'
-    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout ${GUNICORN_TIMEOUT:-300}
+    # gthread (threaded) workers handle slow large-body uploads without
+    # blocking an entire worker process per connection — sync workers
+    # would tie up a worker for the full duration of a 25+ MB upload and
+    # could be OOM-killed silently mid-request, returning 502 to the
+    # client with no Django log. --max-requests recycles workers to bound
+    # memory growth from openpyxl/import parses.
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --worker-class gthread --timeout ${GUNICORN_TIMEOUT:-300} --max-requests 500 --max-requests-jitter 50
     volumes:
       - ${COOLIFY_VOLUME_IMPORTS_DATA:-imports_data}:/app/imports
     environment:
