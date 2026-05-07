@@ -125,6 +125,8 @@ class CompanyImportBatch(models.Model):
 
     file = models.FileField(upload_to="companies/%Y/%m/%d/", storage=_imports_storage, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    total_rows = models.PositiveIntegerField(default=0)
+    processed_rows = models.PositiveIntegerField(default=0)
     created_count = models.PositiveIntegerField(default=0)
     updated_count = models.PositiveIntegerField(default=0)
     blacklisted_skipped = models.IntegerField(default=0)

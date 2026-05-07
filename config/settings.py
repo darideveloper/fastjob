@@ -175,6 +175,7 @@ import os
 COMPANY_IMPORT_LOCAL_PATH = config("COMPANY_IMPORT_LOCAL_PATH", default=str(BASE_DIR / "imports"))
 COMPANY_IMPORT_MAX_FILE_MB = config("COMPANY_IMPORT_MAX_FILE_MB", default=25, cast=int)
 COMPANY_IMPORT_FILE_RETENTION_DAYS = config("COMPANY_IMPORT_FILE_RETENTION_DAYS", default=7, cast=int)
+COMPANY_IMPORT_CHUNK_SIZE = config("COMPANY_IMPORT_CHUNK_SIZE", default=1000, cast=int)
 
 # Storage settings
 STORAGE_AWS = config("STORAGE_AWS", default=False, cast=bool)

@@ -140,3 +140,52 @@ def test_storage_failure_creates_failed_batch_and_returns_json_error(admin_clien
         for e in batch.error_log
     )
     mock_delay.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_schema_drift_surfaces_diagnostic_error(admin_client, tmp_path):
+    """Regression for the live failure mode where unapplied migration 0011
+    caused `CompanyImportBatch.objects.create` to raise `ProgrammingError`.
+    The original narrow `except (OSError, SuspiciousFileOperation)` clause
+    let it propagate as an opaque 500, and the upload XHR fell back to its
+    generic Spanish "Error al subir el archivo" string. The handler now
+    catches the exception and surfaces a diagnostic message naming the
+    exception class so operators can immediately see *why* the upload
+    failed.
+    """
+    from django.db.utils import ProgrammingError
+
+    xlsx_bytes = make_xlsx_bytes()
+    upload = SimpleUploadedFile(
+        "companies.xlsx",
+        xlsx_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+    with override_settings(COMPANY_IMPORT_LOCAL_PATH=str(tmp_path)):
+        with patch(
+            "apps.companies.admin.CompanyImportBatch.objects.create",
+            side_effect=ProgrammingError(
+                "column \"total_rows\" does not exist"
+            ),
+        ):
+            with patch("apps.companies.admin.process_company_import.delay") as mock_delay:
+                response = admin_client.post(
+                    IMPORT_URL,
+                    {"xlsx_file": upload},
+                    HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+                    HTTP_ACCEPT="application/json",
+                )
+
+    assert response.status_code == 500
+    import json
+    data = json.loads(response.content)
+    # The diagnostic must name the exception class AND the underlying
+    # message text — never just the upload XHR's generic fallback string.
+    assert "ProgrammingError" in data["error"]
+    assert "total_rows" in data["error"]
+    assert "Error al subir el archivo" not in data["error"]
+
+    # `objects.create` itself failed, so no batch row was ever persisted.
+    assert CompanyImportBatch.objects.count() == 0
+    mock_delay.assert_not_called()

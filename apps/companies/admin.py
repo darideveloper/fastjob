@@ -1,14 +1,18 @@
+import logging
+
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import SuspiciousFileOperation
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.urls import path
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
 
 from .models import Company, Blacklist, Area, Location, CompanyImportBatch
 from .tasks import process_company_import
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(Area)
@@ -104,27 +108,64 @@ class CompanyAdmin(admin.ModelAdmin):
                 }
                 return render(request, "admin/companies/import_xlsx.html", context)
 
-            batch = CompanyImportBatch.objects.create(status="PENDING")
+            batch = None
             try:
+                batch = CompanyImportBatch.objects.create(status="PENDING")
                 uploaded = form.cleaned_data["xlsx_file"]
                 batch.file.save(uploaded.name, uploaded, save=True)
             except (OSError, SuspiciousFileOperation) as exc:
-                batch.status = "FAILED"
-                batch.error_log = [{"phase": "upload", "error": str(exc)}]
-                batch.save(update_fields=["status", "error_log", "updated_at"])
+                if batch is not None:
+                    batch.status = "FAILED"
+                    batch.error_log = [{"phase": "upload", "error": str(exc)}]
+                    batch.save(update_fields=["status", "error_log", "updated_at"])
                 if _is_xhr(request):
                     return JsonResponse(
                         {"error": f"Error al guardar el archivo: {exc}"},
                         status=500,
                     )
-                messages.error(
-                    request,
-                    format_html(
-                        'Error al guardar el archivo. Importación <a href="/admin/companies/companyimportbatch/{}/change/">{}</a> marcada como FALLIDA.',
-                        batch.id,
-                        batch.id,
-                    ),
-                )
+                if batch is not None:
+                    messages.error(
+                        request,
+                        format_html(
+                            'Error al guardar el archivo. Importación <a href="/admin/companies/companyimportbatch/{}/change/">{}</a> marcada como FALLIDA.',
+                            batch.id,
+                            batch.id,
+                        ),
+                    )
+                else:
+                    messages.error(request, f"Error al guardar el archivo: {exc}")
+                return redirect("..")
+            except Exception as exc:
+                # Catch-all for the upload path so non-file-write failures
+                # (e.g. django.db.utils.ProgrammingError from schema drift, or
+                # OperationalError if the DB is unreachable) surface a
+                # diagnostic message naming the exception class — instead of
+                # the upload XHR's generic fallback "Error al subir el
+                # archivo. Por favor inténtalo de nuevo."
+                logger.exception("import_xlsx_view: unhandled error during batch creation")
+                if batch is not None:
+                    try:
+                        batch.status = "FAILED"
+                        batch.error_log = [
+                            {
+                                "phase": "upload",
+                                "error_class": type(exc).__name__,
+                                "error": str(exc),
+                            }
+                        ]
+                        batch.save(update_fields=["status", "error_log", "updated_at"])
+                    except Exception:
+                        # If the same underlying issue (e.g. schema drift)
+                        # also blocks the FAILED save, do not mask the
+                        # original error from the operator.
+                        logger.exception(
+                            "import_xlsx_view: failed to mark batch %s as FAILED",
+                            getattr(batch, "id", None),
+                        )
+                diagnostic = f"Error inesperado: {type(exc).__name__}: {exc}"
+                if _is_xhr(request):
+                    return JsonResponse({"error": diagnostic}, status=500)
+                messages.error(request, diagnostic)
                 return redirect("..")
 
             process_company_import.delay(batch.id)
@@ -157,6 +198,62 @@ class BlacklistAdmin(admin.ModelAdmin):
 
 @admin.register(CompanyImportBatch)
 class CompanyImportBatchAdmin(admin.ModelAdmin):
-    list_display = ("id", "status", "created_count", "updated_count", "blacklisted_skipped", "created_at")
+    list_display = (
+        "id",
+        "status",
+        "processed_rows",
+        "total_rows",
+        "created_count",
+        "updated_count",
+        "blacklisted_skipped",
+        "created_at",
+    )
     list_filter = ("status", "created_at")
-    readonly_fields = ("status", "created_count", "updated_count", "blacklisted_skipped", "error_log", "created_at", "updated_at")
+    readonly_fields = (
+        "status",
+        "total_rows",
+        "processed_rows",
+        "created_count",
+        "updated_count",
+        "blacklisted_skipped",
+        "error_log",
+        "created_at",
+        "updated_at",
+    )
+    change_form_template = "admin/companies/companyimportbatch/change_form.html"
+
+    def get_urls(self):
+        custom = [
+            path(
+                "<int:object_id>/progress/",
+                self.admin_site.admin_view(self.progress_json),
+                name="companies_companyimportbatch_progress",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def progress_json(self, request, object_id):
+        try:
+            batch = CompanyImportBatch.objects.only(
+                "status",
+                "total_rows",
+                "processed_rows",
+                "created_count",
+                "updated_count",
+                "blacklisted_skipped",
+                "error_log",
+            ).get(id=object_id)
+        except CompanyImportBatch.DoesNotExist:
+            raise Http404("Importación no encontrada")
+
+        return JsonResponse(
+            {
+                "status": batch.status,
+                "total_rows": batch.total_rows,
+                "processed_rows": batch.processed_rows,
+                "created_count": batch.created_count,
+                "updated_count": batch.updated_count,
+                "blacklisted_skipped": batch.blacklisted_skipped,
+                "error_count": len(batch.error_log or []),
+            }
+        )

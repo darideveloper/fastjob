@@ -7,12 +7,14 @@ a time. A silent bug here = bad data seeding the whole mailing system.
 from io import BytesIO
 import os
 import tempfile
+from unittest.mock import patch
 
 import openpyxl
 import pytest
 
+from apps.companies import importers
 from apps.companies.importers import import_companies_from_xlsx
-from apps.companies.models import Blacklist, Company
+from apps.companies.models import Blacklist, Company, CompanyImportBatch
 
 
 def make_xlsx(headers, rows):
@@ -181,3 +183,129 @@ def test_importer_counts_distinct_blacklisted_emails():
     assert Company.objects.filter(email="contact@kiko.es").count() == 1
     assert created + updated == 3
     assert errors == []
+
+
+@pytest.mark.django_db
+def test_chunked_import_processes_all_rows():
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["A", "a@x.com"],
+            ["B", "b@x.com"],
+            ["C", "c@x.com"],
+            ["D", "d@x.com"],
+            ["E", "e@x.com"],
+        ],
+    )
+    created, updated, errors, _ = import_companies_from_xlsx(f, chunk_size=2)
+    assert created == 5
+    assert updated == 0
+    assert errors == []
+    assert Company.objects.count() == 5
+
+
+@pytest.mark.django_db
+def test_chunked_import_writes_progress_after_each_chunk():
+    """Each chunk commit MUST write cumulative progress to the batch row.
+
+    We capture every _write_progress call so we can assert the importer
+    advances counters at chunk boundaries (not just at the end).
+    """
+    batch = CompanyImportBatch.objects.create(status="PROCESSING")
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["A", "a@x.com"],
+            ["B", "b@x.com"],
+            ["C", "c@x.com"],
+            ["D", "d@x.com"],
+            ["E", "e@x.com"],
+        ],
+    )
+
+    snapshots = []
+    real = importers._write_progress
+
+    def spy(_batch, processed_rows, created, updated, blacklisted_skipped, errors):
+        snapshots.append((processed_rows, created, updated))
+        real(_batch, processed_rows, created, updated, blacklisted_skipped, errors)
+
+    with patch.object(importers, "_write_progress", side_effect=spy):
+        import_companies_from_xlsx(f, batch=batch, chunk_size=2)
+
+    # 5 rows / chunk_size=2 = chunks of [2, 2, 1] = 3 progress writes.
+    assert [s[0] for s in snapshots] == [2, 4, 5]
+    batch.refresh_from_db()
+    assert batch.processed_rows == 5
+    assert batch.created_count == 5
+
+
+@pytest.mark.django_db
+def test_chunked_import_is_idempotent_on_partial_rerun():
+    """Inject a failure mid-chunk, observe partial state, then re-run cleanly
+    and assert the final state matches a fresh import."""
+    rows = [["Co" + str(i), f"co{i}@x.com"] for i in range(6)]
+    f = make_xlsx(["empresa", "email"], rows)
+
+    batch = CompanyImportBatch.objects.create(status="PROCESSING")
+
+    call_count = {"n": 0}
+    real = importers._write_progress
+
+    def fail_on_third_chunk(b, processed, c, u, bk, e):
+        call_count["n"] += 1
+        real(b, processed, c, u, bk, e)
+        if call_count["n"] == 2:
+            raise RuntimeError("simulated mid-import failure")
+
+    with patch.object(importers, "_write_progress", side_effect=fail_on_third_chunk):
+        with pytest.raises(RuntimeError):
+            import_companies_from_xlsx(f, batch=batch, chunk_size=2)
+
+    partial_count = Company.objects.count()
+    assert 0 < partial_count < 6  # mid-import: some rows committed, not all
+
+    # Re-run on the same file, no patch — must converge.
+    created2, updated2, errors2, _ = import_companies_from_xlsx(f, chunk_size=2)
+    assert errors2 == []
+    assert Company.objects.count() == 6
+    # Row identity is the unique email, so re-running cannot duplicate.
+    assert (
+        Company.objects.filter(email__in=[r[1] for r in rows]).count() == 6
+    )
+
+
+@pytest.mark.django_db
+def test_chunk_does_not_abort_on_single_bad_row():
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["Good A", "a@x.com"],
+            ["Bad", "not-an-email"],
+            ["Good B", "b@x.com"],
+        ],
+    )
+    created, updated, errors, _ = import_companies_from_xlsx(f, chunk_size=10)
+    assert created == 2
+    assert len(errors) == 1
+    assert Company.objects.filter(email="a@x.com").exists()
+    assert Company.objects.filter(email="b@x.com").exists()
+
+
+@pytest.mark.django_db
+def test_trailing_blank_rows_do_not_inflate_processed_rows():
+    batch = CompanyImportBatch.objects.create(status="PROCESSING")
+    f = make_xlsx(
+        ["empresa", "email"],
+        [
+            ["A", "a@x.com"],
+            ["B", "b@x.com"],
+            [None, None],
+            [None, None],
+            ["", ""],
+        ],
+    )
+    import_companies_from_xlsx(f, batch=batch, chunk_size=10)
+    batch.refresh_from_db()
+    assert batch.processed_rows == 2
+    assert batch.created_count == 2

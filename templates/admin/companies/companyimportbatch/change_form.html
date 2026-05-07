@@ -1,0 +1,89 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+{% if original %}
+<div id="import-progress"
+     data-batch-id="{{ original.id }}"
+     data-status="{{ original.status }}"
+     data-progress-url="{% url 'admin:companies_companyimportbatch_progress' original.id %}"
+     style="margin: 0 0 1.5rem; padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;"
+     hidden>
+  <h2 style="margin-top: 0;">Progreso en vivo</h2>
+  <p id="ip-percent" style="margin: 0 0 0.4rem; color: #666;">
+    <span id="ip-processed">{{ original.processed_rows }}</span>
+    /
+    <span id="ip-total">{{ original.total_rows }}</span>
+    filas procesadas
+    (<span id="ip-pct">0</span>%)
+  </p>
+  <progress id="ip-bar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
+  <ul style="list-style: none; padding: 0; margin: 0.8rem 0 0; display: flex; flex-wrap: wrap; gap: 1.2rem;">
+    <li>Creadas: <strong id="ip-created">{{ original.created_count }}</strong></li>
+    <li>Actualizadas: <strong id="ip-updated">{{ original.updated_count }}</strong></li>
+    <li>En lista negra: <strong id="ip-blacklisted">{{ original.blacklisted_skipped }}</strong></li>
+    <li>Errores: <strong id="ip-errors">{{ original.error_log|length }}</strong></li>
+  </ul>
+</div>
+
+<script>
+(function () {
+  var widget = document.getElementById("import-progress");
+  if (!widget) return;
+
+  var status = widget.dataset.status;
+  var TERMINAL = ["COMPLETED", "FAILED"];
+  if (TERMINAL.indexOf(status) !== -1) return;
+
+  widget.hidden = false;
+
+  var url = widget.dataset.progressUrl;
+  var bar = document.getElementById("ip-bar");
+  var pct = document.getElementById("ip-pct");
+  var processedEl = document.getElementById("ip-processed");
+  var totalEl = document.getElementById("ip-total");
+  var createdEl = document.getElementById("ip-created");
+  var updatedEl = document.getElementById("ip-updated");
+  var blacklistedEl = document.getElementById("ip-blacklisted");
+  var errorsEl = document.getElementById("ip-errors");
+
+  function render(data) {
+    processedEl.textContent = data.processed_rows;
+    totalEl.textContent = data.total_rows;
+    createdEl.textContent = data.created_count;
+    updatedEl.textContent = data.updated_count;
+    blacklistedEl.textContent = data.blacklisted_skipped;
+    errorsEl.textContent = data.error_count;
+    if (data.total_rows > 0) {
+      var p = Math.min(100, Math.round((data.processed_rows / data.total_rows) * 100));
+      bar.value = p;
+      pct.textContent = p;
+    } else {
+      pct.textContent = "0";
+    }
+  }
+
+  function tick() {
+    fetch(url, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) {
+          setTimeout(tick, 2000);
+          return;
+        }
+        render(data);
+        if (TERMINAL.indexOf(data.status) !== -1) {
+          window.location.reload();
+          return;
+        }
+        setTimeout(tick, 2000);
+      })
+      .catch(function () { setTimeout(tick, 2000); });
+  }
+
+  setTimeout(tick, 2000);
+})();
+</script>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
