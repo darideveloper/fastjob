@@ -2,7 +2,14 @@
 
 Instructions for AI coding assistants using OpenSpec for spec-driven development.
 
-## TL;DR Quick Checklist
+## 1. Specialized Agent Skills
+
+The AI environment is configured with specialized skills that enforce rigorous procedural workflows when dealing with specifications and task lists:
+
+- **`apply-spec-proposal-iteratively`**: A mandatory workflow skill triggered when applying tasks from a proposal. It forces the AI to implement tasks from `tasks.md` one by one, iteratively. The AI must verify the completion of each individual step before marking it as done in the checklist, preventing skipped requirements and bulk-processing hallucinations.
+- **`validate-proposal` & **`proposal-checker`**: Expert skills that rigorously validate and analyze proposals against the codebase architecture, existing requirements, and OpenSpec standards. They act as strict gatekeepers, ensuring a proposal is technically sound, complete, and correct *before* any code implementation is allowed to begin.
+
+## 2. TL;DR Quick Checklist
 
 - Search existing work: `openspec spec list --long`, `openspec list` (use `rg` only for full-text search)
 - Decide scope: new capability vs modify existing capability
@@ -12,7 +19,7 @@ Instructions for AI coding assistants using OpenSpec for spec-driven development
 - Validate: `openspec validate [change-id] --strict` and fix issues
 - Request approval: Do not start implementation until proposal is approved
 
-## Three-Stage Workflow
+## 3. Three-Stage Workflow
 
 ### Stage 1: Creating Changes
 Create proposal when you need to:
@@ -22,39 +29,23 @@ Create proposal when you need to:
 - Optimize performance (changes behavior)
 - Update security patterns
 
-Triggers (examples):
-- "Help me create a change proposal"
-- "Help me plan a change"
-- "Help me create a proposal"
-- "I want to create a spec proposal"
-- "I want to create a spec"
-
-Loose matching guidance:
-- Contains one of: `proposal`, `change`, `spec`
-- With one of: `create`, `plan`, `make`, `start`, `help`
-
-Skip proposal for:
-- Bug fixes (restore intended behavior)
-- Typos, formatting, comments
-- Dependency updates (non-breaking)
-- Configuration changes
-- Tests for existing behavior
-
 **Workflow**
 1. Review `openspec/project.md`, `openspec list`, and `openspec list --specs` to understand current context.
 2. Choose a unique verb-led `change-id` and scaffold `proposal.md`, `tasks.md`, optional `design.md`, and spec deltas under `openspec/changes/<id>/`.
-3. Draft spec deltas using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement.
-4. Run `openspec validate <id> --strict` and resolve any issues before sharing the proposal.
+3. **Mandatory Step**: Activate `activate_skill("proposal-checker")` or `activate_skill("validate-proposal")` to review the draft.
+4. Draft spec deltas using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement.
+5. Run `openspec validate <id> --strict` and resolve any issues before sharing the proposal.
 
 ### Stage 2: Implementing Changes
 Track these steps as TODOs and complete them one by one.
-1. **Read proposal.md** - Understand what's being built
-2. **Read design.md** (if exists) - Review technical decisions
-3. **Read tasks.md** - Get implementation checklist
-4. **Implement tasks sequentially** - Complete in order
-5. **Confirm completion** - Ensure every item in `tasks.md` is finished before updating statuses
-6. **Update checklist** - After all work is done, set every task to `- [x]` so the list reflects reality
-7. **Approval gate** - Do not start implementation until the proposal is reviewed and approved
+1. **Mandatory Step**: Activate `activate_skill("apply-spec-proposal-iteratively")`.
+2. **Read proposal.md** - Understand what's being built
+3. **Read design.md** (if exists) - Review technical decisions
+4. **Read tasks.md** - Get implementation checklist
+5. **Implement tasks sequentially** - Complete in order
+6. **Confirm completion** - Ensure every item in `tasks.md` is finished before updating statuses
+7. **Update checklist** - After all work is done, set every task to `- [x]` so the list reflects reality
+8. **Approval gate** - Do not start implementation until the proposal is reviewed and approved
 
 ### Stage 3: Archiving Changes
 After deployment, create separate PR to:
@@ -63,7 +54,25 @@ After deployment, create separate PR to:
 - Use `openspec archive <change-id> --skip-specs --yes` for tooling-only changes (always pass the change ID explicitly)
 - Run `openspec validate --strict` to confirm the archived change passes checks
 
-## Before Any Task
+## 4. Task List Format Guardrails
+
+### CORRECT Format (Tasks MUST be sequential and small)
+```markdown
+## 1. Implementation
+- [ ] 1.1 Update `models.py` to add `status` field
+- [ ] 1.2 Run migrations `python manage.py makemigrations`
+- [ ] 1.3 Update `views.py` to handle `status`
+- [ ] 1.4 Add unit tests for new field
+```
+
+### INCORRECT Format (Do not bulk or use vague tasks)
+```markdown
+- [ ] Implement everything related to feature X ❌ (Too vague)
+- [ ] Modify models, views, and templates ❌ (Too broad/bulky)
+- [ ] Done ❌ (No context)
+```
+
+## 5. Before Any Task
 
 **Context Checklist:**
 - [ ] Read relevant specs in `specs/[capability]/spec.md`
