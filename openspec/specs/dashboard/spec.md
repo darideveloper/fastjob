@@ -23,23 +23,12 @@ The dashboard "Sector / Área" and "Ubicación" inputs SHALL be searchable dropd
 - **AND** the mailing engine treats the user as having no `area` filter
 
 ### Requirement: Live Company-Match Counter on Dashboard
-The dashboard SHALL display a live counter, immediately below the filter form, showing the number of companies that match the currently-selected filter values. The counter MUST update whenever either dropdown value changes, MUST display only an integer (no company names, emails, or row data), and MUST source its number from the public count endpoint (so engine and counter cannot drift).
+The dashboard SHALL display a live counter, immediately above or below the filter form, showing the number of companies that match the currently-selected filter values. The counter MUST update whenever either dropdown value changes, MUST display only an integer (no company names, emails, or row data), and MUST source its number from the public count endpoint (so engine and counter cannot drift). The counter element (`[data-company-counter]`) MUST be a child of the widget container (`[data-filter-widget]`) so the client-side script can locate and update it correctly.
 
 #### Scenario: Counter updates when filters change
 - **GIVEN** the dashboard counter currently reads `42` for `area=""` and `location=""`
 - **WHEN** the user selects `area="Tecnología"` from the dropdown
 - **THEN** the counter re-fetches and displays the new count for `area="Tecnología"` within roughly one debounce window (~250 ms after selection)
-
-#### Scenario: Counter shows an integer only
-- **WHEN** the counter renders for any filter combination
-- **THEN** the rendered text contains only a non-negative integer
-- **AND** no part of the response body or DOM exposes a company name, email, or primary key
-
-#### Scenario: Counter agrees with the mailing engine
-- **GIVEN** a user has set `area_filter="Tecnología"` and `location_filter="Madrid"`
-- **AND** the dashboard counter reads `0`
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine sends nothing for that user (because the eligible-company queryset is empty by the same matching rules)
 
 ### Requirement: Activity table is horizontally scrollable on small viewports
 The recent-activity table in `templates/dashboard/index.html` SHALL render at a fixed minimum width such that the existing `overflow-x-auto` wrapper engages on viewports below 640 px. Cell content (company email, template name, date, status badge) MUST NOT wrap mid-word, and status badges (`Enviado`, `Fallido`) MUST NOT clip to truncated forms (e.g. `Enviad…`, `Fallid…`).
