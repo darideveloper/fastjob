@@ -23,9 +23,10 @@ class UserAdmin(BaseUserAdmin):
 
     fieldsets = BaseUserAdmin.fieldsets + (
         ("FastJob", {
-            "fields": ("credits_remaining", "is_campaign_active", "active_cv", "area_filter", "location_filter", "stripe_customer_id"),
+            "fields": ("credits_remaining", "is_campaign_active", "active_cv", "area_filters", "location_filters", "stripe_customer_id"),
         }),
     )
+    filter_horizontal = ("area_filters", "location_filters")
 
     def linked_provider(self, obj):
         return obj.linked_provider or "—"

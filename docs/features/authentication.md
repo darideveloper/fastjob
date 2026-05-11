@@ -55,12 +55,13 @@ On subsequent logins, only the `SocialToken` is updated (new access + refresh to
 
 ```python
 class User(AbstractUser):
+    email = models.EmailField(unique=True)
     credits_remaining = models.IntegerField(default=0)
     is_campaign_active = models.BooleanField(default=False)
-    cv_file = models.FileField(upload_to="cvs/", null=True, blank=True)
-    area_filter = models.CharField(max_length=200, blank=True)
-    location_filter = models.CharField(max_length=200, blank=True)
-    cv_updated_at = models.DateTimeField(null=True, blank=True)
+    active_cv = models.ForeignKey("accounts.CV", ...)
+    area_filters = models.ManyToManyField("companies.Area", ...)
+    location_filters = models.ManyToManyField("companies.Location", ...)
+    stripe_customer_id = models.CharField(...)
 ```
 
 **Why `AbstractUser` and not `AbstractBaseUser`:** we still want Django's built-in groups/permissions/admin integration. `AbstractUser` gives that for free while still letting us add fields.

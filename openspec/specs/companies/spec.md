@@ -57,11 +57,11 @@ The system SHALL expose a read-only HTTP endpoint at `GET /api/companies/count/`
 - **THEN** subsequent requests within that window receive `429 Too Many Requests`
 
 ### Requirement: Shared Company-Match Query Helper
-The system SHALL expose a single internal query helper that returns the queryset of companies matching a given `(area, location)` filter pair. Both the public count endpoint AND the mailing engine MUST use this helper, so that the count returned to the user is always equal to the set of companies the engine would consider for that user's next send (excluding per-user state such as cooldown).
+The system SHALL expose a single internal query helper that returns the queryset of companies matching a given set of `(areas, locations)` filters. Both the public count endpoint AND the mailing engine MUST use this helper, so that the count returned to the user is always equal to the set of companies the engine would consider for that user's next send (excluding per-user state such as cooldown). Matching multiple values for the same field MUST use `OR` logic (e.g. `IN`).
 
 #### Scenario: Engine and counter use the same matching rules
-- **GIVEN** a user with `area_filter = "Tecnología"` and `location_filter = ""`
-- **WHEN** the dashboard fetches the company count for that filter pair
+- **GIVEN** a user with `area_filters=["Tecnología"]` and `location_filters=[]`
+- **WHEN** the dashboard fetches the company count for those filters
 - **AND** the mailing engine subsequently selects a company for that user
 - **THEN** the company chosen by the engine is a member of the queryset that produced the count
 
@@ -87,17 +87,13 @@ The filter-options list and per-filter count results SHALL be cached to avoid re
 ### Requirement: Managed Filter Taxonomy
 The system MUST use a managed taxonomy for Sectors (Areas) and Locations instead of deriving them from raw company data.
 - The `Area` and `Location` entities MUST be manageable via the Django Admin.
-- `Company` and `User` filter references MUST use ForeignKeys to these entities.
+- `Company` filter references MUST use ForeignKeys to these entities.
+- `User` filter references MUST use ManyToManyFields to these entities.
 - The `filter_options` API MUST return values from the managed models.
-
-#### Scenario: Admin creates a new Area
-- **GIVEN** an administrator in the Django Admin.
-- **WHEN** the admin creates an `Area` named "Cybersecurity".
-- **THEN** "Cybersecurity" MUST immediately appear as an option in the Dashboard and Landing filters.
 
 #### Scenario: User filter validation
 - **GIVEN** a user attempting to save a filter via the dashboard.
-- **WHEN** the user submits an `area_filter` that does not exist in the `Area` table.
+- **WHEN** the user submits an `area` value that does not exist in the `Area` table.
 - **THEN** the system MUST reject the update and show an error message.
 
 ### Requirement: Secure Public Counter API
@@ -580,4 +576,18 @@ The Celery task `process_company_import` MUST read the file via streaming (`batc
 - **THEN** the task downloads the object body to a `tempfile.NamedTemporaryFile` and passes the temp file's path to `_preflight_total_rows` and `load_workbook`
 - **AND** the temp file is removed before the task returns (success or exception)
 - **AND** no call to `batch.file.path` is made
+
+### Requirement: Robust Company Filter Normalization
+The `matching_companies_qs` helper MUST robustly handle both string inputs and model instances (or iterables of model instances) for the `area` and `location` filters. If passed model instances, it MUST extract their `.name` attribute before filtering the `Company` queryset.
+
+#### Scenario: Helper accepts single model instances
+- **GIVEN** an `Area` model instance with `name="Tecnología"`
+- **WHEN** it is passed as the `area` argument to `matching_companies_qs`
+- **THEN** the helper extracts the name and correctly filters `Company.objects.filter(area__name__iexact="Tecnología")`
+- **AND** no `psycopg2.ProgrammingError` is raised.
+
+#### Scenario: Helper accepts QuerySet of model instances
+- **GIVEN** a `QuerySet` of `Area` model instances (e.g., from `user.area_filters.all()`)
+- **WHEN** it is passed as the `area` argument
+- **THEN** the helper extracts the names into a list and correctly filters using `area__name__in=[...]`
 

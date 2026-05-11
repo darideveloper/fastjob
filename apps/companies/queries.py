@@ -24,8 +24,8 @@ def get_filter_options():
     return result
 
 
-def matching_companies_qs(area=None, location=None):
-    """Return a Company QS filtered by area/location name.
+def matching_companies_qs(areas=None, locations=None):
+    """Return a Company QS filtered by area/location names.
 
     Empty/None values mean 'no filter on that field'. Callers are responsible
     for applying any additional exclusions (blacklist, cooldown, etc.).
@@ -33,22 +33,53 @@ def matching_companies_qs(area=None, location=None):
     from .models import Company
 
     qs = Company.objects.all()
-    if area:
-        qs = qs.filter(area__name__iexact=area)
-    if location:
-        qs = qs.filter(location__name__iexact=location)
+    if areas:
+        if hasattr(areas, "values_list"):
+            areas = list(areas.values_list("name", flat=True))
+        elif not isinstance(areas, (list, tuple)):
+            areas = [areas]
+        areas = [str(a).lower() for a in areas]
+        qs = qs.filter(area__name__in=areas)
+
+    if locations:
+        if hasattr(locations, "values_list"):
+            locations = list(locations.values_list("name", flat=True))
+        elif not isinstance(locations, (list, tuple)):
+            locations = [locations]
+        locations = [str(l).lower() for l in locations]
+        qs = qs.filter(location__name__in=locations)
+
     return qs
 
 
-def get_company_count(area=None, location=None):
+def get_company_count(areas=None, locations=None):
     """Count companies matching area/location filters, with 60 s cache."""
+    # Ensure stable cache key by sorting inputs if they are lists
+    area_key = ""
+    if areas:
+        if hasattr(areas, "values_list"):
+            areas = list(areas.values_list("name", flat=True))
+        elif not isinstance(areas, (list, tuple)):
+            areas = [areas]
+        area_key = ",".join(sorted(str(a) for a in areas))
+
+    loc_key = ""
+    if locations:
+        if hasattr(locations, "values_list"):
+            locations = list(locations.values_list("name", flat=True))
+        elif not isinstance(locations, (list, tuple)):
+            locations = [locations]
+        loc_key = ",".join(sorted(str(l) for l in locations))
+
     version = cache.get(COUNT_VERSION_KEY, 0)
-    raw_key = f"{version}|{area or ''}|{location or ''}"
+    raw_key = f"{version}|{area_key}|{loc_key}"
     cache_key = f"companies:count:v1:{sha1(raw_key.encode()).hexdigest()}"
+
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
-    count = matching_companies_qs(area, location).count()
+
+    count = matching_companies_qs(areas, locations).count()
     cache.set(cache_key, count, COUNT_TTL)
     return count
 

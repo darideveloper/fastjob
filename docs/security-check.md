@@ -444,7 +444,7 @@ For each template, verify auto-escape is on (Django default) and identify `|safe
 - `base.html` — ⚠️ **Tailwind CDN loaded without SRI:** `<script src="https://cdn.tailwindcss.com"></script>` at `templates/base.html:7` has no `integrity=`/`crossorigin=` attributes. If `cdn.tailwindcss.com` is compromised or DNS-hijacked, every page on the site executes attacker JS. No CSP `meta` header either. Mitigations: self-host Tailwind via `whitenoise`, or add SRI + CSP `script-src 'self' cdn.tailwindcss.com 'sha384-...'`.
 - `home.html` — ✅ Static. Only `{% now "Y" %}` from base; no user input.
 - `account/login.html` — ✅ Allauth-error rendering uses default auto-escape; no `|safe` filters in this file.
-- `dashboard/index.html` — ✅ All user-controlled fields (`{{ user.email }}`, `{{ cv.name }}`, `{{ user.area_filter }}`, `{{ log.company_email_snapshot }}`, `{{ log.email_template.name }}`) render under default auto-escape. No `|safe` / `mark_safe` usage.
+- `dashboard/index.html` — ✅ All user-controlled fields (`{{ user.email }}`, `{{ cv.name }}`, `user.area_filters.all`, `{{ log.company_email_snapshot }}`, `{{ log.email_template.name }}`) render under default auto-escape. No `|safe` / `mark_safe` usage.
 - `dashboard/delete_account.html` — ✅ Renders only `{{ user.email }}`, auto-escaped.
 - `mailing/cv_not_found.html` — ✅ Fully static.
 - `mailing/unsubscribe.html` — ✅ `{{ email }}` (the recipient's email from `MailingLog.company_email_snapshot`) rendered with auto-escape; even a maliciously-named company can't XSS this page.

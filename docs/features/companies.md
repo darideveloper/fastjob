@@ -94,16 +94,16 @@ Clearing `last_received_at` on a company row makes it immediately eligible for t
 
 ## User perspective
 
-Users don't browse the company list directly. They configure **area** and **location** filters on their dashboard. The engine applies these filters as `icontains` matches against `Company.area` and `Company.location`:
+Users don't browse the company list directly. They configure multiple **area** and **location** filters on their dashboard. The engine applies these filters as exact-match `__in` lookups against the taxonomy names:
 
 ```python
-if user.area_filter:
-    companies = companies.filter(area__icontains=user.area_filter)
-if user.location_filter:
-    companies = companies.filter(location__icontains=user.location_filter)
+if user.area_filters.exists():
+    companies = companies.filter(area__name__in=user.area_filters.values_list("name", flat=True))
+if user.location_filters.exists():
+    companies = companies.filter(location__name__in=user.location_filters.values_list("name", flat=True))
 ```
 
-**Practical implication:** if a user sets `area_filter = "tecnología"`, only companies with `"tecnología"` anywhere in their `area` field are eligible. The match is case-insensitive, so `"Tecnología"`, `"tecnología digital"` all match.
+**Practical implication:** if a user sets `area_filters = ["tecnología", "diseño"]`, companies matching **either** sector are eligible. The match is case-insensitive because Area names are normalized to lowercase.
 
 If the filters are empty, the engine considers the entire non-blacklisted, non-cooled-down company pool.
 

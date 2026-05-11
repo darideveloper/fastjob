@@ -74,13 +74,21 @@ def test_company_count_no_params_equals_total(client):
 
 
 @pytest.mark.django_db
-def test_company_count_with_valid_area_uses_iexact(client):
+def test_company_count_with_multiple_valid_areas(client):
     a1, _ = Area.objects.get_or_create(name="tecnología")
-    a2, _ = Area.objects.get_or_create(name="tecnología industrial")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    a3, _ = Area.objects.get_or_create(name="marketing")
     Company.objects.create(email="a@x.com", name="a", area=a1)
     Company.objects.create(email="b@x.com", name="b", area=a2)
-    resp = client.get(reverse("company_count") + "?area=tecnología")
+    Company.objects.create(email="c@x.com", name="c", area=a3)
+    
+    # Single param
+    resp = client.get(reverse("company_count"), {"area": ["tecnología"]})
     assert resp.json()["count"] == 1
+
+    # Multiple params
+    resp = client.get(reverse("company_count"), {"area": ["tecnología", "diseño"]})
+    assert resp.json()["count"] == 2
 
 
 @pytest.mark.django_db

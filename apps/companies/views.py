@@ -16,16 +16,18 @@ def filter_options_view(request):
 @ratelimit(key="ip", rate="60/h", block=True)
 def companies_count_view(request):
     options = get_filter_options()
-    area = request.GET.get("area", "").strip()
-    location = request.GET.get("location", "").strip()
+    areas = [v.strip() for v in request.GET.getlist("area") if v.strip()]
+    locations = [v.strip() for v in request.GET.getlist("location") if v.strip()]
 
     allowed_areas = {a.lower() for a in options["areas"]}
     allowed_locations = {loc.lower() for loc in options["locations"]}
 
-    if area and area.lower() not in allowed_areas:
-        return JsonResponse({"error": "invalid_filter"}, status=400)
-    if location and location.lower() not in allowed_locations:
-        return JsonResponse({"error": "invalid_filter"}, status=400)
+    for area in areas:
+        if area.lower() not in allowed_areas:
+            return JsonResponse({"error": "invalid_filter"}, status=400)
+    for location in locations:
+        if location.lower() not in allowed_locations:
+            return JsonResponse({"error": "invalid_filter"}, status=400)
 
-    count = get_company_count(area or None, location or None)
+    count = get_company_count(areas or None, locations or None)
     return JsonResponse({"count": count})

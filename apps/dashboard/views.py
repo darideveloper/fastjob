@@ -117,30 +117,31 @@ def update_filters(request):
     from apps.companies.queries import get_filter_options
 
     user = request.user
-    area_name = request.POST.get("area_filter", "").strip()
-    location_name = request.POST.get("location_filter", "").strip()
+    area_names = [v.strip() for v in request.POST.getlist("area_filter") if v.strip()]
+    location_names = [v.strip() for v in request.POST.getlist("location_filter") if v.strip()]
 
     options = get_filter_options()
     allowed_areas = {a.lower() for a in options["areas"]}
     allowed_locations = {loc.lower() for loc in options["locations"]}
 
-    area_obj = None
-    if area_name:
+    area_objs = []
+    for area_name in area_names:
         if area_name.lower() not in allowed_areas:
-            messages.error(request, "Sector no válido. Selecciona una opción de la lista.")
+            messages.error(request, f"Sector '{area_name}' no válido.")
             return redirect("dashboard")
-        area_obj = Area.objects.get(name__iexact=area_name)
+        area_objs.append(Area.objects.get(name__iexact=area_name))
 
-    location_obj = None
-    if location_name:
+    location_objs = []
+    for location_name in location_names:
         if location_name.lower() not in allowed_locations:
-            messages.error(request, "Ubicación no válida. Selecciona una opción de la lista.")
+            messages.error(request, f"Ubicación '{location_name}' no válida.")
             return redirect("dashboard")
-        location_obj = Location.objects.get(name__iexact=location_name)
+        location_objs.append(Location.objects.get(name__iexact=location_name))
 
-    user.area_filter = area_obj
-    user.location_filter = location_obj
-    user.save(update_fields=["area_filter", "location_filter"])
+    with transaction.atomic():
+        user.area_filters.set(area_objs)
+        user.location_filters.set(location_objs)
+    
     messages.success(request, "Filtros actualizados.")
     return redirect("dashboard")
 
@@ -222,8 +223,8 @@ def _serialize_user(user):
         "last_login": user.last_login.isoformat() if user.last_login else None,
         "credits_remaining": user.credits_remaining,
         "is_campaign_active": user.is_campaign_active,
-        "area_filter": user.area_filter.name if user.area_filter else None,
-        "location_filter": user.location_filter.name if user.location_filter else None,
+        "area_filters": list(user.area_filters.values_list("name", flat=True)),
+        "location_filters": list(user.location_filters.values_list("name", flat=True)),
         "stripe_customer_id": user.stripe_customer_id or None,
         "active_cv_id": user.active_cv_id,
         "linked_provider": user.linked_provider,

@@ -130,6 +130,7 @@ ACCOUNT_USERNAME_REQUIRED = False
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_STORE_TOKENS = True
 
 # OAuth operational guardrails — see openspec/specs/mailing/spec.md.
 # Set GOOGLE_OAUTH_PROJECT_MODE=testing if the Google Cloud OAuth consent screen

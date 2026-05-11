@@ -63,9 +63,9 @@ erDiagram
     User {
         bool is_campaign_active
         int credits_remaining
-        file cv_file
-        string area_filter
-        string location_filter
+        file active_cv
+        ManyToManyField area_filters
+        ManyToManyField location_filters
     }
     Company {
         string email

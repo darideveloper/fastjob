@@ -17,55 +17,111 @@
 
   function initCombobox(container, options, onChange) {
     var name = container.dataset.name;
-    var currentValue = container.dataset.value || '';
-    var placeholder = container.dataset.placeholder || 'Selecciona una opción…';
+    // data-value is expected to be a comma-separated list of selected names
+    var initialValues = container.dataset.value ? container.dataset.value.split(',') : [];
+    var selected = initialValues.filter(function(v) { return v.trim().length > 0; });
+    var placeholder = container.dataset.placeholder || 'Selecciona opciones…';
 
     container.style.position = 'relative';
     container.innerHTML = '';
 
-    var hidden = document.createElement('input');
-    hidden.type = name ? 'hidden' : 'hidden';
-    if (name) hidden.name = name;
-    hidden.value = currentValue;
-    container.appendChild(hidden);
+    // Wrapper for the pills + input
+    var controlWrapper = document.createElement('div');
+    controlWrapper.className = [
+      'w-full border border-gray-200 rounded-xl px-2 py-1.5 text-sm flex flex-wrap gap-1.5 items-center',
+      'focus-within:ring-2 focus-within:ring-brand-ring bg-white cursor-text'
+    ].join(' ');
+    container.appendChild(controlWrapper);
+
+    var pillsWrapper = document.createElement('div');
+    pillsWrapper.className = 'flex flex-wrap gap-1.5';
+    controlWrapper.appendChild(pillsWrapper);
 
     var textInput = document.createElement('input');
     textInput.type = 'text';
-    textInput.value = currentValue;
-    textInput.placeholder = placeholder;
+    textInput.placeholder = selected.length === 0 ? placeholder : '';
     textInput.autocomplete = 'off';
-    textInput.className = [
-      'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm',
-      'focus:outline-none focus:ring-2 focus:ring-brand-ring bg-white'
-    ].join(' ');
-    container.appendChild(textInput);
+    textInput.className = 'flex-1 min-w-[120px] outline-none bg-transparent py-0.5 px-1';
+    controlWrapper.appendChild(textInput);
+
+    // Container for hidden inputs (to be submitted in the form)
+    var hiddenContainer = document.createElement('div');
+    container.appendChild(hiddenContainer);
 
     var dropdown = document.createElement('ul');
     dropdown.className = [
-      'absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-lg',
+      'absolute left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg',
       'mt-1 max-h-48 overflow-y-auto'
     ].join(' ');
     dropdown.style.display = 'none';
     container.appendChild(dropdown);
 
+    function updatePills() {
+      pillsWrapper.innerHTML = '';
+      hiddenContainer.innerHTML = '';
+      
+      selected.forEach(function(val) {
+        // Create pill
+        var pill = document.createElement('div');
+        pill.className = 'bg-brand-soft text-brand-dark px-2 py-0.5 rounded-lg flex items-center gap-1 text-xs font-medium border border-brand/10';
+        pill.textContent = val;
+        
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.className = 'hover:text-red-500 font-bold ml-0.5';
+        removeBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          removeValue(val);
+        });
+        pill.appendChild(removeBtn);
+        pillsWrapper.appendChild(pill);
+
+        // Create hidden input
+        if (name) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = val;
+          hiddenContainer.appendChild(input);
+        }
+      });
+
+      textInput.placeholder = selected.length === 0 ? placeholder : '';
+      onChange(selected);
+    }
+
+    function addValue(val) {
+      if (selected.indexOf(val) === -1) {
+        selected.push(val);
+        textInput.value = '';
+        updatePills();
+      }
+    }
+
+    function removeValue(val) {
+      selected = selected.filter(function(v) { return v !== val; });
+      updatePills();
+    }
+
     function showDropdown(filter) {
       var term = (filter || '').toLowerCase();
+      // Exclude already selected options
       var filtered = options.filter(function (o) {
-        return !term || o.toLowerCase().includes(term);
+        return (selected.indexOf(o) === -1) && (!term || o.toLowerCase().includes(term));
       });
 
       dropdown.innerHTML = '';
 
-      if (hidden.value) {
+      if (selected.length > 0) {
         var clearLi = document.createElement('li');
-        clearLi.textContent = '— Sin filtro —';
+        clearLi.textContent = '— Limpiar todos —';
         clearLi.className = 'px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 cursor-pointer italic';
         clearLi.addEventListener('mousedown', function (e) {
           e.preventDefault();
-          hidden.value = '';
-          textInput.value = '';
+          selected = [];
+          updatePills();
           dropdown.style.display = 'none';
-          onChange('');
         });
         dropdown.appendChild(clearLi);
       }
@@ -76,50 +132,62 @@
         li.className = 'px-3 py-2 text-sm text-gray-800 hover:bg-brand-soft hover:text-brand-dark cursor-pointer';
         li.addEventListener('mousedown', function (e) {
           e.preventDefault();
-          hidden.value = opt;
-          textInput.value = opt;
+          addValue(opt);
           dropdown.style.display = 'none';
-          onChange(opt);
         });
         dropdown.appendChild(li);
       });
 
-      if (!filtered.length) {
+      if (!filtered.length && term) {
         var empty = document.createElement('li');
         empty.textContent = 'Sin resultados';
         empty.className = 'px-3 py-2 text-sm text-gray-400 italic';
         dropdown.appendChild(empty);
+      } else if (!filtered.length && !term && selected.length === options.length) {
+        var allSelected = document.createElement('li');
+        allSelected.textContent = 'Todos seleccionados';
+        allSelected.className = 'px-3 py-2 text-sm text-gray-400 italic';
+        dropdown.appendChild(allSelected);
       }
 
-      dropdown.style.display = 'block';
+      if (dropdown.children.length > 0) {
+        dropdown.style.display = 'block';
+      } else {
+        dropdown.style.display = 'none';
+      }
     }
+
+    controlWrapper.addEventListener('click', function() {
+      textInput.focus();
+    });
 
     textInput.addEventListener('focus', function () { showDropdown(textInput.value); });
     textInput.addEventListener('input', function () { showDropdown(textInput.value); });
 
     textInput.addEventListener('blur', function () {
       setTimeout(function () { dropdown.style.display = 'none'; }, 150);
-      if (!textInput.value.trim() && hidden.value) {
-        hidden.value = '';
-        onChange('');
-      }
     });
 
     textInput.addEventListener('keydown', function (e) {
-      var items = dropdown.querySelectorAll('li');
-      var activeEl = dropdown.querySelector('li.bg-brand-muted');
+      if (e.key === 'Backspace' && textInput.value === '' && selected.length > 0) {
+        removeValue(selected[selected.length - 1]);
+        return;
+      }
+
+      var items = dropdown.querySelectorAll('li:not(.italic)');
+      var activeEl = dropdown.querySelector('li.bg-brand-soft');
       var idx = Array.from(items).indexOf(activeEl);
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (activeEl) activeEl.classList.remove('bg-brand-muted');
+        if (activeEl) activeEl.classList.remove('bg-brand-soft');
         var next = items[idx + 1] || items[0];
-        if (next) next.classList.add('bg-brand-muted');
+        if (next) next.classList.add('bg-brand-soft');
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (activeEl) activeEl.classList.remove('bg-brand-muted');
+        if (activeEl) activeEl.classList.remove('bg-brand-soft');
         var prev = idx > 0 ? items[idx - 1] : items[items.length - 1];
-        if (prev) prev.classList.add('bg-brand-muted');
+        if (prev) prev.classList.add('bg-brand-soft');
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (activeEl) activeEl.dispatchEvent(new MouseEvent('mousedown'));
@@ -127,6 +195,9 @@
         dropdown.style.display = 'none';
       }
     });
+
+    // Initial render
+    updatePills();
   }
 
   var countTimer = null;
@@ -134,16 +205,25 @@
   function scheduleCount(widget) {
     clearTimeout(countTimer);
     countTimer = setTimeout(function () {
-      var areaEl = widget.querySelector('[data-combobox="area"] input[type=hidden]');
-      var locEl = widget.querySelector('[data-combobox="location"] input[type=hidden]');
+      var areaInputs = widget.querySelectorAll('[data-combobox="area"] input[type=hidden]');
+      var locInputs = widget.querySelectorAll('[data-combobox="location"] input[type=hidden]');
+      
       var counterEl = widget.querySelector('[data-company-counter]');
       if (!counterEl) return;
 
       var params = new URLSearchParams();
-      if (areaEl && areaEl.value) params.set('area', areaEl.value);
-      if (locEl && locEl.value) params.set('location', locEl.value);
+      areaInputs.forEach(function(input) {
+        params.append('area', input.value);
+      });
+      locInputs.forEach(function(input) {
+        params.append('location', input.value);
+      });
 
-      fetch(COUNT_URL + (params.toString() ? '?' + params : ''))
+      var url = COUNT_URL;
+      var queryString = params.toString();
+      if (queryString) url += '?' + queryString;
+
+      fetch(url)
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (data && typeof data.count === 'number') {

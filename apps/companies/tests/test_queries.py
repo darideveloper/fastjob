@@ -39,16 +39,28 @@ def test_matching_qs_exact_area_excludes_substring():
     a2, _ = Area.objects.get_or_create(name="Tecnología Industrial")
     Company.objects.create(email="a@x.com", name="A", area=a1)
     Company.objects.create(email="b@x.com", name="B", area=a2)
-    qs = matching_companies_qs(area="Tecnología")
+    qs = matching_companies_qs(areas=["Tecnología"])
     assert qs.count() == 1
     assert qs.first().email == "a@x.com"
+
+
+@pytest.mark.django_db
+def test_matching_qs_multiple_areas():
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    a2, _ = Area.objects.get_or_create(name="Diseño")
+    a3, _ = Area.objects.get_or_create(name="Marketing")
+    Company.objects.create(email="a@x.com", name="A", area=a1)
+    Company.objects.create(email="b@x.com", name="B", area=a2)
+    Company.objects.create(email="c@x.com", name="C", area=a3)
+    qs = matching_companies_qs(areas=["Tecnología", "Diseño"])
+    assert qs.count() == 2
 
 
 @pytest.mark.django_db
 def test_matching_qs_case_insensitive():
     a, _ = Area.objects.get_or_create(name="Tecnología")
     Company.objects.create(email="a@x.com", name="A", area=a)
-    qs = matching_companies_qs(area="tecnología")
+    qs = matching_companies_qs(areas=["tecnología"])
     assert qs.count() == 1
 
 
@@ -58,7 +70,7 @@ def test_matching_qs_location_filter():
     l2, _ = Location.objects.get_or_create(name="Barcelona")
     Company.objects.create(email="a@x.com", name="A", area=None, location=l1)
     Company.objects.create(email="b@x.com", name="B", area=None, location=l2)
-    qs = matching_companies_qs(location="Madrid")
+    qs = matching_companies_qs(locations=["Madrid"])
     assert qs.count() == 1
     assert qs.first().email == "a@x.com"
 
@@ -71,7 +83,7 @@ def test_matching_qs_none_values_mean_no_filter():
     l2, _ = Location.objects.get_or_create(name="Barcelona")
     Company.objects.create(email="a@x.com", name="A", area=a1, location=l1)
     Company.objects.create(email="b@x.com", name="B", area=a2, location=l2)
-    assert matching_companies_qs(area=None, location=None).count() == 2
+    assert matching_companies_qs(areas=None, locations=None).count() == 2
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +166,40 @@ def test_get_company_count_with_filter():
     a2, _ = Area.objects.get_or_create(name="diseño")
     Company.objects.create(email="a@x.com", name="a", area=a1)
     Company.objects.create(email="b@x.com", name="b", area=a2)
-    assert get_company_count(area="tecnología") == 1
+    assert get_company_count(areas=["tecnología"]) == 1
+
+
+@pytest.mark.django_db
+def test_matching_qs_robust_normalization():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
+    Company.objects.create(email="b@x.com", name="b", area=a2)
+
+    # Test single model instance
+    qs = matching_companies_qs(areas=a1)
+    assert qs.count() == 1
+    assert qs.first().email == "a@x.com"
+
+    # Test QuerySet of model instances
+    qs = matching_companies_qs(areas=Area.objects.filter(name="tecnología"))
+    assert qs.count() == 1
+
+    # Test list of model instances
+    qs = matching_companies_qs(areas=[a1, a2])
+    assert qs.count() == 2
+
+
+@pytest.mark.django_db
+def test_get_company_count_robust_normalization():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
+
+    # Test single model instance
+    assert get_company_count(areas=a1) == 1
+
+    # Test QuerySet
+    assert get_company_count(areas=Area.objects.all()) == 1
 
 
 # ---------------------------------------------------------------------------

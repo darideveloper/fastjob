@@ -116,8 +116,7 @@ def test_task_respects_user_area_filter(
     Company.objects.create(email="b@x.com", name="B", area=a_tec, location=None)
     Company.objects.create(email="c@x.com", name="C", area=a_tec_ind, location=None)
 
-    google_linked_user.area_filter = a_tec
-    google_linked_user.save()
+    google_linked_user.area_filters.add(a_tec)
 
     with patch("apps.mailing.tasks.send_cv_email") as mock_send:
         process_mailing_queue()
@@ -136,15 +135,14 @@ def test_task_user_filter_is_case_insensitive(
     a_tec, _ = Area.objects.get_or_create(name="Tecnología")
     Company.objects.create(email="a@x.com", name="A", area=a_tec, location=None)
 
-    google_linked_user.area_filter = a_tec
-    google_linked_user.save()
+    google_linked_user.area_filters.add(a_tec)
 
     with patch("apps.mailing.tasks.send_cv_email") as mock_send:
         process_mailing_queue()
 
     assert mock_send.call_count == 1
     chosen_company = mock_send.call_args[0][1]
-    assert chosen_company.area.name == "Tecnología"
+    assert chosen_company.area.name == "tecnología"
 
 
 @pytest.mark.django_db

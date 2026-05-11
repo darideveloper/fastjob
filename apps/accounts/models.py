@@ -18,19 +18,11 @@ class User(AbstractUser):
     active_cv = models.ForeignKey(
         "accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
-    area_filter = models.ForeignKey(
-        "companies.Area",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="users",
+    area_filters = models.ManyToManyField(
+        "companies.Area", blank=True, related_name="users_m2m"
     )
-    location_filter = models.ForeignKey(
-        "companies.Location",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="users",
+    location_filters = models.ManyToManyField(
+        "companies.Location", blank=True, related_name="users_m2m"
     )
     stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True)
 

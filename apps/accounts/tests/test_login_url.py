@@ -12,13 +12,25 @@ render, and the redirect target must round-trip back to login.
 """
 import pytest
 from django.urls import reverse
+from allauth.socialaccount.models import SocialApp
+from django.contrib.sites.models import Site
 
+@pytest.fixture(autouse=True)
+def _setup_social_apps(db):
+    site = Site.objects.get_current()
+    for provider in ["google", "microsoft"]:
+        app = SocialApp.objects.create(
+            provider=provider,
+            name=f"{provider.capitalize()} App",
+            client_id=f"test_{provider}_id",
+            secret=f"test_{provider}_secret",
+        )
+        app.sites.add(site)
 
 @pytest.mark.django_db
 def test_login_get_renders_200(client):
     response = client.get("/accounts/login/")
     assert response.status_code == 200
-
 
 @pytest.mark.django_db
 def test_signup_url_redirects_to_login(client):
@@ -29,7 +41,6 @@ def test_signup_url_redirects_to_login(client):
 
     followed = client.get(signup_url, follow=True)
     assert followed.status_code == 200
-
 
 def test_account_signup_name_is_reversible():
     assert reverse("account_signup") == "/accounts/signup/"

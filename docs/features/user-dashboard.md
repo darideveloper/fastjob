@@ -69,7 +69,7 @@ GDPR-compliant self-service deletion. `GET` shows the confirmation form; `POST` 
 
 #### `update_filters` — `POST /dashboard/filtros/`
 
-Saves `area_filter` and `location_filter` (both stripped strings, can be empty) to the user model. Applies on the **next engine tick** — no restart needed.
+Saves `area_filters` and `location_filters` (lists of names validated against the taxonomy) to the user model. Applies on the **next engine tick** — no restart needed.
 
 #### `toggle_campaign` — `POST /dashboard/campana/`
 
