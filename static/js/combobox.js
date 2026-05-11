@@ -77,14 +77,14 @@
         pill.appendChild(removeBtn);
         pillsWrapper.appendChild(pill);
 
-        // Create hidden input
+        // Create hidden input for state tracking (and form submission if name is present)
+        var input = document.createElement('input');
+        input.type = 'hidden';
         if (name) {
-          var input = document.createElement('input');
-          input.type = 'hidden';
           input.name = name;
-          input.value = val;
-          hiddenContainer.appendChild(input);
         }
+        input.value = val;
+        hiddenContainer.appendChild(input);
       });
 
       textInput.placeholder = selected.length === 0 ? placeholder : '';

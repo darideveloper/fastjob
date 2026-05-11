@@ -19,14 +19,14 @@ def companies_count_view(request):
     areas = [v.strip() for v in request.GET.getlist("area") if v.strip()]
     locations = [v.strip() for v in request.GET.getlist("location") if v.strip()]
 
-    allowed_areas = {a.lower() for a in options["areas"]}
-    allowed_locations = {loc.lower() for loc in options["locations"]}
+    allowed_areas = {a.strip().lower() for a in options["areas"]}
+    allowed_locations = {loc.strip().lower() for loc in options["locations"]}
 
     for area in areas:
-        if area.lower() not in allowed_areas:
+        if area.strip().lower() not in allowed_areas:
             return JsonResponse({"error": "invalid_filter"}, status=400)
     for location in locations:
-        if location.lower() not in allowed_locations:
+        if location.strip().lower() not in allowed_locations:
             return JsonResponse({"error": "invalid_filter"}, status=400)
 
     count = get_company_count(areas or None, locations or None)
