@@ -173,9 +173,10 @@ import os
 
 # Company import local filesystem settings (shared between web and celery_worker via Docker volume)
 COMPANY_IMPORT_LOCAL_PATH = config("COMPANY_IMPORT_LOCAL_PATH", default=str(BASE_DIR / "imports"))
-COMPANY_IMPORT_MAX_FILE_MB = config("COMPANY_IMPORT_MAX_FILE_MB", default=25, cast=int)
+COMPANY_IMPORT_MAX_FILE_MB = config("COMPANY_IMPORT_MAX_FILE_MB", default=100, cast=int)
 COMPANY_IMPORT_FILE_RETENTION_DAYS = config("COMPANY_IMPORT_FILE_RETENTION_DAYS", default=7, cast=int)
 COMPANY_IMPORT_CHUNK_SIZE = config("COMPANY_IMPORT_CHUNK_SIZE", default=1000, cast=int)
+COMPANY_IMPORT_PRESIGN_EXPIRY_SECONDS = config("COMPANY_IMPORT_PRESIGN_EXPIRY_SECONDS", default=600, cast=int)
 
 # Storage settings
 STORAGE_AWS = config("STORAGE_AWS", default=False, cast=bool)
@@ -200,6 +201,7 @@ if STORAGE_AWS:
     STATIC_LOCATION = f"{AWS_PROJECT_FOLDER}/static"
     PUBLIC_MEDIA_LOCATION = f"{AWS_PROJECT_FOLDER}/media"
     PRIVATE_MEDIA_LOCATION = f"{AWS_PROJECT_FOLDER}/private"
+    IMPORTS_LOCATION = f"{AWS_PROJECT_FOLDER}/imports"
 
     # 6. Django-Storages Engine Mapping (Django 4.2+)
     STORAGES = {
@@ -213,8 +215,7 @@ if STORAGE_AWS:
             "BACKEND": "config.storage_backends.PrivateMediaStorage",
         },
         "imports": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-            "OPTIONS": {"location": COMPANY_IMPORT_LOCAL_PATH, "base_url": None},
+            "BACKEND": "config.storage_backends.ImportsStorage",
         },
     }
 
@@ -343,12 +344,10 @@ CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_HTTPONLY = True  # No client JS reads the CSRF token in this app
 
 # Hard caps on request body size (defense in depth alongside Nginx + view-level checks).
-# DATA_UPLOAD_MAX_MEMORY_SIZE limits non-file form data per request; multipart file
-# bytes are excluded from this counter (the 10 MB CV cap is enforced in upload_cv).
-# Set the cap a few MB above COMPANY_IMPORT_MAX_FILE_MB so the company-import upload
-# (largest legitimate request body) fits even with proxy-added overhead and never
-# trips RequestDataTooBig before our form-level size check has a chance to run.
-DATA_UPLOAD_MAX_MEMORY_SIZE = (COMPANY_IMPORT_MAX_FILE_MB + 5) * 1024 * 1024
+# DATA_UPLOAD_MAX_MEMORY_SIZE limits non-file form data per request.
+# Company imports now upload directly to object storage (presigned PUT), so
+# Django never receives the .xlsx body — this can return to a sane default.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB (covers CV uploads)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB streamed-to-disk threshold
 SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=0, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)

@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.files.storage import storages
 from django.db import models
 from django.utils import timezone
@@ -125,6 +127,9 @@ class CompanyImportBatch(models.Model):
 
     file = models.FileField(upload_to="companies/%Y/%m/%d/", storage=_imports_storage, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    # UUID generated server-side at presign time; unique prevents replay attacks.
+    upload_uuid = models.UUIDField(unique=True, null=True, blank=True)
+    original_filename = models.CharField(max_length=255, blank=True)
     total_rows = models.PositiveIntegerField(default=0)
     processed_rows = models.PositiveIntegerField(default=0)
     created_count = models.PositiveIntegerField(default=0)

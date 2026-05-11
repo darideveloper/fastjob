@@ -28,3 +28,16 @@ class PrivateMediaStorage(S3Boto3Storage):
     file_overwrite = False
     # Crucial: Private files must bypass the CDN to use Signed URLs
     custom_domain = False
+
+
+class ImportsStorage(S3Boto3Storage):
+    """
+    Handles company import .xlsx files.
+    Stored in: bucket/project_folder/imports/
+    Objects are private and short-lived (deleted on COMPLETED or purged by retention task).
+    """
+    location = settings.IMPORTS_LOCATION
+    default_acl = "private"
+    file_overwrite = False
+    # Must bypass CDN so presigned URLs use the S3/Spaces endpoint directly.
+    custom_domain = False

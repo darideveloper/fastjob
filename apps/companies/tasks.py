@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 import traceback
 from datetime import timedelta
 
@@ -48,6 +50,29 @@ def _preflight_total_rows(file_path):
     return min(max(raw - 1, 0), _MAX_ROWS_CLAMP)
 
 
+def _download_to_tempfile(batch):
+    """Stream the batch file from storage into a NamedTemporaryFile.
+
+    Returns the temp file path. Caller is responsible for unlinking it.
+    Works for both FileSystemStorage (local dev) and S3Boto3Storage (prod).
+    """
+    tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+    try:
+        with batch.file.open("rb") as src:
+            for chunk in iter(lambda: src.read(1024 * 1024), b""):
+                tmp.write(chunk)
+        tmp.flush()
+        tmp.close()
+    except Exception:
+        tmp.close()
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+        raise
+    return tmp.name
+
+
 @shared_task
 def process_company_import(batch_id):
     try:
@@ -58,19 +83,22 @@ def process_company_import(batch_id):
     batch.status = "PROCESSING"
     batch.save(update_fields=["status", "updated_at"])
 
+    tmp_path = None
     try:
-        batch.total_rows = _preflight_total_rows(batch.file.path)
+        tmp_path = _download_to_tempfile(batch)
+
+        batch.total_rows = _preflight_total_rows(tmp_path)
         batch.save(update_fields=["total_rows", "updated_at"])
 
         created, updated, errors, blacklisted_skipped = import_companies_from_xlsx(
-            batch.file.path,
+            tmp_path,
             batch=batch,
             chunk_size=settings.COMPANY_IMPORT_CHUNK_SIZE,
         )
 
         try:
             batch.file.delete(save=False)
-        except FileNotFoundError:
+        except Exception:
             pass
         batch.file.name = ""
 
@@ -116,6 +144,13 @@ def process_company_import(batch_id):
         )
         batch.error_log = existing_errors
         batch.save(update_fields=["status", "error_log", "updated_at"])
+
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
 
 @shared_task

@@ -7,21 +7,15 @@
     El archivo debe tener las columnas: <code>name</code>, <code>email</code>,
     y opcionalmente <code>area</code> y <code>location</code>.
     Las empresas existentes se actualizarán por email.
+    Tamaño máximo: {{ max_file_mb }} MB.
   </p>
 
-  <form method="post" enctype="multipart/form-data" id="import-form">
-    {% csrf_token %}
+  <div id="upload-section">
     <fieldset class="module aligned">
       <div class="form-row">
         <div>
-          <label>{{ form.xlsx_file.label }}</label>
-          {{ form.xlsx_file }}
-          {% if form.xlsx_file.help_text %}
-            <p class="help">{{ form.xlsx_file.help_text }}</p>
-          {% endif %}
-          {% for error in form.xlsx_file.errors %}
-            <p class="errornote">{{ error }}</p>
-          {% endfor %}
+          <label for="xlsx-file-input">Archivo Excel (.xlsx)</label>
+          <input type="file" id="xlsx-file-input" accept=".xlsx" />
         </div>
       </div>
     </fieldset>
@@ -33,17 +27,19 @@
     </div>
 
     <div class="submit-row">
-      <input type="submit" value="Importar" class="default" id="submit-btn"/>
+      <input type="button" value="Importar" class="default" id="submit-btn"/>
       <a href=".." class="closelink" id="cancel-link">Cancelar</a>
     </div>
-  </form>
+  </div>
 </div>
 
 <script>
-document.getElementById("import-form").addEventListener("submit", function (e) {
-  e.preventDefault();
+(function () {
+  var PRESIGN_URL = "{% url 'admin:companies_company_presign_import_upload' %}";
+  var TRIGGER_URL = "{% url 'admin:companies_company_import_xlsx' %}";
+  var CSRF_TOKEN = "{{ csrf_token }}";
 
-  var form = this;
+  var fileInput = document.getElementById("xlsx-file-input");
   var submitBtn = document.getElementById("submit-btn");
   var cancelLink = document.getElementById("cancel-link");
   var progressContainer = document.getElementById("progress-container");
@@ -52,62 +48,135 @@ document.getElementById("import-form").addEventListener("submit", function (e) {
   var progressLabel = document.getElementById("progress-label");
   var processingLabel = document.getElementById("processing-label");
 
-  submitBtn.disabled = true;
-  submitBtn.value = "Subiendo…";
-  cancelLink.style.pointerEvents = "none";
-  cancelLink.style.opacity = "0.4";
-  progressContainer.style.display = "block";
-
-  var xhr = new XMLHttpRequest();
-
-  xhr.upload.addEventListener("progress", function (evt) {
-    if (evt.lengthComputable) {
-      var pct = Math.round((evt.loaded / evt.total) * 100);
-      progressBar.value = pct;
-      progressPct.textContent = pct + "%";
+  function setUploading(active) {
+    submitBtn.disabled = active;
+    submitBtn.value = active ? "Subiendo…" : "Importar";
+    cancelLink.style.pointerEvents = active ? "none" : "";
+    cancelLink.style.opacity = active ? "0.4" : "";
+    progressContainer.style.display = active ? "block" : "none";
+    if (!active) {
+      progressBar.value = 0;
+      progressPct.textContent = "0%";
+      progressLabel.style.display = "";
+      progressBar.style.display = "";
+      processingLabel.style.display = "none";
     }
-  });
+  }
 
-  xhr.upload.addEventListener("loadend", function () {
-    progressLabel.style.display = "none";
-    progressBar.style.display = "none";
-    processingLabel.style.display = "block";
-  });
+  function showError(message) {
+    setUploading(false);
+    alert(message);
+  }
 
-  xhr.addEventListener("load", function () {
-    if (xhr.status >= 200 && xhr.status < 400) {
-      window.location.href = xhr.responseURL || "..";
-    } else {
-      submitBtn.disabled = false;
-      submitBtn.value = "Importar";
-      cancelLink.style.pointerEvents = "";
-      cancelLink.style.opacity = "";
-      progressContainer.style.display = "none";
+  submitBtn.addEventListener("click", function () {
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) {
+      alert("Selecciona un archivo .xlsx primero.");
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      alert("Solo se permiten archivos .xlsx.");
+      return;
+    }
 
-      var message = "Error al subir el archivo. Por favor inténtalo de nuevo.";
-      try {
-        var data = JSON.parse(xhr.responseText);
-        if (data && data.error) {
-          message = data.error;
+    setUploading(true);
+
+    // ── Step 1: Request presigned URL ──────────────────────────────
+    var presignXhr = new XMLHttpRequest();
+    presignXhr.open("POST", PRESIGN_URL);
+    presignXhr.setRequestHeader("Content-Type", "application/json");
+    presignXhr.setRequestHeader("X-CSRFToken", CSRF_TOKEN);
+    presignXhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+    presignXhr.addEventListener("load", function () {
+      if (presignXhr.status !== 200) {
+        var msg = "Error al iniciar la subida. Inténtalo de nuevo.";
+        try { msg = JSON.parse(presignXhr.responseText).error || msg; } catch (_) {}
+        showError(msg);
+        return;
+      }
+
+      var presignData;
+      try { presignData = JSON.parse(presignXhr.responseText); } catch (_) {
+        showError("Respuesta inesperada del servidor.");
+        return;
+      }
+
+      // ── Step 2: PUT file directly to S3 / Spaces (or local upload) ──
+      var s3Xhr = new XMLHttpRequest();
+      s3Xhr.open("PUT", presignData.url);
+
+      var headers = presignData.headers || {};
+      Object.keys(headers).forEach(function (h) {
+        s3Xhr.setRequestHeader(h, headers[h]);
+      });
+
+      s3Xhr.upload.addEventListener("progress", function (evt) {
+        if (evt.lengthComputable) {
+          var pct = Math.round((evt.loaded / evt.total) * 100);
+          progressBar.value = pct;
+          progressPct.textContent = pct + "%";
         }
-      } catch (_) {}
-      alert(message);
-    }
+      });
+
+      s3Xhr.upload.addEventListener("loadend", function () {
+        progressLabel.style.display = "none";
+        progressBar.style.display = "none";
+        processingLabel.style.display = "block";
+      });
+
+      s3Xhr.addEventListener("load", function () {
+        if (s3Xhr.status < 200 || s3Xhr.status >= 300) {
+          showError("Error al subir el archivo a la nube. Revisa tu conexión.");
+          return;
+        }
+        // ── Step 3: Trigger import ─────────────────────────────────
+        triggerImport(presignData.upload_uuid, presignData.key);
+      });
+
+      s3Xhr.addEventListener("error", function () {
+        showError("Error al subir el archivo a la nube. Revisa tu conexión.");
+      });
+
+      s3Xhr.send(file);
+    });
+
+    presignXhr.addEventListener("error", function () {
+      showError("Error de red al solicitar la URL de subida. Inténtalo de nuevo.");
+    });
+
+    presignXhr.send(JSON.stringify({
+      filename: file.name,
+      content_type: file.type || "application/octet-stream",
+      content_length: file.size
+    }));
   });
 
-  xhr.addEventListener("error", function () {
-    submitBtn.disabled = false;
-    submitBtn.value = "Importar";
-    cancelLink.style.pointerEvents = "";
-    cancelLink.style.opacity = "";
-    progressContainer.style.display = "none";
-    alert("Error de red. Por favor inténtalo de nuevo.");
-  });
+  function triggerImport(uploadUuid, key) {
+    var triggerXhr = new XMLHttpRequest();
+    triggerXhr.open("POST", TRIGGER_URL);
+    triggerXhr.setRequestHeader("Content-Type", "application/json");
+    triggerXhr.setRequestHeader("X-CSRFToken", CSRF_TOKEN);
+    triggerXhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
-  xhr.open("POST", form.action || window.location.href);
-  xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-  xhr.setRequestHeader("Accept", "application/json");
-  xhr.send(new FormData(form));
-});
+    triggerXhr.addEventListener("load", function () {
+      if (triggerXhr.status >= 200 && triggerXhr.status < 400) {
+        var data;
+        try { data = JSON.parse(triggerXhr.responseText); } catch (_) { data = {}; }
+        window.location.href = data.redirect_url || "..";
+      } else {
+        var msg = "Error al iniciar la importación. Inténtalo de nuevo.";
+        try { msg = JSON.parse(triggerXhr.responseText).error || msg; } catch (_) {}
+        showError(msg);
+      }
+    });
+
+    triggerXhr.addEventListener("error", function () {
+      showError("Error de red al iniciar la importación. Inténtalo de nuevo.");
+    });
+
+    triggerXhr.send(JSON.stringify({ upload_uuid: uploadUuid, key: key }));
+  }
+})();
 </script>
 {% endblock %}
