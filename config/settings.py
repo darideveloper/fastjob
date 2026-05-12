@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "storages",
     "django_celery_beat",
     # Local
+    "apps.core",
     "apps.accounts",
     "apps.companies",
     "apps.mailing",
