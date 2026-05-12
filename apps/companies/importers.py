@@ -55,7 +55,7 @@ def _parse_row(row, header_map, row_num):
     raw_actividad = get("actividad")
     area_name = raw_actividad.split(":")[0].strip().lower()[:200] if raw_actividad else ""
 
-    location_name = get("poblacion").lower()[:200]
+    location_name = get("provincia").lower()[:200]
     address = get("direccion").lower()[:500]
     zip_code = get("cp")[:20]
     province = get("provincia").lower()[:100]

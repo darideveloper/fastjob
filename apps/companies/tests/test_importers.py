@@ -14,7 +14,7 @@ import pytest
 
 from apps.companies import importers
 from apps.companies.importers import import_companies_from_xlsx
-from apps.companies.models import Blacklist, Company, CompanyImportBatch
+from apps.companies.models import Blacklist, Company, CompanyImportBatch, Area, Location
 
 
 def make_xlsx(headers, rows):
@@ -33,7 +33,7 @@ def make_xlsx(headers, rows):
 @pytest.mark.django_db
 def test_import_creates_new_companies():
     f = make_xlsx(
-        ["empresa", "email", "actividad", "poblacion"],
+        ["empresa", "email", "actividad", "provincia"],
         [
             ["Acme", "hr@acme.com", "Tech", "Madrid"],
             ["Beta", "jobs@beta.io", "Design", "Barcelona"],
@@ -51,9 +51,9 @@ def test_import_creates_new_companies():
 @pytest.mark.django_db
 def test_import_with_spanish_headers_and_splitting():
     f = make_xlsx(
-        ["EMPRESA", "EMAIL", "ACTIVIDAD", "POBLACION", "DIRECCION"],
+        ["EMPRESA", "EMAIL", "ACTIVIDAD", "PROVINCIA", "DIRECCION"],
         [
-            ["KIKO MILANO", "0383@stores.com", "COSMETICOS: ESTABLECIMIENTOS", "TORREVIEJA", "HABANERAS"],
+            ["KIKO MILANO", "0383@stores.com", "COSMETICOS: ESTABLECIMIENTOS", "ALICANTE", "HABANERAS"],
         ],
     )
     created, updated, errors, _ = import_companies_from_xlsx(f)
@@ -62,18 +62,17 @@ def test_import_with_spanish_headers_and_splitting():
     c = Company.objects.get(email="0383@stores.com")
     assert c.name == "kiko milano"
     assert c.area.name == "cosmeticos"
-    assert c.location.name == "torrevieja"
+    assert c.location.name == "alicante"
     assert c.address == "habaneras"
 
 
 @pytest.mark.django_db
 def test_import_updates_existing_by_email():
-    from apps.companies.models import Area, Location
     old_area, _ = Area.objects.get_or_create(name="old")
     old_loc, _ = Location.objects.get_or_create(name="old")
     Company.objects.create(email="hr@acme.com", name="old name", area=old_area, location=old_loc)
     f = make_xlsx(
-        ["empresa", "email", "actividad", "poblacion"],
+        ["empresa", "email", "actividad", "provincia"],
         [["Acme", "hr@acme.com", "Tech", "Madrid"]],
     )
     created, updated, _, _skip = import_companies_from_xlsx(f)
@@ -82,6 +81,34 @@ def test_import_updates_existing_by_email():
     c = Company.objects.get(email="hr@acme.com")
     assert c.name == "acme"
     assert c.area.name == "tech"
+    assert c.location.name == "madrid"
+
+
+@pytest.mark.django_db
+def test_import_uses_provincia_for_location_taxonomy():
+    """Verify that the 'provincia' column is used to populate the Location model."""
+    f = make_xlsx(
+        ["empresa", "email", "provincia", "poblacion"],
+        [
+            ["Acme Madrid", "madrid@acme.com", "Madrid", "Alcobendas"],
+            ["Acme Madrid 2", "madrid2@acme.com", "Madrid", "Torrelodones"],
+            ["Acme BCN", "bcn@acme.com", "Barcelona", "Sabadell"],
+        ],
+    )
+    import_companies_from_xlsx(f)
+    
+    # Both Madrid rows should point to the same Location("madrid")
+    madrid_loc = Location.objects.get(name="madrid")
+    assert Company.objects.filter(location=madrid_loc).count() == 2
+    
+    # Barcelona row should point to Location("barcelona")
+    bcn_loc = Location.objects.get(name="barcelona")
+    assert Company.objects.filter(location=bcn_loc).count() == 1
+    
+    # The 'poblacion' column data (Alcobendas, etc) should NOT be in the Location table
+    assert not Location.objects.filter(name="alcobendas").exists()
+    assert not Location.objects.filter(name="torrelodones").exists()
+    assert not Location.objects.filter(name="sabadell").exists()
 
 
 @pytest.mark.django_db
