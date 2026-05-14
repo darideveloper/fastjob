@@ -15,7 +15,7 @@ def test_admin_preview_renders_with_placeholders(client, staff_user, email_templ
     assert resp.status_code == 200
     body = resp.content.decode()
     assert "Empresa Ejemplo S.L." in body
-    assert "example.com/cv/" in body
+    assert "example.com/unsubscribe/" in body
 
 
 @pytest.mark.django_db
@@ -48,7 +48,6 @@ def test_admin_preview_isolates_xss_in_iframe(client, staff_user, email_template
     email_template.body_html = (
         '<p>hi {company_name}</p>'
         '<script>alert("xss")</script>'
-        '<a href="{cv_url}">cv</a>'
         '<a href="{unsubscribe_url}">u</a>'
     )
     email_template.save(update_fields=["body_html"])

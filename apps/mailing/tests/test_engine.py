@@ -122,8 +122,19 @@ def test_send_cv_email_via_google_success(google_linked_user, company, email_tem
 
     # The only call should be to Gmail, not to the refresh endpoint (token valid).
     assert mock_post.call_count == 1
-    call_url = mock_post.call_args[0][0]
-    assert "gmail.googleapis.com" in call_url
+    call_args, call_kwargs = mock_post.call_args
+    assert "gmail.googleapis.com" in call_args[0]
+    
+    import base64
+    import email
+    raw_b64 = call_kwargs["json"]["raw"]
+    msg_bytes = base64.urlsafe_b64decode(raw_b64)
+    parsed_msg = email.message_from_bytes(msg_bytes)
+    assert parsed_msg.is_multipart()
+    parts = parsed_msg.get_payload()
+    assert len(parts) == 2
+    assert parts[1].get_content_type() == "application/pdf"
+    assert parts[1].get_filename() == google_linked_user.active_cv.file.name.rsplit('/', 1)[-1]
 
 
 @pytest.mark.django_db
@@ -139,8 +150,14 @@ def test_send_cv_email_via_microsoft_success(microsoft_linked_user, company, ema
         send_cv_email(microsoft_linked_user, company, email_template, log)
 
     assert mock_post.call_count == 1
-    call_url = mock_post.call_args[0][0]
-    assert "graph.microsoft.com" in call_url
+    call_args, call_kwargs = mock_post.call_args
+    assert "graph.microsoft.com" in call_args[0]
+    
+    payload = call_kwargs["json"]["message"]
+    assert "attachments" in payload
+    assert len(payload["attachments"]) == 1
+    assert payload["attachments"][0]["contentType"] == "application/pdf"
+    assert payload["attachments"][0]["name"] == microsoft_linked_user.active_cv.file.name.rsplit('/', 1)[-1]
 
 
 @pytest.mark.django_db

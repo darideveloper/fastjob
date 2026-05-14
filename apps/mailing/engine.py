@@ -19,6 +19,7 @@ import time
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 
 import requests
 from allauth.socialaccount.models import SocialApp, SocialToken
@@ -243,15 +244,23 @@ def _refresh_microsoft_token(token):
     )
 
 
-def _send_via_gmail(access_token, from_email, to_email, subject, body_html, unsubscribe_url=None):
-    msg = MIMEMultipart("alternative")
+def _send_via_gmail(access_token, from_email, to_email, subject, body_html, attachment, unsubscribe_url=None):
+    msg = MIMEMultipart("mixed")
     msg["To"] = to_email
     msg["From"] = from_email
     msg["Subject"] = subject
     if unsubscribe_url:
         msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
         msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+    
+    # Body
     msg.attach(MIMEText(body_html, "html", "utf-8"))
+
+    # Attachment
+    if attachment:
+        attachment_part = MIMEApplication(attachment["content"], _subtype="pdf", Name=attachment["name"])
+        attachment_part['Content-Disposition'] = f'attachment; filename="{attachment["name"]}"'
+        msg.attach(attachment_part)
 
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
@@ -266,12 +275,23 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html, unsu
         raise Exception(f"Gmail API error {resp.status_code}: {resp.text}")
 
 
-def _send_via_microsoft(access_token, to_email, subject, body_html, unsubscribe_url=None):
+def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, unsubscribe_url=None):
     message = {
         "subject": subject,
         "body": {"contentType": "HTML", "content": body_html},
         "toRecipients": [{"emailAddress": {"address": to_email}}],
     }
+    
+    if attachment:
+        message["attachments"] = [
+            {
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": attachment["name"],
+                "contentType": attachment["content_type"],
+                "contentBytes": base64.b64encode(attachment["content"]).decode("utf-8")
+            }
+        ]
+
     if unsubscribe_url:
         message["internetMessageHeaders"] = [
             {"name": "List-Unsubscribe", "value": f"<{unsubscribe_url}>"},
@@ -326,12 +346,10 @@ def send_cv_email(user, company, template, log):
     Raises Exception for other send failures.
     """
     base_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}"
-    cv_url = f"{base_url}/cv/{log.cv_download_token}/"
     unsubscribe_url = f"{base_url}/unsubscribe/{log.unsubscribe_token}/"
 
     subject, body_html = template.render(
         company_name=company.name,
-        cv_url=cv_url,
         unsubscribe_url=unsubscribe_url,
     )
 
@@ -340,17 +358,33 @@ def send_cv_email(user, company, template, log):
     # MIME message. Microsoft Graph builds the subject as JSON, but stripping
     # here is uniform and cheap.
     subject = subject.replace("\r", "").replace("\n", "")
+    
+    try:
+        if not user.active_cv or not user.active_cv.file:
+            raise ValueError("No active CV file associated with the user.")
+        cv_file = user.active_cv.file
+        with cv_file.open("rb") as f:
+            attachment_content = f.read()
+        attachment = {
+            "name": cv_file.name.rsplit('/', 1)[-1],
+            "content": attachment_content,
+            "content_type": "application/pdf"
+        }
+    except (OSError, FileNotFoundError, ValueError, AttributeError) as e:
+        user.is_campaign_active = False
+        user.save(update_fields=["is_campaign_active"])
+        raise Exception(f"Failed to read CV file: {e}")
 
     provider, social, token = _get_social_token(user)
 
     if provider == "google":
         access_token = _refresh_google_token(token)
         from_email = user.email
-        _send_via_gmail(access_token, from_email, company.email, subject, body_html, unsubscribe_url)
+        _send_via_gmail(access_token, from_email, company.email, subject, body_html, attachment, unsubscribe_url)
 
     elif provider == "microsoft":
         access_token = _refresh_microsoft_token(token)
-        _send_via_microsoft(access_token, company.email, subject, body_html, unsubscribe_url)
+        _send_via_microsoft(access_token, company.email, subject, body_html, attachment, unsubscribe_url)
 
     else:
         raise ValueError(f"Unsupported provider: {provider}")

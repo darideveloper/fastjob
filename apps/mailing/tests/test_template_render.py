@@ -15,16 +15,16 @@ import pytest
 from apps.mailing.models import EmailTemplate
 
 
-def _render(subject="", body=""):
+def _render(subject="Test", body="<p>Test</p>"):
     t = EmailTemplate(subject=subject, body_html=body)
-    return t.render(company_name="Acme", cv_url="http://cv", unsubscribe_url="http://u")
+    return t.render(company_name="Acme", unsubscribe_url="http://u")
 
 
 @pytest.mark.django_db
 def test_known_placeholders_resolve_to_values():
-    s, b = _render(subject="hi {company_name}", body="cv: {cv_url}, u: {unsubscribe_url}")
+    s, b = _render(subject="hi {company_name}", body="u: {unsubscribe_url}")
     assert s == "hi Acme"
-    assert b == "cv: http://cv, u: http://u"
+    assert b == "u: http://u"
 
 
 @pytest.mark.django_db
@@ -36,27 +36,27 @@ def test_unknown_placeholder_renders_as_literal_text():
 
 @pytest.mark.django_db
 def test_attribute_walk_falls_back_to_bare_value():
-    """Acceptance for H11: a template with `{cv_url.__class__}` renders as
+    """Acceptance for H11: a template with `{unsubscribe_url.__class__}` renders as
     the literal value, not the type repr — attribute access is disabled."""
-    _, b = _render(body="leak: {cv_url.__class__}")
+    _, b = _render(body="leak: {unsubscribe_url.__class__}")
     # Without the fix this would render `<class 'str'>`.
-    assert b == "leak: http://cv"
+    assert b == "leak: http://u"
 
 
 @pytest.mark.django_db
 def test_nested_attribute_walk_is_disabled():
     """Defence-in-depth: chained attribute access (the actual exploit
     payload mentioned in security-fixes.md §2.3) doesn't leak either."""
-    _, b = _render(body="{cv_url.__class__.__mro__[1]}")
-    assert b == "http://cv"
+    _, b = _render(body="{unsubscribe_url.__class__.__mro__[1]}")
+    assert b == "http://u"
 
 
 @pytest.mark.django_db
 def test_index_access_is_disabled():
     """Bracket-indexing into a value is the other half of `format`'s
     mini-language. The fix strips `[...]` like it strips `.attr`."""
-    _, b = _render(body="first char: {cv_url[0]}")
-    assert b == "first char: http://cv"
+    _, b = _render(body="first char: {unsubscribe_url[0]}")
+    assert b == "first char: http://u"
 
 
 # H14: body_html has a 50 000-char hard cap. The validator triggers on

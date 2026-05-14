@@ -46,7 +46,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
 
 PREVIEW_CONTEXT = {
     "company_name": "Empresa Ejemplo S.L.",
-    "cv_url": "https://example.com/cv/00000000-0000-0000-0000-000000000000/",
     "unsubscribe_url": "https://example.com/unsubscribe/00000000-0000-0000-0000-000000000000/",
 }
 

@@ -19,9 +19,9 @@ from apps.mailing.models import EmailTemplate, MailingLog
 def fixture_log(db, google_linked_user, company):
     """A MailingLog row plus a stub email template, ready to feed into
     send_cv_email. We don't need the actual send to succeed — just to
-    capture the cv_url / unsubscribe_url passed to the renderer."""
+    capture the unsubscribe_url passed to the renderer."""
     template = EmailTemplate.objects.create(
-        name="t", subject="hi", body_html="cv: {cv_url} | u: {unsubscribe_url}", is_active=True
+        name="t", subject="hi", body_html="u: {unsubscribe_url}", is_active=True
     )
     log = MailingLog.objects.create(
         user=google_linked_user, company=company, email_template=template, cv=google_linked_user.active_cv
@@ -39,8 +39,7 @@ def test_engine_uses_site_scheme_when_debug_true(monkeypatch, fixture_log, setti
 
     captured = {}
 
-    def fake_render(company_name, cv_url, unsubscribe_url):
-        captured["cv_url"] = cv_url
+    def fake_render(company_name, unsubscribe_url):
         captured["unsubscribe_url"] = unsubscribe_url
         return ("subj", "<p>body</p>")
 
@@ -50,7 +49,6 @@ def test_engine_uses_site_scheme_when_debug_true(monkeypatch, fixture_log, setti
 
     send_cv_email(user, company, template, log)
 
-    assert captured["cv_url"].startswith("https://example.com/cv/")
     assert captured["unsubscribe_url"].startswith("https://example.com/unsubscribe/")
 
 
@@ -65,15 +63,15 @@ def test_engine_respects_http_scheme_for_local_dev(monkeypatch, fixture_log, set
 
     captured = {}
 
-    def fake_render(company_name, cv_url, unsubscribe_url):
-        captured["cv_url"] = cv_url
+    def fake_render(company_name, unsubscribe_url):
+        captured["unsubscribe_url"] = unsubscribe_url
         return ("subj", "<p>body</p>")
 
     monkeypatch.setattr(template, "render", fake_render)
     monkeypatch.setattr("apps.mailing.engine._send_via_gmail", lambda *a, **kw: None)
 
     send_cv_email(user, company, template, log)
-    assert captured["cv_url"].startswith("http://localhost:8000/cv/")
+    assert captured["unsubscribe_url"].startswith("http://localhost:8000/unsubscribe/")
 
 
 def test_settings_default_site_scheme_is_https(settings):

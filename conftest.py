@@ -108,6 +108,6 @@ def email_template(db):
     return EmailTemplate.objects.create(
         name="Test Template",
         subject="Candidatura para {company_name}",
-        body_html='<p>Hola {company_name}</p><a href="{cv_url}">CV</a><a href="{unsubscribe_url}">Baja</a>',
+        body_html='<p>Hola {company_name}</p><a href="{unsubscribe_url}">Baja</a>',
         is_active=True,
     )

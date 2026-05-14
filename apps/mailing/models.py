@@ -86,7 +86,7 @@ class EmailTemplate(models.Model):
     body_html = models.TextField(
         validators=[MaxLengthValidator(EMAIL_BODY_MAX_LENGTH)],
         help_text=(
-            "Cuerpo HTML del email. Placeholders: {company_name}, {cv_url}, {unsubscribe_url}. "
+            "Cuerpo HTML del email. Placeholders: {company_name}, {unsubscribe_url}. "
             f"Máximo {EMAIL_BODY_MAX_LENGTH:,} caracteres."
         ),
     )
@@ -113,14 +113,13 @@ class EmailTemplate(models.Model):
                 )
             })
 
-    def render(self, company_name, cv_url, unsubscribe_url):
+    def render(self, company_name, unsubscribe_url):
         # H11: render via the restricted formatter — strips attribute and
-        # item access from placeholders so `{cv_url.__class__}` resolves
-        # to the bare `cv_url` value, and SafeDict leaves unknown keys
+        # item access from placeholders so `{unsubscribe_url.__class__}` resolves
+        # to the bare `unsubscribe_url` value, and SafeDict leaves unknown keys
         # like `{typo}` as literal text instead of raising.
         context = SafeDict(
             company_name=company_name,
-            cv_url=cv_url,
             unsubscribe_url=unsubscribe_url,
         )
         return (
