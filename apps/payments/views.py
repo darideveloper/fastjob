@@ -141,10 +141,18 @@ def _handle_successful_payment(session):
 
     user = payment.user
     if user:
-        # Atomic increment: two concurrent webhook deliveries (rare but possible
-        # under Stripe retries) won't lose a credit grant. The early-return guard
-        # above already prevents double-grant for the same session.
-        update_kwargs = {"credits_remaining": F("credits_remaining") + payment.credits_granted}
+        from django.db.models import Case, When, Value
+        # Atomic increment: total_purchased_credits is always increased.
+        # For credits_remaining, we "forgive" the debt if it's negative by
+        # adding the absolute value of the negative balance in addition to the
+        # granted credits, ensuring the final balance is at least the granted amount.
+        update_kwargs = {
+            "credits_remaining": F("credits_remaining") + payment.credits_granted + Case(
+                When(credits_remaining__lt=0, then=-F("credits_remaining")),
+                default=Value(0)
+            ),
+            "total_purchased_credits": F("total_purchased_credits") + payment.credits_granted
+        }
         # Cache the Stripe customer ID the first time we see it so future
         # billing_portal visits skip the Customer.list() lookup.
         customer = session.get("customer")

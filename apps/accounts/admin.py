@@ -14,16 +14,35 @@ class CVInline(admin.TabularInline):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "first_name", "last_name", "credits_remaining", "is_campaign_active", "linked_provider", "date_joined")
+    list_display = (
+        "email", 
+        "first_name", 
+        "last_name", 
+        "credits_remaining", 
+        "visible_credits_display",
+        "total_purchased_credits",
+        "is_campaign_active", 
+        "linked_provider", 
+        "date_joined"
+    )
     list_filter = ("is_campaign_active", "is_staff", "is_active")
     search_fields = ("email", "first_name", "last_name", "stripe_customer_id")
     ordering = ("-date_joined",)
-    readonly_fields = ("date_joined", "last_login", "linked_provider")
+    readonly_fields = ("date_joined", "last_login", "linked_provider", "visible_credits_display", "total_purchased_credits")
     inlines = [CVInline]
 
     fieldsets = BaseUserAdmin.fieldsets + (
         ("FastJob", {
-            "fields": ("credits_remaining", "is_campaign_active", "active_cv", "area_filters", "location_filters", "stripe_customer_id"),
+            "fields": (
+                "credits_remaining", 
+                "visible_credits_display",
+                "total_purchased_credits", 
+                "is_campaign_active", 
+                "active_cv", 
+                "area_filters", 
+                "location_filters", 
+                "stripe_customer_id"
+            ),
         }),
     )
     filter_horizontal = ("area_filters", "location_filters")
@@ -31,6 +50,10 @@ class UserAdmin(BaseUserAdmin):
     def linked_provider(self, obj):
         return obj.linked_provider or "—"
     linked_provider.short_description = "Proveedor OAuth"
+
+    def visible_credits_display(self, obj):
+        return obj.visible_credits
+    visible_credits_display.short_description = "Envíos visibles (UI)"
 
 
 @admin.register(CV)

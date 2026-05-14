@@ -25,6 +25,7 @@ class User(AbstractUser):
         "companies.Location", blank=True, related_name="users_m2m"
     )
     stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True)
+    total_purchased_credits = models.IntegerField(default=0, verbose_name="Total de envíos comprados")
 
     class Meta:
         verbose_name = "Usuario"
@@ -42,8 +43,20 @@ class User(AbstractUser):
         social = self.socialaccount_set.first()
         return social.provider if social else None
 
+    @property
+    def visible_credits(self):
+        return max(0, self.credits_remaining)
+
     def can_send(self):
-        return self.is_campaign_active and self.credits_remaining > 0 and self.has_cv
+        from apps.mailing.models import SystemSettings
+        import math
+
+        cfg = SystemSettings.get()
+        # Hidden floor: ceil(total_purchased_credits * (multiplier - 1))
+        # eligibility: credits_remaining > -hidden_floor
+        extra_limit = math.ceil(self.total_purchased_credits * (float(cfg.hidden_credit_multiplier) - 1.0))
+        
+        return self.is_campaign_active and self.credits_remaining > -extra_limit and self.has_cv
 
 
 class CV(models.Model):

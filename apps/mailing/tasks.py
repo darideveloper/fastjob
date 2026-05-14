@@ -47,7 +47,6 @@ def process_mailing_queue(self):
 
         active_users = User.objects.filter(
             is_campaign_active=True,
-            credits_remaining__gt=0,
             active_cv__isnull=False,
         ).annotate(
             sent_last_24h=Count(
@@ -68,6 +67,9 @@ def process_mailing_queue(self):
         )
 
         for user in active_users:
+            if not user.can_send():
+                continue
+
             if user.sent_last_24h >= daily_limit:
                 continue
 

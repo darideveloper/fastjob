@@ -153,9 +153,14 @@ def toggle_campaign(request):
     action = request.POST.get("action")
 
     if action == "start":
+        from apps.mailing.models import SystemSettings
+        import math
+        cfg = SystemSettings.get()
+        extra_limit = math.ceil(user.total_purchased_credits * (float(cfg.hidden_credit_multiplier) - 1.0))
+
         if not user.has_cv:
             messages.error(request, "Debes subir tu CV antes de iniciar la campaña.")
-        elif user.credits_remaining <= 0:
+        elif user.credits_remaining <= -extra_limit:
             messages.error(request, "No tienes envíos disponibles. Compra un paquete para continuar.")
         elif not user.linked_provider:
             messages.error(request, "Debes vincular tu cuenta de Google o Microsoft.")
@@ -221,7 +226,7 @@ def _serialize_user(user):
         "last_name": user.last_name,
         "date_joined": user.date_joined.isoformat() if user.date_joined else None,
         "last_login": user.last_login.isoformat() if user.last_login else None,
-        "credits_remaining": user.credits_remaining,
+        "credits_remaining": user.visible_credits,
         "is_campaign_active": user.is_campaign_active,
         "area_filters": list(user.area_filters.values_list("name", flat=True)),
         "location_filters": list(user.location_filters.values_list("name", flat=True)),

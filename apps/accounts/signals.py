@@ -24,15 +24,14 @@ def cv_pre_delete(sender, instance, **kwargs):
     """
     if instance.file:
         instance.file.delete(save=False)
-
-
 @receiver(user_signed_up)
 def grant_signup_bonus(sender, request, user, **kwargs):
     """Give every new user a handful of free credits so they can try the product."""
+    from apps.mailing.models import SystemSettings
     if user.credits_remaining == 0:
-        user.credits_remaining = SIGNUP_BONUS_CREDITS
+        cfg = SystemSettings.get()
+        user.credits_remaining = cfg.initial_free_credits
         user.save(update_fields=["credits_remaining"])
-
 
 @receiver(social_account_removed)
 def pause_campaign_on_unlink(sender, request, socialaccount, **kwargs):

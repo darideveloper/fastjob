@@ -56,6 +56,16 @@ class SystemSettings(models.Model):
         default=50,
         help_text="Límite máximo de correos por usuario en 24 horas",
     )
+    initial_free_credits = models.IntegerField(
+        default=5,
+        help_text="Envíos gratuitos otorgados al registrarse",
+    )
+    hidden_credit_multiplier = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=1.00,
+        help_text="Multiplicador oculto para envíos extra (ej: 1.10 = 10% extra)",
+    )
 
     class Meta:
         verbose_name = "Configuración del Sistema"
