@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db.models import Count, F, Q
 from django.utils import timezone
@@ -27,111 +28,120 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, max_retries=0)
 def process_mailing_queue(self):
     """Process one email per active user, respecting slow-drip intervals."""
-    from apps.accounts.models import User
+    lock_id = "lock_process_mailing_queue"
+    # timeout is a safety measure in case the worker dies unexpectedly
+    if not cache.add(lock_id, "true", 60 * 10):
+        logger.info("process_mailing_queue is already running. Skipping tick.")
+        return
 
-    cfg = SystemSettings.get()
-    send_interval = timedelta(minutes=cfg.global_send_interval_minutes)
-    cooldown = timedelta(hours=cfg.company_cooldown_hours)
-    daily_limit = cfg.max_emails_per_day_per_user
-    now = timezone.now()
-    cooldown_threshold = now - cooldown
-    day_threshold = now - timedelta(hours=24)
+    try:
+        from apps.accounts.models import User
 
-    active_users = User.objects.filter(
-        is_campaign_active=True,
-        credits_remaining__gt=0,
-        active_cv__isnull=False,
-    ).annotate(
-        sent_last_24h=Count(
-            "mailing_logs",
-            filter=Q(
-                mailing_logs__status=MailingLog.Status.SENT,
-                mailing_logs__sent_at__gte=day_threshold,
-            ),
-        )
-    )
+        cfg = SystemSettings.get()
+        send_interval = timedelta(minutes=cfg.global_send_interval_minutes)
+        cooldown = timedelta(hours=cfg.company_cooldown_hours)
+        daily_limit = cfg.max_emails_per_day_per_user
+        now = timezone.now()
+        cooldown_threshold = now - cooldown
+        day_threshold = now - timedelta(hours=24)
 
-    blacklisted_emails = set(Blacklist.objects.values_list("email", flat=True))
-    recently_contacted_ids = set(
-        MailingLog.objects.filter(
-            sent_at__gte=cooldown_threshold,
-            status=MailingLog.Status.SENT,
-        ).values_list("company_id", flat=True)
-    )
-
-    for user in active_users:
-        if user.sent_last_24h >= daily_limit:
-            continue
-
-        last_log = (
-            MailingLog.objects.filter(user=user, status=MailingLog.Status.SENT)
-            .order_by("-sent_at")
-            .first()
-        )
-        if last_log and (now - last_log.sent_at) < send_interval:
-            continue
-
-        companies = (
-            matching_companies_qs(user.area_filters.all(), user.location_filters.all())
-            .exclude(email__in=blacklisted_emails)
-            .exclude(id__in=recently_contacted_ids)
-        )
-
-        company = companies.order_by("?").first()
-        if not company:
-            logger.info("No eligible companies for user_pk=%s", user.pk)
-            continue
-
-        template = EmailTemplate.objects.filter(is_active=True).order_by("?").first()
-        if not template:
-            logger.warning("No active email templates found.")
-            continue
-
-        log = MailingLog.objects.create(
-            user=user,
-            company=company,
-            email_template=template,
-            cv=user.active_cv,
-            status=MailingLog.Status.SENT,
-        )
-
-        try:
-            send_cv_email(user, company, template, log)
-            # Atomic decrement: avoids the lost-update race window between
-            # concurrent workers reading the same credits_remaining value.
-            User.objects.filter(pk=user.pk).update(
-                credits_remaining=F("credits_remaining") - 1
+        active_users = User.objects.filter(
+            is_campaign_active=True,
+            credits_remaining__gt=0,
+            active_cv__isnull=False,
+        ).annotate(
+            sent_last_24h=Count(
+                "mailing_logs",
+                filter=Q(
+                    mailing_logs__status=MailingLog.Status.SENT,
+                    mailing_logs__sent_at__gte=day_threshold,
+                ),
             )
-            user.refresh_from_db(fields=["credits_remaining"])
-            company.last_received_at = now
-            company.save(update_fields=["last_received_at"])
-            recently_contacted_ids.add(company.id)
-            logger.info("Sent CV: user_pk=%s → company_pk=%s", user.pk, company.pk)
+        )
 
-        except TokenRefreshTransientError as exc:
-            # Upstream blip (5xx, 429, network). Do not pause the campaign — the
-            # next beat tick will retry naturally.
-            log.status = MailingLog.Status.FAILED
-            log.error_message = str(exc)
-            log.save(update_fields=["status", "error_message"])
-            logger.warning(
-                "Transient OAuth refresh error for user_pk=%s: %s", user.pk, exc
+        blacklisted_emails = set(Blacklist.objects.values_list("email", flat=True))
+        recently_contacted_ids = set(
+            MailingLog.objects.filter(
+                sent_at__gte=cooldown_threshold,
+                status=MailingLog.Status.SENT,
+            ).values_list("company_id", flat=True)
+        )
+
+        for user in active_users:
+            if user.sent_last_24h >= daily_limit:
+                continue
+
+            last_log = (
+                MailingLog.objects.filter(user=user, status=MailingLog.Status.SENT)
+                .order_by("-sent_at")
+                .first()
+            )
+            if last_log and (now - last_log.sent_at) < send_interval:
+                continue
+
+            companies = (
+                matching_companies_qs(user.area_filters.all(), user.location_filters.all())
+                .exclude(email__in=blacklisted_emails)
+                .exclude(id__in=recently_contacted_ids)
             )
 
-        except TokenExpiredError as exc:
-            log.status = MailingLog.Status.FAILED
-            log.error_message = str(exc)
-            log.save(update_fields=["status", "error_message"])
-            user.is_campaign_active = False
-            user.save(update_fields=["is_campaign_active"])
-            send_relink_notification.delay(user.pk)
-            logger.warning("Token expired for user_pk=%s, campaign paused.", user.pk)
+            company = companies.order_by("?").first()
+            if not company:
+                logger.info("No eligible companies for user_pk=%s", user.pk)
+                continue
 
-        except Exception as exc:
-            log.status = MailingLog.Status.FAILED
-            log.error_message = str(exc)
-            log.save(update_fields=["status", "error_message"])
-            logger.error("Send failed for user_pk=%s: %s", user.pk, exc)
+            template = EmailTemplate.objects.filter(is_active=True).order_by("?").first()
+            if not template:
+                logger.warning("No active email templates found.")
+                continue
+
+            log = MailingLog.objects.create(
+                user=user,
+                company=company,
+                email_template=template,
+                cv=user.active_cv,
+                status=MailingLog.Status.SENT,
+            )
+
+            try:
+                send_cv_email(user, company, template, log)
+                # Atomic decrement: avoids the lost-update race window between
+                # concurrent workers reading the same credits_remaining value.
+                User.objects.filter(pk=user.pk).update(
+                    credits_remaining=F("credits_remaining") - 1
+                )
+                user.refresh_from_db(fields=["credits_remaining"])
+                company.last_received_at = now
+                company.save(update_fields=["last_received_at"])
+                recently_contacted_ids.add(company.id)
+                logger.info("Sent CV: user_pk=%s → company_pk=%s", user.pk, company.pk)
+
+            except TokenRefreshTransientError as exc:
+                # Upstream blip (5xx, 429, network). Do not pause the campaign — the
+                # next beat tick will retry naturally.
+                log.status = MailingLog.Status.FAILED
+                log.error_message = str(exc)
+                log.save(update_fields=["status", "error_message"])
+                logger.warning(
+                    "Transient OAuth refresh error for user_pk=%s: %s", user.pk, exc
+                )
+
+            except TokenExpiredError as exc:
+                log.status = MailingLog.Status.FAILED
+                log.error_message = str(exc)
+                log.save(update_fields=["status", "error_message"])
+                user.is_campaign_active = False
+                user.save(update_fields=["is_campaign_active"])
+                send_relink_notification.delay(user.pk)
+                logger.warning("Token expired for user_pk=%s, campaign paused.", user.pk)
+
+            except Exception as exc:
+                log.status = MailingLog.Status.FAILED
+                log.error_message = str(exc)
+                log.save(update_fields=["status", "error_message"])
+                logger.error("Send failed for user_pk=%s: %s", user.pk, exc)
+    finally:
+        cache.delete(lock_id)
 
 
 @shared_task

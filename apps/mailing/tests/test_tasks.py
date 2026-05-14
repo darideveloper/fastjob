@@ -9,6 +9,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.core.cache import cache
 from django.utils import timezone
 
 from apps.companies.models import Blacklist, Company
@@ -330,3 +331,36 @@ def test_task_skips_all_users_when_daily_limit_is_zero(
         process_mailing_queue()
 
     mock_send.assert_not_called()
+
+@pytest.mark.django_db
+def test_task_exits_early_if_already_running(settings_obj):
+    """If the cache lock is already held, the task should exit immediately."""
+    cache.set("lock_process_mailing_queue", "true")
+
+    with patch("apps.mailing.tasks.SystemSettings.get") as mock_get_cfg:
+        process_mailing_queue()
+
+    # If the task exited early, it shouldn't have even tried to load SystemSettings
+    mock_get_cfg.assert_not_called()
+    # Clean up
+    cache.delete("lock_process_mailing_queue")
+
+
+@pytest.mark.django_db
+def test_task_releases_lock_on_success(settings_obj):
+    """The lock must be released after a successful run."""
+    lock_id = "lock_process_mailing_queue"
+    process_mailing_queue()
+    assert cache.get(lock_id) is None
+
+
+@pytest.mark.django_db
+def test_task_releases_lock_on_exception(settings_obj):
+    """The lock must be released even if the task crashes."""
+    lock_id = "lock_process_mailing_queue"
+
+    with patch("apps.mailing.tasks.SystemSettings.get", side_effect=Exception("boom")):
+        with pytest.raises(Exception, match="boom"):
+            process_mailing_queue()
+
+    assert cache.get(lock_id) is None
