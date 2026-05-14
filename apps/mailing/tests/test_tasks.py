@@ -347,6 +347,34 @@ def test_task_exits_early_if_already_running(settings_obj):
 
 
 @pytest.mark.django_db
+def test_task_contacted_this_tick_prevents_duplicate_sends(
+    google_linked_user, company, email_template, settings_obj
+):
+    """
+    If multiple users are eligible for the same company in one tick, only
+    the first one should mail it. The second must skip it because it was
+    added to the in-memory `contacted_this_tick` set.
+    """
+    # Create a second user also eligible for the same company
+    other_user = type(google_linked_user).objects.create_user(
+        username="u2", email="u2@x.com", password="p", credits_remaining=10
+    )
+    from apps.accounts.models import CV
+    import django.core.files.base
+    cv = CV.objects.create(user=other_user, file=django.core.files.base.ContentFile(b"pdf", name="cv.pdf"))
+    other_user.active_cv = cv
+    other_user.is_campaign_active = True
+    other_user.save()
+
+    # Both users should be eligible for the same single company
+    with patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    # Should only have been called once across BOTH users
+    assert mock_send.call_count == 1
+    assert MailingLog.objects.filter(status=MailingLog.Status.SENT).count() == 1
+
+@pytest.mark.django_db
 def test_task_releases_lock_on_success(settings_obj):
     """The lock must be released after a successful run."""
     lock_id = "lock_process_mailing_queue"

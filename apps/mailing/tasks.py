@@ -58,13 +58,20 @@ def process_mailing_queue(self):
             )
         )
 
-        blacklisted_emails = set(Blacklist.objects.values_list("email", flat=True))
-        recently_contacted_ids = set(
-            MailingLog.objects.filter(
-                sent_at__gte=cooldown_threshold,
-                status=MailingLog.Status.SENT,
-            ).values_list("company_id", flat=True)
-        )
+        # Exclude blacklisted emails via subquery to avoid SQL length limits
+        # as the blacklist grows.
+        blacklist_subquery = Blacklist.objects.values("email")
+
+        # Exclude companies contacted within the cooldown threshold via subquery.
+        cooldown_subquery = MailingLog.objects.filter(
+            sent_at__gte=cooldown_threshold,
+            status=MailingLog.Status.SENT,
+        ).values("company_id")
+
+        # Tracking set for companies contacted DURING this specific task run (tick)
+        # to prevent concurrent sends to the same company across different users
+        # before the DB rows are committed and visible to the subquery.
+        contacted_this_tick = set()
 
         for user in active_users:
             if not user.can_send():
@@ -83,8 +90,9 @@ def process_mailing_queue(self):
 
             companies = (
                 matching_companies_qs(user.area_filters.all(), user.location_filters.all())
-                .exclude(email__in=blacklisted_emails)
-                .exclude(id__in=recently_contacted_ids)
+                .exclude(email__in=blacklist_subquery)
+                .exclude(id__in=cooldown_subquery)
+                .exclude(id__in=contacted_this_tick)
             )
 
             company = companies.order_by("?").first()
@@ -115,7 +123,7 @@ def process_mailing_queue(self):
                 user.refresh_from_db(fields=["credits_remaining"])
                 company.last_received_at = now
                 company.save(update_fields=["last_received_at"])
-                recently_contacted_ids.add(company.id)
+                contacted_this_tick.add(company.id)
                 logger.info("Sent CV: user_pk=%s → company_pk=%s", user.pk, company.pk)
 
             except TokenRefreshTransientError as exc:

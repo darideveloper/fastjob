@@ -6,6 +6,8 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+from apps.companies.models import LowercaseFieldsMixin
+
 
 # H14: hard cap on stored email-template body size. 50 000 chars is well
 # above any reasonable HTML email (typical: 5–15 kB) but small enough that
@@ -138,7 +140,7 @@ class EmailTemplate(models.Model):
         )
 
 
-class MailingLog(models.Model):
+class MailingLog(LowercaseFieldsMixin, models.Model):
     class Status(models.TextChoices):
         SENT = "sent", "Enviado"
         FAILED = "failed", "Fallido"
@@ -155,10 +157,21 @@ class MailingLog(models.Model):
     company_email_snapshot = models.EmailField(blank=True)
     unsubscribed_at = models.DateTimeField(null=True, blank=True)
 
+    lowercase_fields = ["company_email_snapshot"]
+
     class Meta:
         verbose_name = "Registro de Envío"
         verbose_name_plural = "Registros de Envíos"
         ordering = ["-sent_at"]
+
+    def clean(self):
+        super().clean()
+        # If neither company nor snapshot is provided, we won't have an email
+        # to track for blacklist/unsubscribe purposes.
+        if not self.company and not self.company_email_snapshot:
+            raise ValidationError(
+                "Debe proporcionarse una empresa o un snapshot del email."
+            )
 
     def save(self, *args, **kwargs):
         if self.company and not self.company_email_snapshot:
