@@ -34,6 +34,19 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     "max_emails_per_day_per_user: máximo de correos que un usuario puede enviar en 24 horas."
                 ),
             },
+        ),
+        (
+            "Créditos y Bonos",
+            {
+                "fields": (
+                    "initial_free_credits",
+                    "hidden_credit_multiplier",
+                ),
+                "description": (
+                    "initial_free_credits: envíos gratuitos otorgados al registrarse. "
+                    "hidden_credit_multiplier: multiplicador oculto para envíos extra (ej: 1.10 = 10% extra)."
+                ),
+            },
         )
     ]
 
