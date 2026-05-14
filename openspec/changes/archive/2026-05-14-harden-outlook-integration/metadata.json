@@ -1,0 +1,11 @@
+{
+  "id": "harden-outlook-integration",
+  "title": "Harden Outlook Integration and Mailing Engine",
+  "author": "Gemini CLI",
+  "created_at": "2026-05-14",
+  "status": "draft",
+  "description": "Fixes retry storms, improves error classification for Microsoft Graph, and increases the OAuth token refresh buffer to prevent clock-drift failures.",
+  "capabilities": [
+    "mailing"
+  ]
+}

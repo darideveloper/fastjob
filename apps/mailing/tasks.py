@@ -81,7 +81,7 @@ def process_mailing_queue(self):
                 continue
 
             last_log = (
-                MailingLog.objects.filter(user=user, status=MailingLog.Status.SENT)
+                MailingLog.objects.filter(user=user)
                 .order_by("-sent_at")
                 .first()
             )

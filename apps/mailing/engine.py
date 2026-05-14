@@ -135,7 +135,7 @@ def _refresh_token_locked(token, provider, post_url, post_data, post_extra=None)
 
     # Cheap path: if the in-memory copy still has comfortable runway, skip the
     # lock entirely. Saves both a row lock and an HTTP round-trip.
-    if token.expires_at and token.expires_at > timezone.now() + timedelta(seconds=60):
+    if token.expires_at and token.expires_at > timezone.now() + timedelta(seconds=600):
         _log_refresh(provider, user_pk, "hit_cache", 0, False)
         return token.token
 
@@ -144,7 +144,7 @@ def _refresh_token_locked(token, provider, post_url, post_data, post_extra=None)
         # each other's rotated refresh_token.
         locked = SocialToken.objects.select_for_update().get(pk=token.pk)
 
-        if locked.expires_at and locked.expires_at > timezone.now() + timedelta(seconds=60):
+        if locked.expires_at and locked.expires_at > timezone.now() + timedelta(seconds=600):
             # Another worker refreshed this row while we were waiting on the lock.
             token.token = locked.token
             token.token_secret = locked.token_secret
@@ -272,6 +272,10 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html, atta
     )
 
     if resp.status_code not in (200, 202):
+        if resp.status_code in (401, 403):
+            raise TokenExpiredError(f"Gmail API auth error {resp.status_code}: {resp.text}")
+        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            raise TokenRefreshTransientError(f"Gmail API transient error {resp.status_code}: {resp.text}")
         raise Exception(f"Gmail API error {resp.status_code}: {resp.text}")
 
 
@@ -336,6 +340,10 @@ def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, 
         )
 
     if resp.status_code not in (200, 202):
+        if resp.status_code in (401, 403):
+            raise TokenExpiredError(f"Microsoft Graph auth error {resp.status_code}: {resp.text}")
+        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            raise TokenRefreshTransientError(f"Microsoft Graph transient error {resp.status_code}: {resp.text}")
         raise Exception(f"Microsoft Graph error {resp.status_code}: {resp.text}")
 
 

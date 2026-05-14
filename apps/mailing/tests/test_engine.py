@@ -183,7 +183,7 @@ def test_send_cv_email_propagates_gmail_api_failure(google_linked_user, company,
 
     with patch("apps.mailing.engine.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=500, text="internal error")
-        with pytest.raises(Exception, match="Gmail API error"):
+        with pytest.raises(Exception, match="Gmail API .* error"):
             send_cv_email(google_linked_user, company, email_template, log)
 
 
@@ -350,7 +350,7 @@ def test_google_refresh_preserves_existing_refresh_token_when_absent(google_link
 @pytest.mark.django_db
 def test_refresh_skips_when_unexpired_within_skew_window(google_linked_user):
     token = google_linked_user.socialaccount_set.first().socialtoken_set.first()
-    token.expires_at = timezone.now() + timedelta(minutes=5)  # well clear of 60s skew
+    token.expires_at = timezone.now() + timedelta(minutes=15)  # well clear of 10m skew
     token.save()
 
     with patch("apps.mailing.engine.requests.post") as mock_post:
