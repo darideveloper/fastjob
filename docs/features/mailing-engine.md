@@ -164,12 +164,12 @@ requests.post(
             "body": {"contentType": "HTML", "content": body_html},
             "toRecipients": [{"emailAddress": {"address": to_email}}],
         },
-        "saveToSentItems": False,
+        "saveToSentItems": SystemConfig.get().save_emails_to_sent_folder,
     },
 )
 ```
 
-**Why `saveToSentItems: False`:** if we let Outlook save sent copies, every user's "Sent" folder fills up with dozens of mechanical-looking emails. Recipients can still forward/reply normally; only the sender's local archive is affected.
+**Global Visibility Toggle:** if `SystemConfig.save_emails_to_sent_folder` is `False`, Outlook will **not** save a copy. For Gmail, the engine immediately calls the `trash` endpoint for the newly created message ID to achieve the same result.
 
 ---
 
@@ -253,6 +253,10 @@ If the token expires and the campaign auto-pauses, the user gets a transactional
 ---
 
 ## Admin perspective
+
+### `Django Admin → Core → Configuración General`
+
+Toggle `save_emails_to_sent_folder` to control whether sent emails appear in the user's Sent folder globally across all providers.
 
 ### `Django Admin → Mailing → Configuración del Sistema`
 

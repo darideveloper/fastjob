@@ -175,7 +175,7 @@ Tests use a separate in-memory SQLite-compatible test database created by `pytes
 To test the actual login flow locally:
 
 1. Google Cloud Console → APIs & Services → Library → enable **Gmail API**.
-2. OAuth consent screen → External → add `https://www.googleapis.com/auth/gmail.send` scope.
+2. OAuth consent screen → External → add `https://www.googleapis.com/auth/gmail.modify` scope.
 3. Credentials → Create OAuth 2.0 Client ID → Web application.
 4. Authorized redirect URI: `http://localhost:8000/accounts/google/login/callback/`
 5. Add the client ID + secret via Django Admin -> Social Applications.

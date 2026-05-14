@@ -27,6 +27,8 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.models import SystemConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -278,6 +280,20 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html, atta
             raise TokenRefreshTransientError(f"Gmail API transient error {resp.status_code}: {resp.text}")
         raise Exception(f"Gmail API error {resp.status_code}: {resp.text}")
 
+    # 3.2 & 3.3: If visibility is off, immediately trash the message so it doesn't stay in Sent.
+    if not SystemConfig.get().save_emails_to_sent_folder:
+        try:
+            msg_id = resp.json().get("id")
+            if msg_id:
+                requests.post(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg_id}/trash",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=5,
+                )
+        except Exception as e:
+            # Non-terminal: send succeeded, deletion failed. Log and continue.
+            logger.warning("Failed to trash Gmail message %s: %s", msg_id, e)
+
 
 def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, unsubscribe_url=None):
     message = {
@@ -302,13 +318,14 @@ def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, 
             {"name": "List-Unsubscribe-Post", "value": "List-Unsubscribe=One-Click"},
         ]
 
+    save_to_sent = SystemConfig.get().save_emails_to_sent_folder
     resp = requests.post(
         "https://graph.microsoft.com/v1.0/me/sendMail",
         headers={
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         },
-        json={"message": message, "saveToSentItems": False},
+        json={"message": message, "saveToSentItems": save_to_sent},
         timeout=15,
     )
 
@@ -335,7 +352,7 @@ def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, 
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
             },
-            json={"message": message, "saveToSentItems": False},
+            json={"message": message, "saveToSentItems": save_to_sent},
             timeout=15,
         )
 

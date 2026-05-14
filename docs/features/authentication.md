@@ -73,7 +73,7 @@ SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": [
             "openid", "email", "profile",
-            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/gmail.modify",
         ],
         "AUTH_PARAMS": {"access_type": "offline", "prompt": "consent"},
     },
@@ -85,7 +85,7 @@ SOCIALACCOUNT_PROVIDERS = {
 ```
 
 **The scopes are deliberately minimal.** We ask for the least privilege that still lets us do the job:
-- `gmail.send` — send email as the user. **Cannot** read the inbox.
+- `gmail.modify` — send and manage emails (trash/delete). Required to honor global visibility settings. **Note:** This is a restricted scope and requires a CASA security audit.
 - `Mail.Send` — equivalent on Microsoft side.
 - `offline_access` — give us a refresh token so we're not re-prompting the user every hour.
 
@@ -198,7 +198,7 @@ def grant_signup_bonus(sender, request, user, **kwargs):
 ### Google OAuth app setup
 
 1. Google Cloud Console → APIs & Services → Library → enable **Gmail API**.
-2. OAuth consent screen → External → **add scope** `https://www.googleapis.com/auth/gmail.send`.
+2. OAuth consent screen → External → **add scope** `https://www.googleapis.com/auth/gmail.modify`.
 3. Credentials → Create → OAuth client ID → Web application.
 4. Authorized redirect URI:
    - Local: `http://localhost:8000/accounts/google/login/callback/`

@@ -1,7 +1,7 @@
 # mailing Specification
 
 ## Purpose
-TBD - created by archiving change add-company-filter-finder. Update Purpose after archive.
+The mailing engine is responsible for dispatching CV emails via OAuth2-linked providers (Gmail and Microsoft Graph), managing the OAuth token lifecycle, and enforcing global sending constraints such as slow-drip intervals, daily limits, and email visibility settings.
 ## Requirements
 ### Requirement: Mailing Engine Token Refresh
 The mailing engine MUST use credentials from the `SocialApp` database model for all OAuth2 token refresh operations. This ensures that credential updates in the database take immediate effect for background tasks.
@@ -415,4 +415,34 @@ The mailing engine MUST respect the global send interval regardless of the succe
 - **WHEN** the mailing task runs at `T + 1 minute`
 - **AND** the `global_send_interval_minutes` is 5
 - **THEN** the task MUST skip the user until `T + 5 minutes` has passed.
+
+### Requirement: Email API Integration
+The system MUST dispatch CV emails via the authenticated user's chosen provider using their native APIs (Gmail API for Google, Microsoft Graph API for Microsoft). The system MUST handle authentication state securely and appropriately for background task dispatch.
+
+#### Scenario: Sending via Microsoft Graph with visibility off
+- **WHEN** a CV email is dispatched via a linked Microsoft account AND the global visibility toggle is `False`
+- **THEN** the system calls the `sendMail` endpoint with `saveToSentItems` set to `False`.
+
+#### Scenario: Sending via Microsoft Graph with visibility on
+- **WHEN** a CV email is dispatched via a linked Microsoft account AND the global visibility toggle is `True`
+- **THEN** the system calls the `sendMail` endpoint with `saveToSentItems` set to `True`.
+
+#### Scenario: Sending via Gmail API with visibility off
+- **WHEN** a CV email is dispatched via a linked Google account AND the global visibility toggle is `False`
+- **THEN** the system calls the `users.messages.send` endpoint, retrieves the message ID, and subsequently calls `users.messages.trash` or `users.messages.delete` to remove it from the Sent folder.
+
+#### Scenario: Sending via Gmail API with visibility on
+- **WHEN** a CV email is dispatched via a linked Google account AND the global visibility toggle is `True`
+- **THEN** the system calls the `users.messages.send` endpoint and does not attempt to delete it.
+
+### Requirement: Global Email Visibility Toggle
+The system SHALL provide a global configuration toggle in the system dashboard (Django Admin) to determine whether sent CV emails are saved to the user's "Sent Items" folder.
+
+#### Scenario: Admin toggles visibility on
+- **WHEN** an admin sets the email visibility toggle to `True`
+- **THEN** emails sent via both Microsoft and Google OAuth accounts are saved to all users' respective sent folders.
+
+#### Scenario: Admin toggles visibility off
+- **WHEN** an admin sets the email visibility toggle to `False`
+- **THEN** emails sent via Microsoft do not appear in the sent folder AND emails sent via Gmail are immediately deleted from the user's mailbox across all users.
 

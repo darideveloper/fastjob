@@ -36,7 +36,8 @@ Mass-mailing a CV using generic tools (SendGrid, Mailchimp, even a Gmail alias) 
 1. **First time setting up the project?** → [`run.md`](run.md)
 2. **Deploying to a server?** → [`deploy.md`](deploy.md)
 3. **Want a system-wide picture?** → [`architecture.md`](architecture.md)
-4. **Diving into a specific feature?** → use the table below.
+4. **Upgrading Google OAuth scope?** → [`google-scope-upgrade.md`](google-scope-upgrade.md)
+5. **Diving into a specific feature?** → use the table below.
 
 ---
 
