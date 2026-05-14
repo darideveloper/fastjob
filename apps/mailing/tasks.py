@@ -1,7 +1,7 @@
 """
 Celery tasks for the FastJob mailing engine.
 - process_mailing_queue: runs every minute, sends one email per eligible active user.
-- send_relink_notification: emails user when their OAuth token has expired.
+- send_campaign_paused_notification: emails user when their campaign is paused.
 """
 import logging
 from datetime import timedelta
@@ -16,6 +16,7 @@ from django.utils import timezone
 from apps.companies.models import Blacklist
 from apps.companies.queries import matching_companies_qs
 from apps.mailing.engine import (
+    QuotaExceededError,
     TokenExpiredError,
     TokenRefreshTransientError,
     send_cv_email,
@@ -141,9 +142,20 @@ def process_mailing_queue(self):
                 log.error_message = str(exc)
                 log.save(update_fields=["status", "error_message"])
                 user.is_campaign_active = False
-                user.save(update_fields=["is_campaign_active"])
-                send_relink_notification.delay(user.pk)
+                user.campaign_pause_reason = "expired"
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                send_campaign_paused_notification.delay(user.pk, "expired")
                 logger.warning("Token expired for user_pk=%s, campaign paused.", user.pk)
+
+            except QuotaExceededError as exc:
+                log.status = MailingLog.Status.FAILED
+                log.error_message = str(exc)
+                log.save(update_fields=["status", "error_message"])
+                user.is_campaign_active = False
+                user.campaign_pause_reason = "quota"
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                send_campaign_paused_notification.delay(user.pk, "quota")
+                logger.warning("Quota exceeded for user_pk=%s, campaign paused.", user.pk)
 
             except Exception as exc:
                 log.status = MailingLog.Status.FAILED
@@ -155,8 +167,8 @@ def process_mailing_queue(self):
 
 
 @shared_task
-def send_relink_notification(user_pk):
-    """Email the user asking them to re-authorize their OAuth account."""
+def send_campaign_paused_notification(user_pk, reason):
+    """Email the user explaining why their campaign was paused."""
     from apps.accounts.models import User
 
     try:
@@ -164,16 +176,34 @@ def send_relink_notification(user_pk):
     except User.DoesNotExist:
         return
 
-    relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
-
-    send_mail(
-        subject="FastJob: Vuelve a conectar tu cuenta de correo",
-        message=(
+    dashboard_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
+    
+    if reason == "quota":
+        subject = "FastJob: Límite diario de tu proveedor alcanzado"
+        message = (
+            f"Hola {user.first_name or user.email},\n\n"
+            "Tu proveedor de correo (Gmail/Outlook) ha alcanzado su límite diario de envíos. "
+            "Tu campaña se ha pausado automáticamente para evitar bloqueos.\n\n"
+            "No tienes que hacer nada. Tu campaña se reanudará mañana cuando el límite se restablezca.\n\n"
+            f"Puedes ver el estado en tu panel: {dashboard_url}\n\n"
+            "El equipo de FastJob"
+        )
+    elif reason == "expired":
+        subject = "FastJob: Vuelve a conectar tu cuenta de correo"
+        relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
+        message = (
             f"Hola {user.first_name or user.email},\n\n"
             "Tu sesión de correo ha expirado y tu campaña ha sido pausada.\n\n"
             f"Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
             "El equipo de FastJob"
-        ),
+        )
+    else:
+        # Default fallback (unlinked or other)
+        return
+
+    send_mail(
+        subject=subject,
+        message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         fail_silently=True,

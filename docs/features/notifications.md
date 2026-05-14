@@ -1,6 +1,6 @@
-# Re-link Notifications
+# Campaign Pause Notifications
 
-When a user's OAuth token expires and can't be refreshed, the mailing engine auto-pauses their campaign and sends them a transactional email asking them to re-authorize. This is the only system-initiated email FastJob sends.
+When a campaign is automatically paused (due to token expiry or provider daily limits), the mailing engine sends a transactional email explaining why.
 
 ---
 
@@ -8,11 +8,12 @@ When a user's OAuth token expires and can't be refreshed, the mailing engine aut
 
 ```mermaid
 flowchart TD
-    Engine[Engine tick] -->|call send_cv_email| Token{Token refresh OK?}
-    Token -->|yes| Send[Send CV, decrement credit]
-    Token -->|no: TokenExpiredError| Pause[is_campaign_active = False]
-    Pause --> Log[MailingLog.status = FAILED]
-    Pause --> Notify[send_relink_notification.delay user_pk]
+    Engine[Engine tick] -->|call send_cv_email| Send{Send attempt}
+    Send -->|ok| Success[Send CV, decrement credit]
+    Send -->|no: TokenExpiredError| PauseExpired[is_campaign_active = False, reason = expired]
+    Send -->|no: QuotaExceededError| PauseQuota[is_campaign_active = False, reason = quota]
+    PauseExpired --> Notify[send_campaign_paused_notification.delay user_pk, reason]
+    PauseQuota --> Notify
     Notify -->|SMTP| UserInbox[User's personal inbox]
 ```
 
@@ -24,19 +25,26 @@ flowchart TD
 
 | File | Purpose |
 |---|---|
-| `apps/mailing/tasks.py` | `send_relink_notification` Celery task + `TokenExpiredError` handler |
-| `apps/mailing/engine.py` | Raises `TokenExpiredError` on refresh failure |
+| `apps/mailing/tasks.py` | `send_campaign_paused_notification` Celery task |
+| `apps/mailing/engine.py` | Raises `TokenExpiredError` or `QuotaExceededError` |
+| `apps/accounts/models.py` | Persists `campaign_pause_reason` on `User` |
 
-### `send_relink_notification` task
+### `send_campaign_paused_notification` task
 
 ```python
 @shared_task
-def send_relink_notification(user_pk):
+def send_campaign_paused_notification(user_pk, reason):
     user = User.objects.get(pk=user_pk)
-    relink_url = f"{scheme}://{settings.SITE_DOMAIN}/accounts/login/"
+    if reason == "quota":
+        subject = "FastJob: Límite diario de tu proveedor alcanzado"
+        # ... explanation that it resets tomorrow ...
+    elif reason == "expired":
+        subject = "FastJob: Vuelve a conectar tu cuenta de correo"
+        # ... relink instructions ...
+    
     send_mail(
-        subject="FastJob: Vuelve a conectar tu cuenta de correo",
-        message=f"... {relink_url} ...",
+        subject=subject,
+        message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         fail_silently=True,
@@ -45,60 +53,33 @@ def send_relink_notification(user_pk):
 
 **Why a Celery task and not inline SMTP:** `send_mail` can block for seconds on a slow SMTP server. Running it inline in the main `process_mailing_queue` task would delay the rest of the user loop. Dispatching as `.delay(user_pk)` makes it non-blocking.
 
-**`fail_silently=True`:** a broken SMTP config should not prevent the campaign-pause logic from completing. The campaign is already paused at this point. If the notification fails, the user just won't receive the email — their campaign is still paused, and they'll notice via the dashboard toggle.
-
-### What triggers `TokenExpiredError`
-
-In `apps/mailing/engine.py`, both `_refresh_google_token` and `_refresh_microsoft_token` raise `TokenExpiredError` when:
-1. The HTTP POST to the OAuth token endpoint returns a non-200 status.
-2. No `SocialAccount` or `SocialToken` row exists for the user.
-
-A token that's still valid (not yet expired) is never refreshed — the engine checks `token.expires_at` with a 60-second buffer before making the refresh request.
-
-### What happens in `process_mailing_queue` on `TokenExpiredError`
-
-```python
-except TokenExpiredError as exc:
-    log.status = MailingLog.Status.FAILED
-    log.error_message = str(exc)
-    log.save(update_fields=["status", "error_message"])
-    user.is_campaign_active = False
-    user.save(update_fields=["is_campaign_active"])
-    send_relink_notification.delay(user.pk)
-```
-
-Order matters: the `MailingLog` is written before the notification is dispatched, so if the notification task fails, the audit trail is still there.
-
 ---
 
-## The notification email
+## Pause Reasons
 
-**Subject:** `FastJob: Vuelve a conectar tu cuenta de correo`
+### 1. `expired` (Token Expired)
+Triggered when the HTTP POST to the OAuth token endpoint returns a terminal error (e.g., `invalid_grant`).
+- **UI Banner**: Red, with a "Vincular ahora" button.
+- **Email Subject**: `FastJob: Vuelve a conectar tu cuenta de correo`
 
-**Body (plain text):**
-```
-Hola {first_name or email},
+### 2. `quota` (Provider Daily Limit)
+Triggered when the provider returns a rate limit error (e.g., Gmail `rateLimitExceeded` or Microsoft `ErrorExceededMessageLimit`).
+- **UI Banner**: Amber, explaining that it resets tomorrow. No action required.
+- **Email Subject**: `FastJob: Límite diario de tu proveedor alcanzado`
 
-Tu sesión de correo ha expirado y tu campaña ha sido pausada.
-
-Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}
-
-El equipo de FastJob
-```
-
-The email is plain text only. No HTML, no branding. This is intentional — a branded HTML email from an OAuth-service company can look like phishing to a user who just had their session expire. Plain text reads as a legitimate system alert.
+### 3. `unlinked` (Manual Unlink)
+Triggered by the `social_account_removed` signal when a user disconnects their account. No email is sent, but the dashboard displays the reason.
+- **UI Banner**: Red, with a "Vincular ahora" button.
 
 ---
 
 ## User perspective
 
-1. User receives the email at their signup address (Gmail or Outlook).
-2. Clicks the link → taken to `/accounts/login/`.
-3. Completes the OAuth consent flow again.
-4. New tokens are stored by allauth.
-5. They must manually re-enable the campaign (toggle on dashboard).
-
-**Why manual re-enable:** auto-resuming the campaign on re-link could surprise users who paused intentionally. Requiring the user to explicitly restart keeps their intent clear.
+1. User receives the email at their signup address.
+2. They visit their dashboard.
+3. If `reason='expired'`, they re-link via the provided button.
+4. If `reason='quota'`, they simply wait until tomorrow.
+5. In all cases, starting or stopping the campaign manually clears the reason banner.
 
 ---
 

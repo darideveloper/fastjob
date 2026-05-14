@@ -9,6 +9,47 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+  <!-- Pause Reason Banner -->
+  {% if user.campaign_pause_reason %}
+    <div class="mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 shadow-sm 
+        {% if user.campaign_pause_reason == 'quota' %}
+          bg-amber-50 border-amber-200 text-amber-800
+        {% else %}
+          bg-red-50 border-red-200 text-red-800
+        {% endif %}">
+      
+      <div class="shrink-0">
+        {% if user.campaign_pause_reason == 'quota' %}
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        {% else %}
+          <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        {% endif %}
+      </div>
+
+      <div class="grow text-sm sm:text-base font-medium text-center sm:text-left">
+        {% if user.campaign_pause_reason == 'quota' %}
+          <strong>Límite diario alcanzado:</strong> Tu proveedor (Gmail/Outlook) ha pausado los envíos por hoy. No te preocupes, se reanudará automáticamente mañana.
+        {% elif user.campaign_pause_reason == 'expired' %}
+          <strong>Sesión expirada:</strong> Tu conexión con el correo se ha interrumpido. Debes volver a vincular tu cuenta para continuar.
+        {% elif user.campaign_pause_reason == 'unlinked' %}
+          <strong>Cuenta desvinculada:</strong> Has desconectado tu cuenta de correo. Vincula una cuenta para que podamos enviar tus CVs.
+        {% endif %}
+      </div>
+
+      {% if user.campaign_pause_reason == 'expired' or user.campaign_pause_reason == 'unlinked' %}
+        <div class="shrink-0">
+          <a href="/accounts/login/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-xl shadow-sm text-white bg-red-600 hover:bg-red-700 transition">
+            Vincular ahora
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
     <div>

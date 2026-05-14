@@ -25,7 +25,7 @@ If the OAuth token can't be refreshed, the user's campaign is paused and they ge
 
 | File | Purpose |
 |---|---|
-| `apps/mailing/tasks.py` | Celery task `process_mailing_queue` + `send_relink_notification`. |
+| `apps/mailing/tasks.py` | Celery task `process_mailing_queue` + `send_campaign_paused_notification`. |
 | `apps/mailing/engine.py` | Sending logic: `send_cv_email`, `_refresh_google_token`, `_refresh_microsoft_token`, Gmail + Graph HTTP calls. |
 | `apps/mailing/models.py` | `EmailTemplate`, `MailingLog`, `SystemSettings`. |
 | `apps/mailing/management/commands/setup_periodic_tasks.py` | Registers the 1-minute beat entry. |

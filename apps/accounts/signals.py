@@ -43,5 +43,6 @@ def pause_campaign_on_unlink(sender, request, socialaccount, **kwargs):
     user = socialaccount.user
     if user.is_campaign_active:
         user.is_campaign_active = False
-        user.save(update_fields=["is_campaign_active"])
+        user.campaign_pause_reason = "unlinked"
+        user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
         logger.info("Campaign paused for user_pk=%s after OAuth unlink (%s)", user.pk, socialaccount.provider)

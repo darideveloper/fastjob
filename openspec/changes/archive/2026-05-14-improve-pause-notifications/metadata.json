@@ -1,0 +1,11 @@
+{
+  "id": "improve-pause-notifications",
+  "title": "Improve Campaign Pause Notifications (UX)",
+  "author": "Gemini CLI",
+  "created_at": "2026-05-14",
+  "status": "draft",
+  "description": "Differentiates between token expiration and daily quota limits when pausing campaigns, providing clear, reasoned email notifications to the user.",
+  "capabilities": [
+    "mailing"
+  ]
+}

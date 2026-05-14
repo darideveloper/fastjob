@@ -152,6 +152,13 @@ def toggle_campaign(request):
     user = request.user
     action = request.POST.get("action")
 
+    # Clear pause reason whenever the user manually toggles.
+    # We save this immediately so that even if validation fails below,
+    # the stale automated-pause reason is cleared from the UI.
+    if user.campaign_pause_reason:
+        user.campaign_pause_reason = ""
+        user.save(update_fields=["campaign_pause_reason"])
+
     if action == "start":
         from apps.mailing.models import SystemSettings
         import math

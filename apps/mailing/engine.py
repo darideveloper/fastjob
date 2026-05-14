@@ -47,6 +47,10 @@ class TokenRefreshTransientError(Exception):
     """Refresh failed for a reason that will likely succeed on the next tick."""
 
 
+class QuotaExceededError(Exception):
+    """Provider-enforced daily sending limit reached."""
+
+
 # OAuth-protocol error codes that mean "the refresh token itself is dead."
 # Anything else returned with a 4xx is treated conservatively as terminal too;
 # only HTTP 5xx / 429 / network errors are classified as transient.
@@ -274,6 +278,9 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html, atta
     )
 
     if resp.status_code not in (200, 202):
+        if "rateLimitExceeded" in resp.text or "userRateLimitExceeded" in resp.text or "(Mail sending)" in resp.text:
+            raise QuotaExceededError(f"Gmail quota exceeded: {resp.text}")
+
         if resp.status_code in (401, 403):
             raise TokenExpiredError(f"Gmail API auth error {resp.status_code}: {resp.text}")
         if resp.status_code == 429 or 500 <= resp.status_code < 600:
@@ -357,6 +364,9 @@ def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, 
         )
 
     if resp.status_code not in (200, 202):
+        if "ErrorExceededMessageLimit" in resp.text:
+            raise QuotaExceededError(f"Microsoft quota exceeded: {resp.text}")
+
         if resp.status_code in (401, 403):
             raise TokenExpiredError(f"Microsoft Graph auth error {resp.status_code}: {resp.text}")
         if resp.status_code == 429 or 500 <= resp.status_code < 600:

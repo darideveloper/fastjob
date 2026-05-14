@@ -26,6 +26,7 @@ class User(AbstractUser):
     )
     stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True)
     total_purchased_credits = models.IntegerField(default=0, verbose_name="Total de envíos comprados")
+    campaign_pause_reason = models.CharField(max_length=20, blank=True, verbose_name="Razón de pausa de campaña")
 
     class Meta:
         verbose_name = "Usuario"
