@@ -71,6 +71,27 @@ The following are handled automatically by Coolify and do not require manual ent
 - `SERVICE_USER_POSTGRES` & `SERVICE_PASSWORD_POSTGRES`: Generated database credentials.
 - `COOLIFY_VOLUME_POSTGRES_DATA`: Managed persistent storage for the database.
 
+### 2b. Multi-domain deployments (vanity domain + Coolify subdomain)
+
+If you serve the app on **more than one public domain** — e.g. a vanity domain
+(`fastjob.es`) plus the Coolify-managed subdomain (`fastjob.apps.yourhost.com`) —
+declare these three variables as project-level env vars in Coolify (Runtime enabled).
+They take precedence over the values compose otherwise derives from `SERVICE_FQDN_WEB`.
+
+| Variable | Example value |
+|---|---|
+| `ALLOWED_HOSTS` | `fastjob.es,fastjob.apps.yourhost.com,localhost,127.0.0.1` |
+| `CSRF_TRUSTED_ORIGINS` | `https://fastjob.es,https://fastjob.apps.yourhost.com` |
+| `SITE_DOMAIN` | `fastjob.es` (the canonical domain used to build absolute URLs in emails, OAuth callbacks, unsubscribe links) |
+
+Notes:
+- Keep `localhost,127.0.0.1` in `ALLOWED_HOSTS` so internal container healthchecks
+  keep working.
+- If `SITE_DOMAIN` switches between domains, re-register OAuth callback URLs
+  (Google Cloud Console, Azure Portal) and the Stripe webhook URL to match.
+- Single-domain deployments do NOT need to set these — compose's default derives
+  them from `SERVICE_FQDN_WEB` automatically.
+
 ### 3. Deploy
 Click **Deploy**. Coolify will build the image, provision the PostgreSQL and Redis containers, and start the stack.
 
