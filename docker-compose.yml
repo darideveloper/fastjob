@@ -109,10 +109,14 @@ services:
       - ${COOLIFY_VOLUME_IMPORTS_DATA:-imports_data}:/app/imports
     environment:
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - DEBUG=${DEBUG:-False}
       - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/${POSTGRES_DB:-fastjob}
       - REDIS_URL=redis://redis:6379/0
       - CACHE_REDIS_URL=redis://redis:6379/1
       - CELERY_WORKER_CONCURRENCY=${CELERY_WORKER_CONCURRENCY:-4}
+      - SITE_DOMAIN=${SERVICE_FQDN_WEB}
+      - SITE_SCHEME=https
+      - SITE_NAME=${SITE_NAME:-FastJob}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
@@ -140,9 +144,13 @@ services:
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - DEBUG=${DEBUG:-False}
       - DATABASE_URL=postgres://${SERVICE_USER_POSTGRES}:${SERVICE_PASSWORD_POSTGRES}@db:5432/${POSTGRES_DB:-fastjob}
       - REDIS_URL=redis://redis:6379/0
       - CACHE_REDIS_URL=redis://redis:6379/1
+      - SITE_DOMAIN=${SERVICE_FQDN_WEB}
+      - SITE_SCHEME=https
+      - SITE_NAME=${SITE_NAME:-FastJob}
       - SENTRY_DSN=${SENTRY_DSN}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - SENTRY_RELEASE=${SENTRY_RELEASE:-}
