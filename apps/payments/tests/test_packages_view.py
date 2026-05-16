@@ -46,3 +46,31 @@ def test_packages_zero_state_hides_trust_badge(client, user, package):
     assert response.status_code == 200
     assert response.context["successful_sends_count"] == 0
     assert "envíos exitosos en la plataforma" not in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_packages_page_is_public(client, package):
+    """Anonymous visitors can view the pricing page without being redirected."""
+    response = client.get(reverse("payment_packages"))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_packages_anonymous_cta_redirects_to_login(client, package):
+    """Anonymous visitors see a login-redirect link instead of a checkout form."""
+    response = client.get(reverse("payment_packages"))
+    html = response.content.decode()
+    assert "/accounts/login/?next=/payments/paquetes/" in html
+    checkout_url = reverse("create_checkout", args=[package.pk])
+    assert f'action="{checkout_url}"' not in html
+
+
+@pytest.mark.django_db
+def test_packages_authenticated_cta_shows_checkout_form(client, user, package):
+    """Authenticated users still see the POST form pointing to create_checkout."""
+    client.force_login(user)
+    response = client.get(reverse("payment_packages"))
+    html = response.content.decode()
+    checkout_url = reverse("create_checkout", args=[package.pk])
+    assert f'action="{checkout_url}"' in html
+    assert "/accounts/login/?next=/payments/paquetes/" not in html

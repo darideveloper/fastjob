@@ -16,7 +16,6 @@ from .models import CreditPackage, StripePayment
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-@login_required
 def packages(request):
     active_packages = CreditPackage.objects.filter(is_active=True)
     successful_sends_count = MailingLog.objects.filter(status=MailingLog.Status.SENT).count()

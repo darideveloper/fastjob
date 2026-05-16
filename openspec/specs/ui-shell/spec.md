@@ -6,6 +6,8 @@ TBD - created by archiving change add-mobile-responsive-layout. Update Purpose a
 ### Requirement: Mobile-collapsing global navbar
 The global navbar in `templates/base.html` SHALL collapse its right-hand link cluster (and envíos chip, when authenticated) behind a single hamburger toggle button on viewports below the `md` breakpoint (768 px). On viewports `≥ md`, the existing horizontal layout MUST be preserved unchanged. The hamburger button MUST be a real `<button>` (not a checkbox hack), MUST expose `aria-controls` and `aria-expanded`, and MUST be reachable by keyboard.
 
+The anonymous nav cluster (both desktop `md+` and mobile drawer) MUST include a "Paquetes" text link pointing to `/payments/paquetes/`, placed before the "Iniciar sesión" link. The link MUST use the same styling as the other ghost nav links (`text-sm font-medium text-gray-700 hover:text-brand`).
+
 #### Scenario: Authenticated mobile user opens the drawer
 - **GIVEN** a logged-in user with 50 envíos at viewport 375 × 667
 - **WHEN** the user clicks the hamburger toggle button
@@ -15,8 +17,15 @@ The global navbar in `templates/base.html` SHALL collapse its right-hand link cl
 #### Scenario: Anonymous mobile visitor opens the drawer
 - **GIVEN** an anonymous visitor at viewport 320 × 568
 - **WHEN** the visitor clicks the hamburger toggle button
-- **THEN** a drawer becomes visible containing "Iniciar sesión" and "Empezar gratis" stacked vertically
+- **THEN** a drawer becomes visible containing "Paquetes", "Iniciar sesión", and "Empezar gratis" stacked vertically
 - **AND** the FastJob logo and the toggle button do not overlap
+
+#### Scenario: Anonymous desktop visitor sees the pricing link
+- **GIVEN** an anonymous visitor at viewport ≥ md (768 px)
+- **WHEN** any page that extends `base.html` is rendered
+- **THEN** the right-hand desktop cluster contains a link labelled "Paquetes" with `href="/payments/paquetes/"`
+- **AND** it appears before the "Iniciar sesión" link
+- **AND** it uses the ghost link style (`text-sm font-medium text-gray-700 hover:text-brand`)
 
 #### Scenario: Drawer closes on outside click
 - **GIVEN** the drawer is open at any viewport `< md`
@@ -34,7 +43,7 @@ The global navbar in `templates/base.html` SHALL collapse its right-hand link cl
 - **GIVEN** any viewport `≥ md` (768 px and above)
 - **WHEN** any page that extends `base.html` is rendered
 - **THEN** the hamburger toggle button has `display: none`
-- **AND** the right-hand cluster renders horizontally exactly as it does today (same DOM order, same Tailwind classes, byte-identical to the pre-change `<nav>` `outerHTML` excluding only the new collapse-related siblings)
+- **AND** the right-hand cluster renders horizontally with the same DOM order and Tailwind classes as before this change, extended only by the new "Paquetes" link in the anonymous branch
 
 ### Requirement: No horizontal overflow on any page that extends base.html
 For every server-rendered page that extends `templates/base.html`, at viewports 320, 360, 375, and 414 px, `document.documentElement.scrollWidth` MUST equal `window.innerWidth`. The audit's measured 421 px overflow on the dashboard at 320 px MUST no longer reproduce.

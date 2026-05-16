@@ -55,6 +55,7 @@
           </li>
         </ul>
 
+        {% if user.is_authenticated %}
         <form method="post" action="{% url 'create_checkout' package.pk %}">
           {% csrf_token %}
           <button type="submit"
@@ -62,6 +63,12 @@
             Comprar {{ package.credits }} envíos
           </button>
         </form>
+        {% else %}
+        <a href="/accounts/login/?next=/payments/paquetes/"
+          class="block w-full min-h-[44px] font-bold py-3 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 bg-brand hover:bg-brand-dark text-white shadow-lg text-center leading-[44px]">
+          Comprar {{ package.credits }} envíos
+        </a>
+        {% endif %}
       </div>
     {% empty %}
       <div class="col-span-3 text-center py-16 text-gray-400">

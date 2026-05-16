@@ -142,7 +142,7 @@ installations.
 
 #### Scenario: Badge appears inside each card when sends exist
 - **GIVEN** at least one `MailingLog` row with `status = "sent"` exists
-- **WHEN** any authenticated user requests `GET /payments/paquetes/`
+- **WHEN** any user (authenticated or anonymous) requests `GET /payments/paquetes/`
 - **THEN** each package card contains a green-colored element whose text
   matches the pattern `+{N} envíos exitosos en la plataforma`
   where `{N}` is the total count of `MailingLog(status="sent")` records
@@ -151,7 +151,7 @@ installations.
 
 #### Scenario: Badge is hidden when no sends have been made
 - **GIVEN** zero `MailingLog` rows exist (or all have `status = "failed"`)
-- **WHEN** any authenticated user requests `GET /payments/paquetes/`
+- **WHEN** any user (authenticated or anonymous) requests `GET /payments/paquetes/`
 - **THEN** the rendered HTML does NOT contain the substring
   `envíos exitosos en la plataforma`
 - **AND** no element shows a count of `0`
@@ -205,4 +205,35 @@ labels are translated.
 - **WHEN** a staff user opens `/admin/core/systemconfig/1/change/`
 - **THEN** the field label reads `"Guardar en carpeta Enviados"`
 - **AND** the help text contains no English words
+
+### Requirement: Public pricing page access
+The `/payments/paquetes/` view SHALL be accessible to any visitor, authenticated or anonymous. The `@login_required` decorator MUST be removed from `apps/payments/views.py:packages()`. All existing context variables (`packages`, `successful_sends_count`) MUST continue to be passed to the template unchanged.
+
+#### Scenario: Anonymous visitor loads the pricing page
+- **WHEN** an unauthenticated client sends `GET /payments/paquetes/`
+- **THEN** the server responds with HTTP 200
+- **AND** the response renders `templates/payments/packages.html` with the full package list
+- **AND** the client is NOT redirected to `/accounts/login/`
+
+#### Scenario: Authenticated user still loads the pricing page normally
+- **GIVEN** a logged-in user
+- **WHEN** they request `GET /payments/paquetes/`
+- **THEN** the server responds with HTTP 200
+- **AND** the page renders exactly as before this change
+
+### Requirement: Anonymous purchase buttons redirect to login
+When the requesting user is not authenticated, each package card's call-to-action SHALL render as an `<a>` link pointing to `/accounts/login/?next=/payments/paquetes/` instead of a POST form. The link MUST use the same visual styling as the primary-fill button used for authenticated users so the page appearance is consistent. The checkout `<form>` and `create_checkout` endpoint MUST only be reachable by authenticated users (the existing `@login_required` on `create_checkout` is preserved).
+
+#### Scenario: Anonymous user sees login-redirect CTA
+- **GIVEN** an unauthenticated client viewing `/payments/paquetes/`
+- **WHEN** the page renders
+- **THEN** each package card contains an `<a>` whose `href` is `/accounts/login/?next=/payments/paquetes/`
+- **AND** no `<form>` with `action` pointing to `create_checkout` is present in the rendered HTML
+- **AND** the `<a>` element carries the same Tailwind classes as the authenticated submit button
+
+#### Scenario: Authenticated user still sees the checkout form
+- **GIVEN** a logged-in user viewing `/payments/paquetes/`
+- **WHEN** the page renders
+- **THEN** each package card contains a `<form method="post">` with `action` pointing to `{% url 'create_checkout' package.pk %}`
+- **AND** no login-redirect `<a>` with `?next=` is present in that form's place
 
