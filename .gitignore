@@ -242,3 +242,6 @@ NOTES.local.md
 data/
 
 .playwright-cli/
+
+.agents/
+skills-lock.json
