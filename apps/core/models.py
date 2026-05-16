@@ -4,7 +4,8 @@ from django.db import models
 class SystemConfig(models.Model):
     save_emails_to_sent_folder = models.BooleanField(
         default=False,
-        help_text="Si está desactivado, los correos enviados no se guardarán en la carpeta 'Enviados' (Sent).",
+        verbose_name="Guardar en carpeta Enviados",
+        help_text="Si está desactivado, los correos enviados no se guardarán en la carpeta 'Enviados'.",
     )
 
     class Meta:

@@ -29,9 +29,10 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     "max_emails_per_day_per_user",
                 ),
                 "description": (
-                    "global_send_interval_minutes: minutos mínimos entre envíos por usuario. "
-                    "company_cooldown_hours: horas antes de que una empresa pueda recibir otro CV. "
-                    "max_emails_per_day_per_user: máximo de correos que un usuario puede enviar en 24 horas."
+                    "Controla el ritmo de envío. "
+                    "El intervalo define los minutos mínimos entre envíos por usuario. "
+                    "El enfriamiento por empresa evita enviar dos CVs a la misma empresa en menos horas de las configuradas. "
+                    "El máximo diario limita el total de correos que un usuario puede enviar en 24 horas."
                 ),
             },
         ),
@@ -43,8 +44,9 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     "hidden_credit_multiplier",
                 ),
                 "description": (
-                    "initial_free_credits: envíos gratuitos otorgados al registrarse. "
-                    "hidden_credit_multiplier: multiplicador oculto para envíos extra (ej: 1.10 = 10% extra)."
+                    "Los envíos gratuitos iniciales se otorgan automáticamente al registrarse. "
+                    "El multiplicador oculto amplía el saldo efectivo de los usuarios sin modificar su crédito visible "
+                    "(por ejemplo, 1.10 equivale a un 10% extra de margen)."
                 ),
             },
         )
@@ -127,7 +129,7 @@ class EmailTemplateAdmin(admin.ModelAdmin):
 
     def preview_link(self, obj):
         return format_html('<a href="{}/preview/" target="_blank">Ver preview</a>', obj.pk)
-    preview_link.short_description = "Preview"
+    preview_link.short_description = "Vista previa"
 
 
 @admin.register(MailingLog)

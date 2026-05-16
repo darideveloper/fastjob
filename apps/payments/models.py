@@ -29,15 +29,15 @@ class StripePayment(models.Model):
         COMPLETED = "completed", "Completado"
         FAILED = "failed", "Fallido"
 
-    user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="payments")
-    package = models.ForeignKey(CreditPackage, on_delete=models.SET_NULL, null=True)
-    stripe_session_id = models.CharField(max_length=300, unique=True)
-    stripe_payment_intent = models.CharField(max_length=300, blank=True)
-    amount_eur = models.DecimalField(max_digits=8, decimal_places=2)
-    credits_granted = models.IntegerField(default=0)
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
-    created_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="payments", verbose_name="Usuario")
+    package = models.ForeignKey(CreditPackage, on_delete=models.SET_NULL, null=True, verbose_name="Paquete")
+    stripe_session_id = models.CharField(max_length=300, unique=True, verbose_name="ID de sesión Stripe")
+    stripe_payment_intent = models.CharField(max_length=300, blank=True, verbose_name="Payment intent Stripe")
+    amount_eur = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="Importe (€)")
+    credits_granted = models.IntegerField(default=0, verbose_name="Envíos otorgados")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING, verbose_name="Estado")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creado el")
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Completado el")
 
     class Meta:
         verbose_name = "Pago Stripe"

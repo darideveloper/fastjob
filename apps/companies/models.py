@@ -29,7 +29,7 @@ class LowercaseFieldsMixin:
 
 
 class Area(LowercaseFieldsMixin, models.Model):
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200, unique=True, verbose_name="Nombre")
 
     lowercase_fields = ["name"]
 
@@ -43,7 +43,7 @@ class Area(LowercaseFieldsMixin, models.Model):
 
 
 class Location(LowercaseFieldsMixin, models.Model):
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200, unique=True, verbose_name="Nombre")
 
     lowercase_fields = ["name"]
 
@@ -57,10 +57,10 @@ class Location(LowercaseFieldsMixin, models.Model):
 
 
 class Company(LowercaseFieldsMixin, models.Model):
-    email = models.EmailField(unique=True)
-    name = models.CharField(max_length=300)
+    email = models.EmailField(unique=True, verbose_name="Email")
+    name = models.CharField(max_length=300, verbose_name="Nombre")
     area = models.ForeignKey(
-        Area, on_delete=models.SET_NULL, null=True, blank=True, related_name="companies"
+        Area, on_delete=models.SET_NULL, null=True, blank=True, related_name="companies", verbose_name="Sector"
     )
     location = models.ForeignKey(
         Location,
@@ -68,17 +68,18 @@ class Company(LowercaseFieldsMixin, models.Model):
         null=True,
         blank=True,
         related_name="companies",
+        verbose_name="Localidad",
     )
-    address = models.CharField(max_length=500, blank=True)
-    zip_code = models.CharField(max_length=20, blank=True)
-    province = models.CharField(max_length=100, blank=True)
-    community = models.CharField(max_length=100, blank=True)
-    phone = models.CharField(max_length=50, blank=True)
-    fax = models.CharField(max_length=50, blank=True)
-    website = models.CharField(max_length=500, blank=True)
+    address = models.CharField(max_length=500, blank=True, verbose_name="Dirección")
+    zip_code = models.CharField(max_length=20, blank=True, verbose_name="Código postal")
+    province = models.CharField(max_length=100, blank=True, verbose_name="Provincia")
+    community = models.CharField(max_length=100, blank=True, verbose_name="Comunidad")
+    phone = models.CharField(max_length=50, blank=True, verbose_name="Teléfono")
+    fax = models.CharField(max_length=50, blank=True, verbose_name="Fax")
+    website = models.CharField(max_length=500, blank=True, verbose_name="Sitio web")
 
-    last_received_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    last_received_at = models.DateTimeField(null=True, blank=True, verbose_name="Último envío recibido")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creada el")
 
     lowercase_fields = ["email", "name", "address", "province", "community", "website"]
 
@@ -92,9 +93,9 @@ class Company(LowercaseFieldsMixin, models.Model):
 
 
 class Blacklist(LowercaseFieldsMixin, models.Model):
-    email = models.EmailField(unique=True)
-    added_at = models.DateTimeField(default=timezone.now)
-    reason = models.CharField(max_length=100, default="unsubscribe")
+    email = models.EmailField(unique=True, verbose_name="Email")
+    added_at = models.DateTimeField(default=timezone.now, verbose_name="Añadido el")
+    reason = models.CharField(max_length=100, default="unsubscribe", verbose_name="Motivo")
 
     lowercase_fields = ["email"]
 
@@ -125,20 +126,20 @@ class CompanyImportBatch(models.Model):
         ("FAILED", "Fallido"),
     )
 
-    file = models.FileField(upload_to="companies/%Y/%m/%d/", storage=_imports_storage, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
+    file = models.FileField(upload_to="companies/%Y/%m/%d/", storage=_imports_storage, blank=True, verbose_name="Archivo")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING", verbose_name="Estado")
     # UUID generated server-side at presign time; unique prevents replay attacks.
-    upload_uuid = models.UUIDField(unique=True, null=True, blank=True)
-    original_filename = models.CharField(max_length=255, blank=True)
-    total_rows = models.PositiveIntegerField(default=0)
-    processed_rows = models.PositiveIntegerField(default=0)
-    created_count = models.PositiveIntegerField(default=0)
-    updated_count = models.PositiveIntegerField(default=0)
-    blacklisted_skipped = models.IntegerField(default=0)
-    error_log = models.JSONField(default=list, blank=True)
+    upload_uuid = models.UUIDField(unique=True, null=True, blank=True, verbose_name="UUID de subida")
+    original_filename = models.CharField(max_length=255, blank=True, verbose_name="Nombre de archivo original")
+    total_rows = models.PositiveIntegerField(default=0, verbose_name="Total de filas")
+    processed_rows = models.PositiveIntegerField(default=0, verbose_name="Filas procesadas")
+    created_count = models.PositiveIntegerField(default=0, verbose_name="Empresas creadas")
+    updated_count = models.PositiveIntegerField(default=0, verbose_name="Empresas actualizadas")
+    blacklisted_skipped = models.IntegerField(default=0, verbose_name="Omitidas (lista negra)")
+    error_log = models.JSONField(default=list, blank=True, verbose_name="Registro de errores")
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creada el")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Actualizada el")
 
     class Meta:
         verbose_name = "Importación de Empresas"

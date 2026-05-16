@@ -32,7 +32,7 @@ class UserAdmin(BaseUserAdmin):
     inlines = [CVInline]
 
     fieldsets = BaseUserAdmin.fieldsets + (
-        ("FastJob", {
+        ("Datos FastJob", {
             "fields": (
                 "credits_remaining", 
                 "visible_credits_display",

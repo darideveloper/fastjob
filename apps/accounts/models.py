@@ -14,17 +14,17 @@ class User(AbstractUser):
     # picks an arbitrary row.
     email = models.EmailField(unique=True)
     credits_remaining = models.IntegerField(default=0, verbose_name="Envíos disponibles")
-    is_campaign_active = models.BooleanField(default=False)
+    is_campaign_active = models.BooleanField(default=False, verbose_name="Campaña activa")
     active_cv = models.ForeignKey(
-        "accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+        "accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="+", verbose_name="CV activo"
     )
     area_filters = models.ManyToManyField(
-        "companies.Area", blank=True, related_name="users_m2m"
+        "companies.Area", blank=True, related_name="users_m2m", verbose_name="Filtros de sector"
     )
     location_filters = models.ManyToManyField(
-        "companies.Location", blank=True, related_name="users_m2m"
+        "companies.Location", blank=True, related_name="users_m2m", verbose_name="Filtros de localidad"
     )
-    stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True)
+    stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True, verbose_name="ID de cliente Stripe")
     total_purchased_credits = models.IntegerField(default=0, verbose_name="Total de envíos comprados")
     campaign_pause_reason = models.CharField(max_length=20, blank=True, verbose_name="Razón de pausa de campaña")
 
@@ -61,10 +61,10 @@ class User(AbstractUser):
 
 
 class CV(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cvs")
-    file = models.FileField(upload_to="cvs/", storage=_private_storage)
-    name = models.CharField(max_length=200, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="cvs", verbose_name="Usuario")
+    file = models.FileField(upload_to="cvs/", storage=_private_storage, verbose_name="Archivo")
+    name = models.CharField(max_length=200, blank=True, verbose_name="Nombre")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creado el")
 
     class Meta:
         verbose_name = "CV"

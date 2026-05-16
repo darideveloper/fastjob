@@ -48,24 +48,29 @@ _SAFE_FORMATTER = _SafeFormatter()
 class SystemSettings(models.Model):
     global_send_interval_minutes = models.IntegerField(
         default=5,
+        verbose_name="Intervalo de envío (minutos)",
         help_text="Minutos entre envíos por usuario (Slow-Drip)",
     )
     company_cooldown_hours = models.IntegerField(
         default=12,
+        verbose_name="Enfriamiento por empresa (horas)",
         help_text="Horas que deben pasar antes de que una empresa reciba otro CV",
     )
     max_emails_per_day_per_user = models.IntegerField(
         default=50,
+        verbose_name="Máximo de envíos por usuario al día",
         help_text="Límite máximo de correos por usuario en 24 horas",
     )
     initial_free_credits = models.IntegerField(
         default=5,
+        verbose_name="Envíos gratuitos iniciales",
         help_text="Envíos gratuitos otorgados al registrarse",
     )
     hidden_credit_multiplier = models.DecimalField(
         max_digits=4,
         decimal_places=2,
         default=1.00,
+        verbose_name="Multiplicador oculto de envíos",
         help_text="Multiplicador oculto para envíos extra (ej: 1.10 = 10% extra)",
     )
 
@@ -90,20 +95,22 @@ class SystemSettings(models.Model):
 
 
 class EmailTemplate(models.Model):
-    name = models.CharField(max_length=100, help_text="Nombre interno para identificar la plantilla")
+    name = models.CharField(max_length=100, verbose_name="Nombre", help_text="Nombre interno para identificar la plantilla")
     subject = models.CharField(
         max_length=300,
+        verbose_name="Asunto",
         help_text="Asunto del email. Placeholders: {company_name}",
     )
     body_html = models.TextField(
         validators=[MaxLengthValidator(EMAIL_BODY_MAX_LENGTH)],
+        verbose_name="Cuerpo HTML",
         help_text=(
             "Cuerpo HTML del email. Placeholders: {company_name}, {unsubscribe_url}. "
             f"Máximo {EMAIL_BODY_MAX_LENGTH:,} caracteres."
         ),
     )
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name="Activa")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creada el")
 
     class Meta:
         verbose_name = "Plantilla de Email"
@@ -145,17 +152,17 @@ class MailingLog(LowercaseFieldsMixin, models.Model):
         SENT = "sent", "Enviado"
         FAILED = "failed", "Fallido"
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mailing_logs")
-    company = models.ForeignKey("companies.Company", on_delete=models.SET_NULL, null=True, related_name="mailing_logs")
-    email_template = models.ForeignKey(EmailTemplate, on_delete=models.SET_NULL, null=True)
-    cv = models.ForeignKey("accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="mailing_logs")
-    cv_download_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
-    unsubscribe_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
-    sent_at = models.DateTimeField(default=timezone.now)
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.SENT)
-    error_message = models.TextField(blank=True)
-    company_email_snapshot = models.EmailField(blank=True)
-    unsubscribed_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mailing_logs", verbose_name="Usuario")
+    company = models.ForeignKey("companies.Company", on_delete=models.SET_NULL, null=True, related_name="mailing_logs", verbose_name="Empresa")
+    email_template = models.ForeignKey(EmailTemplate, on_delete=models.SET_NULL, null=True, verbose_name="Plantilla de email")
+    cv = models.ForeignKey("accounts.CV", on_delete=models.SET_NULL, null=True, blank=True, related_name="mailing_logs", verbose_name="CV")
+    cv_download_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, verbose_name="Token de descarga del CV")
+    unsubscribe_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True, verbose_name="Token de baja")
+    sent_at = models.DateTimeField(default=timezone.now, verbose_name="Enviado el")
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.SENT, verbose_name="Estado")
+    error_message = models.TextField(blank=True, verbose_name="Mensaje de error")
+    company_email_snapshot = models.EmailField(blank=True, verbose_name="Email de la empresa")
+    unsubscribed_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de baja")
 
     lowercase_fields = ["company_email_snapshot"]
 
