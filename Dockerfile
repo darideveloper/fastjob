@@ -27,7 +27,7 @@ ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
     AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL} \
     STORAGE_AWS=${STORAGE_AWS}
 
-RUN python manage.py collectstatic --noinput
+RUN DEBUG=True python manage.py collectstatic --noinput
 
 # Non-root runtime user (defence-in-depth against in-container code execution).
 RUN useradd --create-home --uid 1000 app && chown -R app:app /app

@@ -83,3 +83,40 @@ def test_settings_default_site_scheme_is_https(settings):
     # Default in config/settings.py is "https"; in test_settings the env
     # has DEBUG=True but SITE_SCHEME isn't overridden, so it stays https.
     assert settings.SITE_SCHEME in ("http", "https")
+
+
+# ---------------------------------------------------------------------------
+# Placeholder-domain guard tests (harden-site-domain-validation)
+# ---------------------------------------------------------------------------
+
+from django.core.exceptions import ImproperlyConfigured  # noqa: E402
+
+from config.settings import _assert_site_domain_not_placeholder  # noqa: E402
+
+
+def test_placeholder_guard_raises_in_production_with_localhost():
+    """Production mode (DEBUG=False) + 'localhost' MUST raise."""
+    with pytest.raises(ImproperlyConfigured, match="SITE_DOMAIN="):
+        _assert_site_domain_not_placeholder(debug=False, site_domain="localhost")
+
+
+def test_placeholder_guard_raises_in_production_with_127():
+    """Production mode + '127.0.0.1' MUST raise."""
+    with pytest.raises(ImproperlyConfigured):
+        _assert_site_domain_not_placeholder(debug=False, site_domain="127.0.0.1")
+
+
+def test_placeholder_guard_raises_in_production_with_port_suffix():
+    """Port suffix must not bypass the check (localhost:8000 is still a placeholder)."""
+    with pytest.raises(ImproperlyConfigured):
+        _assert_site_domain_not_placeholder(debug=False, site_domain="localhost:8000")
+
+
+def test_placeholder_guard_exempt_in_debug_mode():
+    """DEBUG=True must bypass the guard — local dev workflow must remain unchanged."""
+    _assert_site_domain_not_placeholder(debug=True, site_domain="localhost")
+
+
+def test_placeholder_guard_passes_for_real_domain():
+    """A real public hostname must never trigger the guard."""
+    _assert_site_domain_not_placeholder(debug=False, site_domain="fastjob.apps.darideveloper.com")

@@ -364,6 +364,20 @@ CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="http://localhost"
 if not ALLOWED_HOSTS or not CSRF_TRUSTED_ORIGINS or not SITE_DOMAIN:
     raise ImproperlyConfigured("ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, and SITE_DOMAIN must be set.")
 
+_PLACEHOLDER_DOMAINS = {"localhost", "127.0.0.1"}
+
+
+def _assert_site_domain_not_placeholder(debug, site_domain):
+    """Raise ImproperlyConfigured when a placeholder domain slips into production."""
+    if not debug and site_domain.split(":")[0] in _PLACEHOLDER_DOMAINS:
+        raise ImproperlyConfigured(
+            f"SITE_DOMAIN={site_domain!r} is a local placeholder and cannot be used in "
+            "production (DEBUG=False). Set SITE_DOMAIN to your public hostname (e.g. 'example.com')."
+        )
+
+
+_assert_site_domain_not_placeholder(DEBUG, SITE_DOMAIN)
+
 
 # Tells Django it's behind a TLS-terminating proxy (DO App Platform, Heroku, Nginx).
 if config("TRUST_PROXY_SSL_HEADER", default=False, cast=bool):

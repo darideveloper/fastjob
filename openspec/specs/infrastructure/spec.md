@@ -225,9 +225,14 @@ non-empty and satisfies any downstream truthy validation. This allows `RUN pytho
 collectstatic` to succeed during the Docker image build, where runtime env vars injected via
 `docker-compose.yml` are not present.
 
+The `collectstatic` step in `Dockerfile` MUST be invoked with `DEBUG=True` so that the
+production-mode placeholder-domain guard (see `Requirement: Production Startup Guard for
+Placeholder SITE_DOMAIN`) is bypassed during the build stage.
+
 #### Scenario: SITE_DOMAIN resolves at build time
 
 - **Given** no `SITE_DOMAIN` env var is present in the Docker build container
+- **And** the collectstatic command is run with `DEBUG=True`
 - **When** Django imports `config/settings.py` during `collectstatic`
 - **Then** `SITE_DOMAIN` resolves to `"localhost"` and no exception is raised
 
@@ -241,7 +246,8 @@ collectstatic` to succeed during the Docker image build, where runtime env vars 
 
 - **Given** `ALLOWED_HOSTS` defaults to `"localhost,127.0.0.1"`, `SITE_DOMAIN` defaults to
   `"localhost"`, and `CSRF_TRUSTED_ORIGINS` defaults to `"http://localhost"`
-- **When** the validation block at `settings.py:344` is evaluated
+- **And** `DEBUG=True` is set for the build command
+- **When** the validation block in `settings.py` is evaluated
 - **Then** no `ImproperlyConfigured` exception is raised
 
 #### Scenario: Production values override defaults at runtime
@@ -357,4 +363,35 @@ All services running the Django application (including `web`, `celery_worker`, a
 - **Given** the application is deployed with `SITE_DOMAIN=fastjob.es` and `SITE_SCHEME=https`
 - **When** the `celery_beat` service initializes or schedules a task that requires URL generation
 - **Then** it MUST have access to the correct site identity variables.
+
+### Requirement: Production Startup Guard for Placeholder SITE_DOMAIN
+
+When `DEBUG=False`, `config/settings.py` MUST raise `django.core.exceptions.ImproperlyConfigured`
+during module import if `SITE_DOMAIN` resolves to a known local placeholder hostname
+(`"localhost"` or `"127.0.0.1"`). The check MUST strip any port suffix before comparing (e.g.
+`"localhost:8000"` is still a placeholder). The error message MUST include the resolved value and
+instruct the operator to set the correct production FQDN.
+
+This guard MUST NOT fire when `DEBUG=True`, preserving the local-development workflow where
+`SITE_DOMAIN=fastjob.localhost:8000` is the norm.
+
+#### Scenario: Production startup with missing SITE_DOMAIN fails immediately
+
+- **Given** a container starts with `DEBUG=False` and `SITE_DOMAIN` resolving to `"localhost"` (the python-decouple default when the env var is absent or empty)
+- **When** Django imports `config/settings.py`
+- **Then** `ImproperlyConfigured` is raised before any request is handled
+- **And** the error message names the resolved value and instructs the operator to set `SITE_DOMAIN`
+
+#### Scenario: Production startup with correct SITE_DOMAIN passes
+
+- **Given** a container starts with `DEBUG=False` and `SITE_DOMAIN=fastjob.apps.darideveloper.com`
+- **When** Django imports `config/settings.py`
+- **Then** no `ImproperlyConfigured` exception is raised from the placeholder guard
+
+#### Scenario: Local dev with DEBUG=True and localhost domain is exempt
+
+- **Given** a developer runs the app locally with `DEBUG=True` and `SITE_DOMAIN=fastjob.localhost:8000`
+- **When** Django imports `config/settings.py`
+- **Then** no `ImproperlyConfigured` exception is raised
+- **And** the placeholder guard is entirely skipped
 
