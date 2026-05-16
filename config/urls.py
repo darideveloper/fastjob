@@ -5,12 +5,13 @@ from django.views.generic import RedirectView, TemplateView
 
 from config.health import healthz
 
-# Custom 400 handler: Django's default `views.defaults.bad_request` swallows
-# the originating exception (e.g. RequestDataTooBig, MultiPartParserError)
-# and renders HTML, leaving XHR uploaders with an opaque "Bad Request" they
-# can't decode. The replacement logs the real exception and returns JSON for
-# AJAX clients — see config/error_handlers.py.
+# Custom error handlers: Django's defaults are replaced to provide:
+# - Structured logging of the originating exception.
+# - Consistent JSON responses for XHR/AJAX clients.
+# See config/error_handlers.py for implementation details.
 handler400 = "config.error_handlers.handler400"
+handler404 = "config.error_handlers.handler404"
+handler500 = "config.error_handlers.handler500"
 
 # C3: this app is OAuth-only. Mounting `allauth.urls` would expose
 # `/accounts/password/reset/`, `/accounts/email/`, `/accounts/password/change/`,

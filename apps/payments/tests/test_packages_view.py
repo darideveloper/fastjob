@@ -13,6 +13,15 @@ def package(db):
 
 
 @pytest.mark.django_db
+def test_payments_root_redirects_to_packages(client):
+    """GET /payments/ should redirect to /payments/paquetes/."""
+    url = reverse("payments_root")
+    response = client.get(url)
+    assert response.status_code == 302
+    assert response.url == reverse("payment_packages")
+
+
+@pytest.mark.django_db
 def test_packages_context_includes_successful_sends_count(client, user, package, company, email_template):
     MailingLog.objects.create(
         user=user,

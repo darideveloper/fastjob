@@ -1,6 +1,11 @@
 import logging
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import (
+    HttpResponseBadRequest,
+    HttpResponseNotFound,
+    HttpResponseServerError,
+    JsonResponse,
+)
 from django.template import TemplateDoesNotExist, loader
 
 logger = logging.getLogger(__name__)
@@ -11,6 +16,42 @@ def _is_xhr(request):
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or "application/json" in request.headers.get("Accept", "")
     )
+
+
+def handler404(request, exception, template_name="404.html"):
+    logger.warning("404 Not Found at %s", request.path)
+
+    if _is_xhr(request):
+        return JsonResponse(
+            {"error": "El recurso solicitado no existe."}, status=404
+        )
+
+    try:
+        template = loader.get_template(template_name)
+    except TemplateDoesNotExist:
+        return HttpResponseNotFound(
+            "<h1>Not Found (404)</h1>",
+            content_type="text/html; charset=utf-8",
+        )
+    return HttpResponseNotFound(template.render(request=request))
+
+
+def handler500(request, template_name="500.html"):
+    logger.error("500 Internal Server Error at %s", request.path)
+
+    if _is_xhr(request):
+        return JsonResponse(
+            {"error": "Error interno del servidor."}, status=500
+        )
+
+    try:
+        template = loader.get_template(template_name)
+    except TemplateDoesNotExist:
+        return HttpResponseServerError(
+            "<h1>Internal Server Error (500)</h1>",
+            content_type="text/html; charset=utf-8",
+        )
+    return HttpResponseServerError(template.render(request=request))
 
 
 def handler400(request, exception, template_name="400.html"):
