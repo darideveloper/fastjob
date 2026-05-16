@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Paquetes de Envíos — FastJob{% endblock %}
 
 {% block content %}
@@ -26,6 +27,11 @@
         <div class="mb-6">
           <span class="text-display font-extrabold text-brand-dark">{{ package.price_eur }}€</span>
           <span class="text-caption text-gray-500 ml-1">/ único pago</span>
+          {% if successful_sends_count > 0 %}
+          <p class="text-green-600 text-xs font-medium mt-1">
+            ✓ +{{ successful_sends_count|intcomma }} envíos exitosos en la plataforma
+          </p>
+          {% endif %}
         </div>
 
         <ul class="space-y-2 mb-8 flex-1">
@@ -67,5 +73,10 @@
   <p class="text-center text-xs text-gray-400 mt-10">
     Pago seguro procesado por Stripe. Precios en EUR (IVA incluido).
   </p>
+  {% if successful_sends_count > 0 %}
+  <p class="text-center text-sm text-gray-500 mt-6">
+    ✓ Más de {{ successful_sends_count|intcomma }} envíos completados por candidatos reales a través de FastJob
+  </p>
+  {% endif %}
 </div>
 {% endblock %}
