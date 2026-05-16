@@ -64,6 +64,7 @@
         // Create pill
         var pill = document.createElement('div');
         pill.className = 'bg-brand-soft text-brand-dark px-2 py-0.5 rounded-lg flex items-center gap-1 text-xs font-medium border border-brand/10';
+        pill.style.textTransform = 'uppercase';
         pill.textContent = val;
         
         var removeBtn = document.createElement('button');
@@ -130,6 +131,7 @@
         var li = document.createElement('li');
         li.textContent = opt;
         li.className = 'px-3 py-2 text-sm text-gray-800 hover:bg-brand-soft hover:text-brand-dark cursor-pointer';
+        li.style.textTransform = 'uppercase';
         li.addEventListener('mousedown', function (e) {
           e.preventDefault();
           addValue(opt);

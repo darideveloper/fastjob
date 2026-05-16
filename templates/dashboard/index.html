@@ -2,6 +2,13 @@
 {% load static %}
 {% block title %}Panel de Control — FastJob{% endblock %}
 
+{% block extra_head %}
+<style>
+  [data-combobox] .flex-wrap > div { text-transform: uppercase; }
+  [data-combobox] ul > li { text-transform: uppercase; }
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script src="{% static 'js/combobox.js' %}"></script>
 {% endblock %}
