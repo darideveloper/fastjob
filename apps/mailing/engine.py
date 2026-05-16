@@ -27,7 +27,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from apps.core.models import SystemConfig
+from apps.mailing.models import SystemSettings
 
 logger = logging.getLogger(__name__)
 
@@ -288,7 +288,7 @@ def _send_via_gmail(access_token, from_email, to_email, subject, body_html, atta
         raise Exception(f"Gmail API error {resp.status_code}: {resp.text}")
 
     # 3.2 & 3.3: If visibility is off, immediately trash the message so it doesn't stay in Sent.
-    if not SystemConfig.get().save_emails_to_sent_folder:
+    if not SystemSettings.get().save_emails_to_sent_folder:
         try:
             msg_id = resp.json().get("id")
             if msg_id:
@@ -325,7 +325,7 @@ def _send_via_microsoft(access_token, to_email, subject, body_html, attachment, 
             {"name": "List-Unsubscribe-Post", "value": "List-Unsubscribe=One-Click"},
         ]
 
-    save_to_sent = SystemConfig.get().save_emails_to_sent_folder
+    save_to_sent = SystemSettings.get().save_emails_to_sent_folder
     resp = requests.post(
         "https://graph.microsoft.com/v1.0/me/sendMail",
         headers={

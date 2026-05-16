@@ -13,7 +13,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from apps.core.models import SystemConfig
 from apps.mailing.engine import (
     TokenExpiredError,
     TokenRefreshTransientError,
@@ -23,7 +22,7 @@ from apps.mailing.engine import (
     _refresh_microsoft_token,
     send_cv_email,
 )
-from apps.mailing.models import MailingLog
+from apps.mailing.models import MailingLog, SystemSettings
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +110,7 @@ def test_microsoft_token_refresh_raises_when_api_fails(microsoft_linked_user):
 
 @pytest.mark.django_db
 def test_send_cv_email_via_google_success(google_linked_user, company, email_template):
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(
         user=google_linked_user,
         company=company,
@@ -244,7 +243,7 @@ def test_microsoft_refresh_failure_log_excludes_raw_body(microsoft_linked_user, 
 @pytest.mark.django_db
 def test_send_cv_email_strips_crlf_from_subject(google_linked_user, company, email_template):
     """A staff template with `\r\nBcc:` in the subject must not smuggle headers."""
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     email_template.subject = "Hola {company_name}\r\nBcc: attacker@evil.com"
     email_template.save()
 
@@ -787,7 +786,7 @@ def test_locked_recheck_short_circuits_when_other_worker_already_refreshed(
 @pytest.mark.django_db
 def test_send_emits_list_unsubscribe_headers_gmail(google_linked_user, company, email_template):
     """MIME sent to Gmail must contain both RFC 2369 / RFC 8058 unsubscribe headers."""
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(
         user=google_linked_user,
         company=company,
@@ -922,12 +921,12 @@ def test_graph_fallback_warning_emitted_once_per_process(
     assert rec.fallback == "x-prefix"
 
 # ---------------------------------------------------------------------------
-# Global Email Visibility Toggle (SystemConfig)
+# Global Email Visibility Toggle (SystemSettings)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
 def test_send_cv_email_via_microsoft_honors_visibility_enabled(microsoft_linked_user, company, email_template):
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(user=microsoft_linked_user, company=company, email_template=email_template)
     with patch("apps.mailing.engine.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=202)
@@ -938,7 +937,7 @@ def test_send_cv_email_via_microsoft_honors_visibility_enabled(microsoft_linked_
 
 @pytest.mark.django_db
 def test_send_cv_email_via_microsoft_honors_visibility_disabled(microsoft_linked_user, company, email_template):
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
     log = MailingLog.objects.create(user=microsoft_linked_user, company=company, email_template=email_template)
     with patch("apps.mailing.engine.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=202)
@@ -949,7 +948,7 @@ def test_send_cv_email_via_microsoft_honors_visibility_disabled(microsoft_linked
 
 @pytest.mark.django_db
 def test_send_cv_email_via_google_honors_visibility_disabled_by_trashing(google_linked_user, company, email_template):
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
     log = MailingLog.objects.create(user=google_linked_user, company=company, email_template=email_template)
     
     send_resp = MagicMock(status_code=200)
@@ -966,7 +965,7 @@ def test_send_cv_email_via_google_honors_visibility_disabled_by_trashing(google_
 
 @pytest.mark.django_db
 def test_send_cv_email_via_google_honors_visibility_enabled_by_not_trashing(google_linked_user, company, email_template):
-    SystemConfig.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
+    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(user=google_linked_user, company=company, email_template=email_template)
     
     send_resp = MagicMock(status_code=200)

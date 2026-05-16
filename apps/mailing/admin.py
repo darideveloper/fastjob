@@ -49,7 +49,18 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     "(por ejemplo, 1.10 equivale a un 10% extra de margen)."
                 ),
             },
-        )
+        ),
+        (
+            "Visibilidad de Correos",
+            {
+                "fields": ("save_emails_to_sent_folder",),
+                "description": (
+                    "Si está activado, los correos enviados se guardarán en la carpeta 'Enviados' "
+                    "del buzón de cada usuario (Gmail y Outlook). Si está desactivado, los correos "
+                    "se envían pero no quedan registrados en la carpeta Enviados."
+                ),
+            },
+        ),
     ]
 
     def has_add_permission(self, request):
