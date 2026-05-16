@@ -23,8 +23,29 @@ def _render(subject="Test", body="<p>Test</p>"):
 @pytest.mark.django_db
 def test_known_placeholders_resolve_to_values():
     s, b = _render(subject="hi {company_name}", body="u: {unsubscribe_url}")
-    assert s == "hi Acme"
+    assert s == "hi ACME"
     assert b == "u: http://u"
+
+
+@pytest.mark.django_db
+def test_company_name_is_uppercased_in_subject():
+    t = EmailTemplate(subject="{company_name} hiring", body_html="<p>x</p>")
+    s, _ = t.render(company_name="Acme Corp", unsubscribe_url="http://u")
+    assert "ACME CORP" in s
+
+
+@pytest.mark.django_db
+def test_company_name_is_uppercased_in_body():
+    t = EmailTemplate(subject="s", body_html="<p>Hello {company_name}</p>")
+    _, b = t.render(company_name="Acme Corp", unsubscribe_url="http://u")
+    assert "ACME CORP" in b
+
+
+@pytest.mark.django_db
+def test_company_name_uppercase_is_idempotent():
+    t = EmailTemplate(subject="{company_name}", body_html="<p>x</p>")
+    s, _ = t.render(company_name="ALREADY UPPER", unsubscribe_url="http://u")
+    assert s == "ALREADY UPPER"
 
 
 @pytest.mark.django_db

@@ -138,7 +138,7 @@ class EmailTemplate(models.Model):
         # to the bare `unsubscribe_url` value, and SafeDict leaves unknown keys
         # like `{typo}` as literal text instead of raising.
         context = SafeDict(
-            company_name=company_name,
+            company_name=company_name.upper(),
             unsubscribe_url=unsubscribe_url,
         )
         return (
