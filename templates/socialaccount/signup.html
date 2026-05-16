@@ -3,20 +3,25 @@
 
 {% block title %}{% trans "Signup" %} — FastJob{% endblock %}
 
+{% load static %}
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-16">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+<div class="max-w-md lg:max-w-lg mx-auto px-4 py-16">
+  <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 sm:p-8">
     <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold mb-2">Completar registro</h1>
+      <picture>
+        <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
+        <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="160" height="59" class="h-14 w-auto mx-auto block mb-4" />
+      </picture>
+      <h1 class="text-2xl font-bold mb-2 text-brand-ink">Completar registro</h1>
       <p class="text-gray-500 text-sm">Estás a un paso de comenzar. Por favor, confirma tus datos.</p>
     </div>
 
     <form id="signup_form" method="post" action="{% url 'socialaccount_signup' %}" class="space-y-4">
       {% csrf_token %}
-      
+
       {% for field in form %}
         <div class="space-y-1">
-          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-brand-ink">
             {{ field.label }}
           </label>
           {{ field }}
@@ -33,7 +38,7 @@
       {% endif %}
 
       <div class="pt-4">
-        <button type="submit" class="w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm">
+        <button type="submit" class="w-full min-h-[44px] bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
           {% trans "Sign Up" %}
         </button>
       </div>
@@ -43,20 +48,28 @@
 
 <style>
   /* Base styles for django form inputs rendered via {{ field }} */
-  input[type="text"], input[type="email"], select, textarea {
+  #signup_form input[type="text"],
+  #signup_form input[type="email"],
+  #signup_form select,
+  #signup_form textarea {
     display: block;
     width: 100%;
-    border-radius: 0.75rem;
-    border: 1px solid #E5E7EB; /* gray-200 */
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 123, 255, 0.08); /* brand.muted */
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
+    color: #1A1A1A; /* brand.ink */
+    background-color: #fff;
     transition: all 0.2s;
     outline: none;
   }
-  input[type="text"]:focus, input[type="email"]:focus {
-    border-color: #4F46E5; /* brand */
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  #signup_form input[type="text"]:focus,
+  #signup_form input[type="email"]:focus,
+  #signup_form select:focus,
+  #signup_form textarea:focus {
+    border-color: #007BFF; /* brand.DEFAULT */
+    box-shadow: 0 0 0 2px #00E5FF; /* brand.ring */
   }
 </style>
 {% endblock %}

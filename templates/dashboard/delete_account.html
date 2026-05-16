@@ -3,9 +3,9 @@
 
 {% block content %}
 <div class="max-w-lg mx-auto px-4 py-12">
-  <div class="bg-white border border-red-200 rounded-2xl shadow-sm p-8">
-    <h1 class="text-2xl font-bold text-red-600 mb-2">Eliminar cuenta</h1>
-    <p class="text-sm text-gray-600 mb-6">
+  <div class="bg-white border border-red-200 rounded-2xl shadow-sm p-6 sm:p-8">
+    <h1 class="text-h2 font-bold text-red-600 mb-2">Eliminar cuenta</h1>
+    <p class="text-sm text-brand-ink/80 mb-6">
       Esta acción es <strong>permanente</strong>. Eliminaremos tu cuenta, tu CV,
       tu historial de envíos, los tokens OAuth vinculados y tu información de
       facturación local. Los registros de pagos ya completados se conservan
@@ -14,16 +14,16 @@
 
     <form method="post">
       {% csrf_token %}
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+      <label class="block text-sm font-medium text-brand-ink mb-2">
         Para confirmar, escribe tu email:
         <span class="block text-gray-500 text-xs mt-1">{{ user.email }}</span>
       </label>
       <input type="email" name="confirm_email" required
-        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm mb-4"
+        class="w-full bg-white border border-brand-muted rounded-lg px-3 py-2 text-sm text-brand-ink mb-4 focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand"
         placeholder="{{ user.email }}"/>
       <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-        <a href="{% url 'dashboard' %}" class="text-sm text-gray-500 hover:underline">← Volver</a>
-        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl">
+        <a href="{% url 'dashboard' %}" class="inline-flex items-center min-h-[44px] text-sm text-brand-dark hover:bg-brand-muted px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">← Volver</a>
+        <button type="submit" class="min-h-[44px] bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
           Eliminar permanentemente
         </button>
       </div>

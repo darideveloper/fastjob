@@ -1,18 +1,23 @@
 {% extends "base.html" %}
+{% load static %}
 {% load socialaccount %}
 {% block title %}Iniciar sesión — FastJob{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-16">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+<div class="max-w-md lg:max-w-lg mx-auto px-4 py-16">
+  <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 sm:p-8">
     <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold mb-2">Bienvenido a FastJob</h1>
+      <picture>
+        <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
+        <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="160" height="59" class="h-14 w-auto mx-auto block mb-4" />
+      </picture>
+      <h1 class="text-2xl font-bold mb-2 text-brand-ink">Bienvenido a FastJob</h1>
       <p class="text-gray-500 text-sm">Inicia sesión con tu cuenta de correo para continuar</p>
     </div>
 
     <div class="space-y-3">
       <a href="{% provider_login_url 'google' process='login' next='/dashboard/' %}"
-         class="flex items-center justify-center gap-3 w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm">
+         class="flex items-center justify-center gap-3 w-full min-h-[44px] bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
         <svg class="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -23,7 +28,7 @@
       </a>
 
       <a href="{% provider_login_url 'microsoft' process='login' next='/dashboard/' %}"
-         class="flex items-center justify-center gap-3 w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm">
+         class="flex items-center justify-center gap-3 w-full min-h-[44px] bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
         <svg class="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#F25022" d="M1 1h10v10H1z"/>
           <path fill="#7FBA00" d="M13 1h10v10H13z"/>
@@ -34,7 +39,7 @@
       </a>
     </div>
 
-    <div class="mt-6 pt-6 border-t border-gray-100 text-center">
+    <div class="mt-6 pt-6 border-t border-brand-muted text-center">
       <p class="text-xs text-gray-400">
         Al iniciar sesión, autorizas a FastJob a enviar correos<br/>
         desde tu cuenta en tu nombre. Puedes revocar el acceso en cualquier momento.

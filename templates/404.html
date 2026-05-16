@@ -3,16 +3,17 @@
 {% block title %}Página no encontrada — FastJob{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-16 text-center">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-    <div class="text-brand mb-4 flex justify-center">
+<div class="max-w-md lg:max-w-lg mx-auto px-4 py-16 text-center">
+  <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 sm:p-8">
+    <div class="text-brand-dark mb-4 flex justify-center">
       <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
     </div>
-    <h1 class="text-2xl font-bold mb-2 text-gray-900">404 — Página no encontrada</h1>
+    <p class="text-display font-extrabold text-brand-dark mb-2 leading-none">404</p>
+    <h1 class="text-h2 font-bold mb-2 text-brand-ink">Página no encontrada</h1>
     <p class="text-gray-500 mb-8">Lo sentimos, no hemos podido encontrar la página que buscas.</p>
-    <a href="/" class="inline-flex items-center justify-center w-full bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm">
+    <a href="/" class="inline-flex items-center justify-center w-full min-h-[44px] bg-brand hover:bg-brand-dark text-white font-semibold py-3 rounded-xl transition shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
       Volver al inicio
     </a>
   </div>

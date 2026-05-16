@@ -4,20 +4,25 @@
 
 {% block title %}{% trans "Account Connections" %} — FastJob{% endblock %}
 
+{% load static %}
 {% block content %}
 <div class="max-w-2xl mx-auto px-4 py-16">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold mb-2">Cuentas vinculadas</h1>
+  <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 sm:p-8">
+    <div class="text-center mb-8">
+      <picture>
+        <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
+        <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="160" height="59" class="h-14 w-auto mx-auto block mb-4" />
+      </picture>
+      <h1 class="text-2xl font-bold mb-2 text-brand-ink">Cuentas vinculadas</h1>
       <p class="text-gray-500 text-sm">Gestiona las cuentas de Google o Microsoft conectadas a tu perfil.</p>
     </div>
 
     {% if form.accounts %}
       <form method="post" action="{% url 'socialaccount_connections' %}" class="space-y-6">
         {% csrf_token %}
-        
+
         {% if form.non_field_errors %}
-          <div class="bg-red-50 text-red-700 p-4 rounded-lg text-sm font-medium border border-red-100">
+          <div class="bg-red-50 text-red-700 p-4 rounded-lg text-sm font-medium border border-red-200">
             {{ form.non_field_errors }}
           </div>
         {% endif %}
@@ -25,11 +30,11 @@
         <div class="space-y-3">
           {% for base_account in form.accounts %}
             {% with base_account.get_provider_account as account %}
-              <label class="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition cursor-pointer">
-                <input id="id_account_{{ base_account.id }}" type="radio" name="account" value="{{ base_account.id }}" class="w-4 h-4 text-brand focus:ring-brand border-gray-300"/>
+              <label class="flex items-center gap-4 p-4 rounded-xl border border-brand-muted hover:bg-brand-muted/40 transition cursor-pointer">
+                <input id="id_account_{{ base_account.id }}" type="radio" name="account" value="{{ base_account.id }}" class="w-4 h-4 text-brand focus:ring-brand-ring border-gray-300"/>
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-bold text-gray-900 capitalize">{{ base_account.provider }}</span>
+                    <span class="text-sm font-bold text-brand-ink capitalize">{{ base_account.provider }}</span>
                     <span class="text-xs text-gray-500">{{ account.display_name }}</span>
                   </div>
                   <p class="text-xs text-gray-400">{{ base_account.username }}</p>
@@ -45,22 +50,22 @@
         </div>
 
         <div class="pt-4 flex justify-end">
-          <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-6 py-2 rounded-lg transition text-sm">
+          <button type="submit" class="min-h-[44px] bg-red-50 hover:bg-red-100 text-red-600 font-semibold px-6 py-2 rounded-lg transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
             {% trans 'Remove' %}
           </button>
         </div>
       </form>
     {% else %}
-      <div class="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 mb-8">
+      <div class="text-center py-8 bg-brand-muted/40 rounded-2xl border border-dashed border-brand-muted mb-8">
         <p class="text-gray-500 text-sm">No tienes ninguna cuenta social vinculada actualmente.</p>
       </div>
     {% endif %}
 
-    <div class="mt-12 pt-8 border-t border-gray-100">
-      <h2 class="text-lg font-bold mb-4">Vincular nueva cuenta</h2>
+    <div class="mt-12 pt-8 border-t border-brand-muted">
+      <h2 class="text-lg font-bold mb-4 text-brand-dark">Vincular nueva cuenta</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <a href="{% provider_login_url 'google' process='connect' next='/accounts/3rdparty/connections/' %}"
-           class="flex items-center justify-center gap-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm text-sm">
+           class="flex items-center justify-center gap-3 min-h-[44px] bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -70,7 +75,7 @@
           Google
         </a>
         <a href="{% provider_login_url 'microsoft' process='connect' next='/accounts/3rdparty/connections/' %}"
-           class="flex items-center justify-center gap-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm text-sm">
+           class="flex items-center justify-center gap-3 min-h-[44px] bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 font-semibold py-3 rounded-xl transition shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
           <svg class="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#F25022" d="M1 1h10v10H1z"/>
             <path fill="#7FBA00" d="M13 1h10v10H13z"/>

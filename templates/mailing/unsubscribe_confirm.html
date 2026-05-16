@@ -1,23 +1,43 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Cancelar suscripción — FastJob{% endblock %}
 
-{% block content %}
-<div class="max-w-lg mx-auto px-4 py-20 text-center">
-  <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-    <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-    </svg>
+{% block navbar %}
+<nav class="bg-white border-b border-brand-muted">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
+    <a href="/" class="inline-flex items-center shrink-0">
+      <picture>
+        <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
+        <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="120" height="44" class="h-11 w-auto block" loading="eager" />
+      </picture>
+    </a>
   </div>
-  <h1 class="text-2xl font-bold mb-3">¿Cancelar suscripción?</h1>
-  <p class="text-gray-600 mb-6">
-    El email <strong>{{ masked_email }}</strong> dejará de recibir CVs a través de FastJob.
-  </p>
-  <form method="post" action="">
-    {% csrf_token %}
-    <button type="submit"
-            class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition">
-      Confirmar baja
-    </button>
-  </form>
+</nav>
+{% endblock navbar %}
+
+{% block content %}
+<div class="max-w-md lg:max-w-lg mx-auto px-4 py-16">
+  <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 sm:p-8 text-center">
+    <picture>
+        <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
+        <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="160" height="59" class="h-14 w-auto mx-auto block mb-4" />
+      </picture>
+    <div class="w-20 h-20 bg-brand-soft rounded-full flex items-center justify-center mx-auto mb-6">
+      <svg class="w-10 h-10 text-brand-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <h1 class="text-h2 font-bold mb-3 text-brand-ink">¿Cancelar suscripción?</h1>
+    <p class="text-brand-ink/70 mb-6">
+      El email <strong class="text-brand-ink font-semibold">{{ masked_email }}</strong> dejará de recibir CVs a través de FastJob.
+    </p>
+    <form method="post" action="">
+      {% csrf_token %}
+      <button type="submit"
+              class="inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-dark text-white font-semibold px-6 py-3 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
+        Confirmar baja
+      </button>
+    </form>
+  </div>
 </div>
 {% endblock %}
