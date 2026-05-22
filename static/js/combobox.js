@@ -9,8 +9,18 @@
   function fetchOptions() {
     if (!optionsPromise) {
       optionsPromise = fetch(OPTIONS_URL)
-        .then(function (r) { return r.json(); })
-        .catch(function () { return { areas: [], locations: [] }; });
+        .then(function (r) {
+          // A throttled (429) or errored response is NOT valid options data.
+          // Treat it as a failure instead of feeding empty lists to the UI.
+          if (!r.ok) { throw new Error('filter-options HTTP ' + r.status); }
+          return r.json();
+        })
+        .catch(function (err) {
+          // Never memoise a failure: clearing the singleton lets a later
+          // call (e.g. the retry button) re-request the options.
+          optionsPromise = null;
+          throw err;
+        });
     }
     return optionsPromise;
   }
@@ -236,24 +246,63 @@
     }, 250);
   }
 
+  function initWidgets(widgets, opts) {
+    widgets.forEach(function (widget) {
+      var areaContainer = widget.querySelector('[data-combobox="area"]');
+      var locContainer = widget.querySelector('[data-combobox="location"]');
+
+      if (areaContainer) {
+        initCombobox(areaContainer, opts.areas, function () { scheduleCount(widget); });
+      }
+      if (locContainer) {
+        initCombobox(locContainer, opts.locations, function () { scheduleCount(widget); });
+      }
+
+      scheduleCount(widget);
+    });
+  }
+
+  function renderOptionsError(widgets, onRetry) {
+    // On an options-load failure, replace each combobox's contents with a
+    // visible, recoverable error instead of leaving silently empty, dead
+    // dropdowns. Only innerHTML is cleared — the container's data-* attributes
+    // (data-value, data-name, …) are preserved so a retry can re-initialise.
+    widgets.forEach(function (widget) {
+      widget.querySelectorAll('[data-combobox]').forEach(function (container) {
+        container.innerHTML = '';
+
+        var box = document.createElement('div');
+        box.className = [
+          'w-full border border-red-200 bg-red-50 text-red-700 rounded-xl',
+          'px-3 py-2 text-sm flex items-center justify-between gap-2'
+        ].join(' ');
+
+        var msg = document.createElement('span');
+        msg.textContent = 'No se pudieron cargar las opciones.';
+        box.appendChild(msg);
+
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.textContent = 'Reintentar';
+        retry.className = 'font-semibold underline hover:no-underline shrink-0';
+        retry.addEventListener('click', onRetry);
+        box.appendChild(retry);
+
+        container.appendChild(box);
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var widgets = document.querySelectorAll('[data-filter-widget]');
     if (!widgets.length) return;
 
-    fetchOptions().then(function (opts) {
-      widgets.forEach(function (widget) {
-        var areaContainer = widget.querySelector('[data-combobox="area"]');
-        var locContainer = widget.querySelector('[data-combobox="location"]');
+    function loadWidgets() {
+      fetchOptions()
+        .then(function (opts) { initWidgets(widgets, opts); })
+        .catch(function () { renderOptionsError(widgets, loadWidgets); });
+    }
 
-        if (areaContainer) {
-          initCombobox(areaContainer, opts.areas, function () { scheduleCount(widget); });
-        }
-        if (locContainer) {
-          initCombobox(locContainer, opts.locations, function () { scheduleCount(widget); });
-        }
-
-        scheduleCount(widget);
-      });
-    });
+    loadWidgets();
   });
 })();

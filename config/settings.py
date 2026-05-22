@@ -385,6 +385,27 @@ if config("TRUST_PROXY_SSL_HEADER", default=False, cast=bool):
 
 # ---------------------------------------------------------------------------
 # Rate limiting — we raise the django-ratelimit exception to a friendly 429.
-# Decorators: see apps/mailing/views.py.
+# Decorators: see apps/mailing/views.py and apps/companies/views.py.
 # ---------------------------------------------------------------------------
 RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
+
+# Resolve the real client IP for `key="ip"` limiters from `X-Forwarded-For`
+# instead of `REMOTE_ADDR` (which, behind Traefik, is the proxy and identical
+# for every visitor — collapsing the whole site into one shared bucket).
+# `TRUSTED_PROXY_HOPS` is the number of reverse-proxy hops we control: 1 for
+# Coolify/Traefik; raise it if a CDN is later placed in front of Traefik.
+TRUSTED_PROXY_HOPS = config("TRUSTED_PROXY_HOPS", default=1, cast=int)
+RATELIMIT_IP_META_KEY = "apps.core.ratelimit.get_client_ip"
+
+# Per-real-IP throttles for the public company-filter API. Defaults are
+# generous enough that normal browsing — including many users behind one
+# corporate/carrier NAT — is never throttled, while an automated high-volume
+# client is still blocked. See apps/companies/views.py.
+RATELIMIT_FILTER_OPTIONS = config("RATELIMIT_FILTER_OPTIONS", default="300/h")
+RATELIMIT_FILTER_COUNT = config("RATELIMIT_FILTER_COUNT", default="600/h")
+
+# Fail OPEN when the rate-limiter's cache backend cannot be read: these
+# throttles are abuse-prevention on read-only endpoints, not a security
+# boundary, so a Redis blip must not throttle every user at once. Without
+# this, django-ratelimit treats an unreadable counter as `should_limit=True`.
+RATELIMIT_FAIL_OPEN = True

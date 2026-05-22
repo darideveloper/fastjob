@@ -141,6 +141,7 @@ pytest    # pendiente de implementar — ver log.md
 - Redirect URIs en Google/Microsoft → URL HTTPS real.
 - Celery beat + worker **deben** estar corriendo, o no se envía nada.
 - Configura `SECURE_PROXY_SSL_HEADER` si estás detrás de un reverse proxy.
+- `TRUSTED_PROXY_HOPS` debe coincidir con el nº de proxies inversos que controlas (`1` para Coolify/Traefik). Es lo que permite que el rate limiting por IP identifique al visitante real y no al proxy; súbelo a `2` si añades un CDN delante de Traefik.
 
 ### Importación de empresas — volumen compartido
 

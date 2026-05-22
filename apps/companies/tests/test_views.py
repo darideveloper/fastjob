@@ -1,8 +1,10 @@
 """Tests for the public company filter API endpoints."""
 import json
+from unittest import mock
 
 import pytest
 from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 
 from apps.companies.models import Company, Area, Location
@@ -138,3 +140,80 @@ def test_company_count_error_response_contains_only_error_key(client):
     assert keys == {"error"}
     for forbidden in ("email", "name", "id", "pk"):
         assert forbidden not in keys
+
+
+# ---------------------------------------------------------------------------
+# Client caching headers
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_filter_options_response_is_client_cacheable(client):
+    resp = client.get(reverse("company_filter_options"))
+    assert resp["Cache-Control"] == "public, max-age=300"
+
+
+@pytest.mark.django_db
+def test_company_count_success_is_client_cacheable(client):
+    resp = client.get(reverse("company_count"))
+    assert resp.status_code == 200
+    assert resp["Cache-Control"] == "public, max-age=60"
+
+
+@pytest.mark.django_db
+def test_company_count_invalid_filter_is_not_cached(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
+    resp = client.get(reverse("company_count") + "?area=bricolaje")
+    assert resp.status_code == 400
+    assert resp["Cache-Control"] == "no-store"
+
+
+# ---------------------------------------------------------------------------
+# Per-real-IP rate limiting
+#
+# config/test_settings.py sets RATELIMIT_ENABLE = False, so every rate-limit
+# behaviour test MUST re-enable it via @override_settings, otherwise the
+# assertions pass vacuously with throttling switched off.
+# ---------------------------------------------------------------------------
+
+@override_settings(RATELIMIT_ENABLE=True, RATELIMIT_FILTER_OPTIONS="2/h")
+@pytest.mark.django_db
+def test_filter_options_throttles_per_resolved_client_ip(client):
+    url = reverse("company_filter_options")
+    # First two requests from one real client IP are within the 2/h limit.
+    assert client.get(url, HTTP_X_FORWARDED_FOR="1.1.1.1").status_code == 200
+    assert client.get(url, HTTP_X_FORWARDED_FOR="1.1.1.1").status_code == 200
+    # The third from the same IP is over the limit.
+    assert client.get(url, HTTP_X_FORWARDED_FOR="1.1.1.1").status_code == 429
+    # A different real IP behind the same proxy has an independent bucket and
+    # is NOT affected by the first IP exhausting its limit.
+    assert client.get(url, HTTP_X_FORWARDED_FOR="2.2.2.2").status_code == 200
+
+
+@override_settings(RATELIMIT_ENABLE=True, RATELIMIT_FILTER_COUNT="2/h")
+@pytest.mark.django_db
+def test_company_count_throttles_per_resolved_client_ip(client):
+    url = reverse("company_count")
+    assert client.get(url, HTTP_X_FORWARDED_FOR="3.3.3.3").status_code == 200
+    assert client.get(url, HTTP_X_FORWARDED_FOR="3.3.3.3").status_code == 200
+    assert client.get(url, HTTP_X_FORWARDED_FOR="3.3.3.3").status_code == 429
+    assert client.get(url, HTTP_X_FORWARDED_FOR="4.4.4.4").status_code == 200
+
+
+@override_settings(RATELIMIT_ENABLE=True, RATELIMIT_FILTER_OPTIONS="2/h")
+@pytest.mark.django_db
+def test_filter_options_fails_open_when_ratelimit_cache_unavailable(client):
+    """A transient cache-backend failure must NOT throttle everyone:
+    django-ratelimit sees a None counter and, with RATELIMIT_FAIL_OPEN=True,
+    serves the request instead of returning 429."""
+    broken = mock.MagicMock()
+    broken.add.return_value = False
+    broken.incr.side_effect = ValueError("cache backend unavailable")
+    broken.get.return_value = None
+    url = reverse("company_filter_options")
+    with mock.patch("django_ratelimit.core.caches", {"default": broken}):
+        # Far more requests than the 2/h limit — all served because the
+        # limiter cannot read its counter and fails open.
+        for _ in range(5):
+            resp = client.get(url, HTTP_X_FORWARDED_FOR="5.5.5.5")
+            assert resp.status_code == 200
