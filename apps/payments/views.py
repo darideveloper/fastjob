@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.mailing.models import MailingLog
+from apps.mailing.models import MailingLog, SystemSettings
 
 from .models import CreditPackage, StripePayment
 
@@ -18,7 +18,9 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def packages(request):
     active_packages = CreditPackage.objects.filter(is_active=True)
-    successful_sends_count = MailingLog.objects.filter(status=MailingLog.Status.SENT).count()
+    real_count = MailingLog.objects.filter(status=MailingLog.Status.SENT).count()
+    floor = SystemSettings.get().displayed_sends_floor
+    successful_sends_count = max(real_count, floor)
     return render(request, "payments/packages.html", {
         "packages": active_packages,
         "successful_sends_count": successful_sends_count,

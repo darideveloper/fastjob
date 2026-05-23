@@ -78,6 +78,11 @@ class SystemSettings(models.Model):
         verbose_name="Guardar en carpeta Enviados",
         help_text="Si está activado, los correos enviados se guardarán en la carpeta 'Enviados' del usuario.",
     )
+    displayed_sends_floor = models.IntegerField(
+        default=0,
+        verbose_name="Mínimo de envíos mostrados",
+        help_text="Si el número real de envíos exitosos es menor que este valor, se mostrará este valor en la página de paquetes. Usar 0 para mostrar siempre el valor real.",
+    )
 
     class Meta:
         verbose_name = "Configuración del Sistema"

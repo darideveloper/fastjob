@@ -11,6 +11,13 @@ page subtitle, each per-card feature list, and each per-card purchase
 button. The URL slug `paquetes/` is intentionally NOT renamed; only
 the human-readable copy is in scope.
 
+The per-card feature-list item that displays the credits count MUST
+read `CVs enviados exitosamente` (NOT the previous `CVs enviados`).
+The `<strong>` number and the label text MUST be wrapped together in a
+`<span>` so they form a single flex item within the `flex gap-2` list,
+preventing the gap utility from inserting excess space between the
+number and the label.
+
 #### Scenario: Pricing page `<title>` uses "Envíos"
 - **WHEN** any client requests `GET /payments/paquetes/`
 - **THEN** the `<title>` element of the response reads
@@ -31,6 +38,16 @@ the human-readable copy is in scope.
 - **THEN** that package's purchase button reads `Comprar 200 envíos`
 - **AND** no purchase button on the page contains the substring
   `créditos`
+
+#### Scenario: Feature list reads "CVs enviados exitosamente" with correct spacing
+- **GIVEN** an active `CreditPackage` with `credits = 50`
+- **WHEN** the pricing page is rendered
+- **THEN** the per-card feature list item renders as
+  `<span><strong>50</strong> CVs enviados exitosamente</span>`
+- **AND** the `<strong>` and the label text are siblings inside a single `<span>`,
+  NOT separate flex items
+- **AND** the rendered HTML does NOT contain the substring `CVs enviados`
+  without the word `exitosamente` immediately following it
 
 #### Scenario: URL slug "/paquetes/" is preserved
 - **WHEN** the routing table is inspected
@@ -131,46 +148,62 @@ When a user with a negative credit balance (due to the hidden multiplier margin)
 
 ### Requirement: Pricing page displays a platform-wide successful-sends trust signal
 The pricing page `/payments/paquetes/` SHALL display the total count of
-`MailingLog` records with `status = "sent"` as a visible trust signal inside
-each package card and as a page-level footer line. The count MUST be injected
-by the `packages` view as `successful_sends_count` and MUST NOT be hard-coded
-in the template.
+`MailingLog` records with `status = "sent"` as a visible trust signal in a
+**page-level footer bar only**. No per-card badge is rendered inside individual
+package cards. The count MUST be injected by the `packages` view as
+`successful_sends_count` and MUST NOT be hard-coded in the template.
 
-The trust signal MUST be hidden (not rendered) when `successful_sends_count` equals
-zero, to avoid displaying a misleading "0 envíos exitosos" message on fresh
-installations.
+The `packages` view MUST compute `successful_sends_count` as:
+```
+max(real_count, SystemSettings.get().displayed_sends_floor)
+```
+where `real_count` is `MailingLog.objects.filter(status=MailingLog.Status.SENT).count()`
+and `displayed_sends_floor` is the configured floor value from `SystemSettings`
+(default `0`). When `displayed_sends_floor` is `0` and `real_count` is `0`,
+the computed value is `0` and the trust signal MUST be hidden.
 
-#### Scenario: Badge appears inside each card when sends exist
-- **GIVEN** at least one `MailingLog` row with `status = "sent"` exists
-- **WHEN** any user (authenticated or anonymous) requests `GET /payments/paquetes/`
-- **THEN** each package card contains a green-colored element whose text
-  matches the pattern `+{N} envíos exitosos en la plataforma`
-  where `{N}` is the total count of `MailingLog(status="sent")` records
-- **AND** the element appears immediately below the price line
-  inside `<div class="mb-6">`
+The trust signal MUST be hidden (not rendered) when the computed `successful_sends_count`
+equals zero, to avoid displaying a misleading "0 envíos exitosos" message.
 
-#### Scenario: Badge is hidden when no sends have been made
-- **GIVEN** zero `MailingLog` rows exist (or all have `status = "failed"`)
+#### Scenario: Footer trust bar shows floor value when real count is below floor
+- **GIVEN** `SystemSettings.displayed_sends_floor = 500`
+- **AND** only 12 `MailingLog` rows with `status = "sent"` exist
+- **WHEN** any user requests `GET /payments/paquetes/`
+- **THEN** the footer trust bar displays `500` (the floor value, not `12`)
+- **AND** the page contains a paragraph matching
+  `Más de 500 envíos completados por candidatos reales a través de FastJob`
+
+#### Scenario: Footer trust bar shows real count when it exceeds the floor
+- **GIVEN** `SystemSettings.displayed_sends_floor = 100`
+- **AND** 842 `MailingLog` rows with `status = "sent"` exist
+- **WHEN** any user requests `GET /payments/paquetes/`
+- **THEN** the footer trust bar displays `842`
+- **AND** the page contains a paragraph matching
+  `Más de 842 envíos completados por candidatos reales a través de FastJob`
+
+#### Scenario: No per-card badge is rendered
+- **GIVEN** the computed `successful_sends_count` is greater than zero
 - **WHEN** any user (authenticated or anonymous) requests `GET /payments/paquetes/`
 - **THEN** the rendered HTML does NOT contain the substring
-  `envíos exitosos en la plataforma`
+  `envíos exitosos en la plataforma` inside any card's `<div class="mb-6">`
+- **AND** the substring appears only once, in the footer paragraph
+
+#### Scenario: Footer trust bar is hidden when computed count is zero
+- **GIVEN** `SystemSettings.displayed_sends_floor = 0`
+- **AND** zero `MailingLog` rows with `status = "sent"` exist
+- **WHEN** any user (authenticated or anonymous) requests `GET /payments/paquetes/`
+- **THEN** the rendered HTML does NOT contain the substring
+  `envíos completados por candidatos reales`
 - **AND** no element shows a count of `0`
 
 #### Scenario: Footer trust bar appears below the Stripe disclaimer
-- **GIVEN** at least one `MailingLog` row with `status = "sent"` exists
+- **GIVEN** the computed `successful_sends_count` is greater than zero
 - **WHEN** the pricing page is rendered
 - **THEN** the page contains a footer trust bar paragraph whose text
   matches the pattern
   `Más de {N} envíos completados por candidatos reales a través de FastJob`
-  where `{N}` equals `successful_sends_count`
+  where `{N}` equals the computed `successful_sends_count`
 - **AND** the paragraph appears after the Stripe disclaimer paragraph
-
-#### Scenario: Context variable reflects real-time database count
-- **GIVEN** 42 `MailingLog` rows with `status = "sent"` and 10 with
-  `status = "failed"`
-- **WHEN** `GET /payments/paquetes/` is requested
-- **THEN** the template context variable `successful_sends_count` equals `42`
-- **AND** the rendered badge displays `42` (not `52` or any other value)
 
 ### Requirement: Spanish verbose names on StripePayment fields
 All fields of `StripePayment` (`apps/payments/models.py`) SHALL declare

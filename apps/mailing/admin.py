@@ -61,6 +61,17 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 ),
             },
         ),
+        (
+            "Página de Paquetes",
+            {
+                "fields": ("displayed_sends_floor",),
+                "description": (
+                    "Controla el contador de envíos exitosos mostrado públicamente en la página de paquetes. "
+                    "Si el número real de envíos es inferior a este valor, se mostrará este valor en su lugar. "
+                    "Usar 0 para mostrar siempre el valor real."
+                ),
+            },
+        ),
     ]
 
     def has_add_permission(self, request):

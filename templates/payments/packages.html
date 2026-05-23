@@ -27,11 +27,6 @@
         <div class="mb-6">
           <span class="text-display font-extrabold text-brand-dark">{{ package.price_eur }}€</span>
           <span class="text-caption text-gray-500 ml-1">/ único pago</span>
-          {% if successful_sends_count > 0 %}
-          <p class="text-green-600 text-xs font-medium mt-1">
-            ✓ +{{ successful_sends_count|intcomma }} envíos exitosos en la plataforma
-          </p>
-          {% endif %}
         </div>
 
         <ul class="space-y-2 mb-8 flex-1">
@@ -39,7 +34,7 @@
             <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
-            <strong>{{ package.credits }}</strong> CVs enviados
+            <span><strong>{{ package.credits }}</strong> CVs enviados exitosamente</span>
           </li>
           <li class="flex items-center gap-2 text-sm text-brand-ink">
             <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
