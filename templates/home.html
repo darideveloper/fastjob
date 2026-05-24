@@ -9,13 +9,13 @@
 {% block content %}
 <!-- Hero -->
 <section class="bg-gradient-to-br from-brand via-brand-dark to-brand-cyan/40 text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
     <h1 class="text-display font-extrabold mb-6">
       Envía tu CV a cientos de empresas<br class="hidden sm:block"/>
       de forma automática y sin spam
     </h1>
     <p class="text-brand-cloud text-lg sm:text-xl max-w-2xl mx-auto mb-10">
-      FastJob usa tu propia cuenta de Gmail o Outlook para enviar tu CV con enlaces de descarga únicos, alta tasa de entrega y sin adjuntos sospechosos.
+      FastJob usa tu propia cuenta de Gmail o Outlook para enviar tu CV en PDF adjunto, con alta tasa de entrega y plantillas variadas.
     </p>
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
       <a href="/accounts/google/login/?next=/dashboard/"
@@ -33,7 +33,7 @@
 </section>
 
 <!-- Features -->
-<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+<section class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
   <h2 class="text-3xl font-bold text-center mb-12">¿Cómo funciona?</h2>
   <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
     <div class="text-center p-6">
@@ -80,13 +80,13 @@
 
 <!-- Trust Signals -->
 <section class="bg-brand-soft py-16">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
     <h2 class="text-2xl font-bold mb-8">Diseñado para máxima entregabilidad</h2>
     <div class="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
       <div class="bg-white rounded-xl p-5 shadow-sm">
         <div class="text-3xl font-extrabold text-brand mb-1">✓</div>
-        <h4 class="font-semibold mb-1">Sin adjuntos</h4>
-        <p class="text-sm text-gray-600">Se envía un enlace de descarga único, no el PDF como adjunto.</p>
+        <h4 class="font-semibold mb-1">CV en PDF adjunto</h4>
+        <p class="text-sm text-gray-600">Tu CV viaja como adjunto profesional, listo para que el reclutador lo abra al instante.</p>
       </div>
       <div class="bg-white rounded-xl p-5 shadow-sm">
         <div class="text-3xl font-extrabold text-brand mb-1">✓</div>
@@ -104,7 +104,7 @@
 
 <!-- Company Finder -->
 <section class="py-20 bg-white" id="buscar-empresas">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
     <h2 class="text-3xl font-bold mb-3">¿Cuántas empresas coinciden con tu perfil?</h2>
     <p class="text-gray-500 max-w-xl mx-auto mb-10">
       Selecciona tu sector y ubicación para ver cuántas empresas de nuestra base de datos encajan contigo antes de empezar.
@@ -141,6 +141,30 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
       </a>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Teaser -->
+<section id="paquetes" class="bg-brand-soft py-20">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-brand-ink mb-4">Paquetes</h2>
+      <p class="text-gray-500">Elige el paquete que mejor se adapte a ti. Cada envío = un CV a una empresa.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      {% for package in packages %}
+        {% if forloop.counter == 2 %}
+          {% include "payments/_package_card.html" with package=package is_popular=True %}
+        {% else %}
+          {% include "payments/_package_card.html" with package=package is_popular=False %}
+        {% endif %}
+      {% empty %}
+        <div class="col-span-3 text-center py-16 text-gray-400">
+          Próximamente disponibles
+        </div>
+      {% endfor %}
     </div>
   </div>
 </section>

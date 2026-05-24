@@ -46,7 +46,7 @@
   <!-- Navbar -->
   <nav class="group sticky top-0 z-40 bg-white border-b border-brand-muted shadow-sm data-[scrolled=true]:shadow-md motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out"
        data-scrolled="false">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-20 group-data-[scrolled=true]:h-16 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out">
         <a href="/" class="inline-flex items-center font-bold text-xl text-brand-dark shrink-0">
           <picture style="aspect-ratio: 1226 / 450;" class="block">
@@ -58,14 +58,14 @@
         <!-- Desktop cluster (md+) -->
         <div class="hidden md:flex md:items-center md:gap-4">
           {% if user.is_authenticated %}
-            <span class="text-sm text-gray-600 hidden sm:block">{{ user.email }}</span>
+            <span class="text-sm text-gray-600 hidden lg:block">{{ user.email }}</span>
             <span class="inline-flex items-center gap-1 bg-brand-soft text-brand-dark text-sm font-semibold px-3 py-1 rounded-full">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               {{ user.visible_credits }} envíos
             </span>
-            <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Panel</a>
+            <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors whitespace-nowrap">Panel de envíos</a>
             <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Comprar</a>
             <a href="/accounts/logout/" class="text-sm bg-brand-muted hover:bg-brand-soft text-brand-dark px-3 py-1.5 rounded-lg font-medium transition">Salir</a>
           {% else %}
@@ -98,7 +98,7 @@
 
     <!-- Mobile drawer (< md) -->
     <div id="navbar-drawer" class="hidden md:hidden border-t border-brand-muted bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3">
+      <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-3 flex flex-col gap-3">
         {% if user.is_authenticated %}
           <span class="text-sm text-gray-600">{{ user.email }}</span>
           <span class="inline-flex items-center gap-1 bg-brand-soft text-brand-dark text-sm font-semibold px-3 py-1 rounded-full self-start">
@@ -107,7 +107,7 @@
             </svg>
             {{ user.visible_credits }} envíos
           </span>
-          <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Panel</a>
+          <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Panel de envíos</a>
           <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Comprar</a>
           <a href="/accounts/logout/" class="text-sm bg-brand-muted hover:bg-brand-soft text-brand-dark px-3 py-1.5 rounded-lg font-medium transition self-start">Salir</a>
         {% else %}
@@ -142,7 +142,7 @@
 
   <!-- Messages -->
   {% if messages %}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">
       {% for message in messages %}
         <div class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
           {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
@@ -163,8 +163,19 @@
   {% block footer %}
   <!-- Footer -->
   <footer class="bg-white border-t border-brand-muted mt-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
       <span class="text-sm text-gray-500">&copy; {% now "Y" %} FastJob. Todos los derechos reservados.</span>
+      <div class="flex items-center gap-3">
+        {% for s in social_links %}
+          <a href="{{ s.url }}"
+             aria-label="{{ s.aria_label }}"
+             target="_blank"
+             rel="noopener"
+             class="text-gray-500 hover:text-brand transition">
+            {{ s.svg|safe }}
+          </a>
+        {% endfor %}
+      </div>
       <div class="flex gap-4 text-sm text-gray-500">
         <a href="#" class="hover:text-brand transition-colors">Privacidad</a>
         <a href="#" class="hover:text-brand transition-colors">Términos</a>

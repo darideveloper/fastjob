@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Descarga revocada — FastJob{% endblock %}
+{% block title %}Enlace revocado — FastJob{% endblock %}
 
 {% block navbar %}
 <nav class="bg-white border-b border-brand-muted">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
     <a href="/" class="inline-flex items-center shrink-0">
       <picture>
         <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
@@ -23,7 +23,7 @@
         <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="160" height="59" class="h-14 w-auto mx-auto block mb-4" />
       </picture>
     <h1 class="text-h2 font-bold mb-3 text-brand-ink">Este enlace ha sido revocado</h1>
-    <p class="text-brand-ink/70 mb-8">La descarga ya no está disponible porque el destinatario ha cancelado la suscripción.</p>
+    <p class="text-brand-ink/70 mb-8">Este enlace ya no está disponible porque el destinatario ha cancelado la suscripción.</p>
     <a href="/" class="inline-flex items-center justify-center min-h-[44px] text-brand-dark hover:bg-brand-muted font-semibold px-5 py-3 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
       Ir a FastJob
     </a>

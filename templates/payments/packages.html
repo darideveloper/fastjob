@@ -3,7 +3,7 @@
 {% block title %}Paquetes de Envíos — FastJob{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-12">
   <div class="text-center mb-12">
     <h1 class="text-h1 font-extrabold text-brand-ink mb-4">Elige tu paquete</h1>
     <p class="text-gray-500">Cada envío = un CV a una empresa. Sin suscripciones, sin sorpresas.</p>
@@ -11,60 +11,11 @@
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for package in packages %}
-      <div class="bg-white rounded-2xl border border-brand-muted p-6 sm:p-8 flex flex-col relative
-        {% if forloop.counter == 2 %}shadow-lg ring-2 ring-brand-dark{% else %}shadow-sm{% endif %}">
-        {% if forloop.counter == 2 %}
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-dark text-white text-xs font-bold px-3 py-1 rounded-full">
-            Recomendado
-          </div>
-        {% endif %}
-
-        <h2 class="text-h2 font-bold mb-1 text-brand-dark">{{ package.name }}</h2>
-        {% if package.description %}
-          <p class="text-gray-500 text-sm mb-4">{{ package.description }}</p>
-        {% endif %}
-
-        <div class="mb-6">
-          <span class="text-display font-extrabold text-brand-dark">{{ package.price_eur }}€</span>
-          <span class="text-caption text-gray-500 ml-1">/ único pago</span>
-        </div>
-
-        <ul class="space-y-2 mb-8 flex-1">
-          <li class="flex items-center gap-2 text-sm text-brand-ink">
-            <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            <span><strong>{{ package.credits }}</strong> CVs enviados exitosamente</span>
-          </li>
-          <li class="flex items-center gap-2 text-sm text-brand-ink">
-            <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            Anti-spam Slow-Drip incluido
-          </li>
-          <li class="flex items-center gap-2 text-sm text-brand-ink">
-            <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            Sin fecha de caducidad
-          </li>
-        </ul>
-
-        {% if user.is_authenticated %}
-        <form method="post" action="{% url 'create_checkout' package.pk %}">
-          {% csrf_token %}
-          <button type="submit"
-            class="w-full min-h-[44px] font-bold py-3 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 bg-brand hover:bg-brand-dark text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-            Comprar {{ package.credits }} envíos
-          </button>
-        </form>
-        {% else %}
-        <a href="/accounts/login/?next=/payments/paquetes/"
-          class="block w-full min-h-[44px] font-bold py-3 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 bg-brand hover:bg-brand-dark text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-center leading-[44px]">
-          Comprar {{ package.credits }} envíos
-        </a>
-        {% endif %}
-      </div>
+      {% if forloop.counter == 2 %}
+        {% include "payments/_package_card.html" with package=package is_popular=True %}
+      {% else %}
+        {% include "payments/_package_card.html" with package=package is_popular=False %}
+      {% endif %}
     {% empty %}
       <div class="col-span-3 text-center py-16 text-gray-400">
         No hay paquetes disponibles en este momento.

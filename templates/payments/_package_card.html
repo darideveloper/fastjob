@@ -1,0 +1,54 @@
+<div class="bg-white rounded-2xl border border-brand-muted p-6 sm:p-8 flex flex-col relative
+  {% if is_popular %}shadow-lg ring-2 ring-brand-dark{% else %}shadow-sm{% endif %}">
+  {% if is_popular %}
+    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-dark text-white text-xs font-bold px-3 py-1 rounded-full">
+      Más popular
+    </div>
+  {% endif %}
+
+  <h2 class="text-h2 font-bold mb-1 text-brand-dark">{{ package.name }}</h2>
+  {% if package.description %}
+    <p class="text-gray-500 text-sm mb-4">{{ package.description }}</p>
+  {% endif %}
+
+  <div class="mb-6">
+    <span class="text-display font-extrabold text-brand-dark">{{ package.price_eur }}€</span>
+    <span class="text-caption text-gray-500 ml-1">/ único pago</span>
+  </div>
+
+  <ul class="space-y-2 mb-8 flex-1">
+    <li class="flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span><strong>{{ package.credits }}</strong> CVs enviados exitosamente</span>
+    </li>
+    <li class="flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      Anti-spam Slow-Drip incluido
+    </li>
+    <li class="flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      Sin fecha de caducidad
+    </li>
+  </ul>
+
+  {% if user.is_authenticated %}
+  <form method="post" action="{% url 'create_checkout' package.pk %}">
+    {% csrf_token %}
+    <button type="submit"
+      class="w-full min-h-[44px] font-bold py-3 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 bg-brand hover:bg-brand-dark text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+      Comprar {{ package.credits }} envíos
+    </button>
+  </form>
+  {% else %}
+  <a href="/accounts/login/?next=/payments/paquetes/"
+    class="block w-full min-h-[44px] font-bold py-3 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 bg-brand hover:bg-brand-dark text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-center leading-[44px]">
+    Comprar {{ package.credits }} envíos
+  </a>
+  {% endif %}
+</div>

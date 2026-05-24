@@ -1,8 +1,9 @@
 from allauth.account.views import LoginView, LogoutView
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import RedirectView, TemplateView
+from django.views.generic import RedirectView
 
+from apps.core.views import HomeView
 from config.health import healthz
 
 # Custom error handlers: Django's defaults are replaced to provide:
@@ -43,5 +44,5 @@ urlpatterns = [
     path("", include("apps.companies.urls")),
     path("healthz", healthz, name="healthz"),
     path("", include("apps.mailing.urls")),
-    path("", TemplateView.as_view(template_name="home.html"), name="home"),
+    path("", HomeView.as_view(), name="home"),
 ]
