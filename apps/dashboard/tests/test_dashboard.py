@@ -65,13 +65,11 @@ def test_upload_cv_creates_new_row_and_preserves_old(client, user_with_cv):
     client.force_login(user_with_cv)
 
     resp = client.post(reverse("upload_cv"), {
-        "name": "New CV",
         "cv_file": SimpleUploadedFile("new.pdf", b"%PDF new", content_type="application/pdf"),
     })
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
     assert user_with_cv.cvs.count() == 2
-    assert user_with_cv.active_cv.name == "New CV"
     assert user_with_cv.active_cv.pk != original_cv.pk
     # The old CV is preserved
     assert CV.objects.filter(pk=original_cv.pk).exists()
@@ -126,6 +124,78 @@ def test_delete_account_requires_matching_email(client, user_with_cv):
 
 
 @pytest.mark.django_db
+@pytest.mark.django_db
+def test_upload_cv_ajax_success(client, user_with_cv):
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("upload_cv"),
+        {"cv_file": SimpleUploadedFile("new.pdf", b"%PDF new", content_type="application/pdf")},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    user_with_cv.refresh_from_db()
+    assert user_with_cv.cvs.count() == 2
+    assert user_with_cv.active_cv.name == ""
+
+
+@pytest.mark.django_db
+def test_upload_cv_ajax_no_file(client, user_with_cv):
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("upload_cv"),
+        {},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {"ok": False, "error": "Por favor selecciona un archivo PDF."}
+
+
+@pytest.mark.django_db
+def test_upload_cv_ajax_wrong_type(client, user_with_cv):
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("upload_cv"),
+        {"cv_file": SimpleUploadedFile("resume.txt", b"not a pdf", content_type="text/plain")},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {"ok": False, "error": "Solo se permiten archivos PDF."}
+
+
+@pytest.mark.django_db
+def test_upload_cv_ajax_oversize(client, user_with_cv):
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("upload_cv"),
+        {"cv_file": SimpleUploadedFile("big.pdf", b"x" * (10 * 1024 * 1024 + 1), content_type="application/pdf")},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {"ok": False, "error": "El archivo no puede superar los 10 MB."}
+
+
+@pytest.mark.django_db
+def test_upload_cv_non_ajax_fallback(client, user_with_cv):
+    """Non-AJAX POST must still return redirect + flash message."""
+    client.force_login(user_with_cv)
+
+    # Error case
+    resp = client.post(reverse("upload_cv"), {})
+    assert resp.status_code == 302
+    assert resp.url == reverse("dashboard")
+
+    # Success case: start fresh (delete the fixture CV so we can count)
+    user_with_cv.active_cv.delete()
+    resp = client.post(reverse("upload_cv"), {
+        "cv_file": SimpleUploadedFile("fallback.pdf", b"%PDF fallback", content_type="application/pdf"),
+    })
+    assert resp.status_code == 302
+    assert resp.url == reverse("dashboard")
+    user_with_cv.refresh_from_db()
+    assert user_with_cv.cvs.count() == 1
+
+
 def test_delete_account_removes_user_and_cvs(client, user_with_cv):
     from django.contrib.auth import get_user_model
     User = get_user_model()

@@ -161,36 +161,90 @@
 
         <form method="post" action="{% url 'upload_cv' %}" enctype="multipart/form-data" class="space-y-3">
           {% csrf_token %}
-          <input type="text" name="name" placeholder="Nombre (opcional, ej. CV Senior Dev)"
-            class="w-full bg-white border border-brand-muted rounded-lg px-3 py-2 text-sm text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand"/>
           <div class="flex flex-wrap items-center gap-3">
-            <label for="cv-file-input"
+            <label for="cv-file-input" data-upload-label
                    class="inline-flex items-center gap-2 min-h-[44px] bg-brand-soft hover:bg-brand-muted text-brand-dark text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition focus-within:ring-2 focus-within:ring-brand-ring focus-within:ring-offset-2">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
-              Seleccionar archivo
+              Subir CV (PDF)
             </label>
             <input id="cv-file-input" type="file" name="cv_file" accept=".pdf" required class="sr-only"/>
             <span data-filename class="text-sm text-gray-500 truncate min-w-0">Sin archivo seleccionado</span>
           </div>
+          <p data-upload-status hidden class="text-sm"></p>
           <script>
             (function () {
               var input = document.getElementById('cv-file-input');
               if (!input) return;
-              var label = input.parentElement.querySelector('[data-filename]');
-              if (!label) return;
+              var filenameSpan = document.querySelector('[data-filename]');
+              var statusEl = document.querySelector('[data-upload-status]');
+              var labelEl = document.querySelector('[data-upload-label]');
+              var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+              var uploadUrl = '{% url 'upload_cv' %}';
+              var MAX_SIZE = 10 * 1024 * 1024;
+
+              function showStatus(msg, isError) {
+                statusEl.textContent = msg;
+                statusEl.hidden = false;
+                statusEl.style.color = isError ? '#dc2626' : '';
+              }
+
+              function resetInput() {
+                input.value = '';
+                filenameSpan.textContent = 'Sin archivo seleccionado';
+              }
+
               input.addEventListener('change', function () {
-                label.textContent = input.files && input.files.length
-                  ? input.files[0].name
-                  : 'Sin archivo seleccionado';
+                var file = input.files && input.files[0];
+                if (!file) return;
+
+                filenameSpan.textContent = file.name;
+
+                var nameLower = file.name.toLowerCase();
+                if (!nameLower.endsWith('.pdf')) {
+                  showStatus('Solo se permiten archivos PDF.', true);
+                  resetInput();
+                  return;
+                }
+                if (file.size > MAX_SIZE) {
+                  showStatus('El archivo no puede superar los 10 MB.', true);
+                  resetInput();
+                  return;
+                }
+
+                showStatus('Subiendo\u2026');
+                labelEl.style.pointerEvents = 'none';
+                labelEl.style.opacity = '0.5';
+
+                var fd = new FormData();
+                fd.append('cv_file', file);
+                fd.append('csrfmiddlewaretoken', csrfToken.value);
+
+                fetch(uploadUrl, {
+                  method: 'POST',
+                  headers: {'X-Requested-With': 'XMLHttpRequest'},
+                  body: fd,
+                }).then(function (resp) {
+                  if (resp.ok) {
+                    window.location.reload();
+                  } else {
+                    return resp.json().then(function (data) {
+                      showStatus(data.error || 'Error al subir el CV.', true);
+                      labelEl.style.pointerEvents = '';
+                      labelEl.style.opacity = '';
+                      resetInput();
+                    });
+                  }
+                }).catch(function () {
+                  showStatus('Error de conexión. Intenta de nuevo.', true);
+                  labelEl.style.pointerEvents = '';
+                  labelEl.style.opacity = '';
+                  resetInput();
+                });
               });
             })();
           </script>
-          <button type="submit"
-            class="w-full min-h-[44px] bg-brand hover:bg-brand-dark text-white font-semibold py-2.5 rounded-xl transition text-sm focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
-            Subir CV
-          </button>
         </form>
         <p class="text-xs text-gray-400 mt-2">Solo PDF. Máximo 10 MB. Puedes tener varios CVs y elegir cuál usar.</p>
       </div>

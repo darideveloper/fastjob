@@ -10,7 +10,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
@@ -53,28 +53,42 @@ def index(request):
 @login_required
 @require_POST
 def upload_cv(request):
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest"
+
+    def json_error(msg, status=400):
+        return JsonResponse({"ok": False, "error": msg}, status=status)
+
     cv_file = request.FILES.get("cv_file")
     if not cv_file:
+        if is_ajax:
+            return json_error("Por favor selecciona un archivo PDF.")
         messages.error(request, "Por favor selecciona un archivo PDF.")
         return redirect("dashboard")
 
     if not cv_file.name.lower().endswith(".pdf"):
+        if is_ajax:
+            return json_error("Solo se permiten archivos PDF.")
         messages.error(request, "Solo se permiten archivos PDF.")
         return redirect("dashboard")
 
     if cv_file.size > 10 * 1024 * 1024:
+        if is_ajax:
+            return json_error("El archivo no puede superar los 10 MB.")
         messages.error(request, "El archivo no puede superar los 10 MB.")
         return redirect("dashboard")
 
     user = request.user
-    label = (request.POST.get("name") or "").strip()[:200]
 
     # Atomic: create the new CV first, then point active_cv at it. The old CV
     # row is preserved — users can delete it manually if desired — so an upload
     # failure never leaves the user without a CV.
-    cv = CV.objects.create(user=user, file=cv_file, name=label)
+    cv = CV.objects.create(user=user, file=cv_file, name="")
     user.active_cv = cv
     user.save(update_fields=["active_cv"])
+
+    if is_ajax:
+        return JsonResponse({"ok": True})
+
     messages.success(request, "CV subido correctamente.")
     return redirect("dashboard")
 
