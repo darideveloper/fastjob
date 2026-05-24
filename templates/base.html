@@ -48,11 +48,11 @@
   <nav class="group sticky top-0 z-40 bg-white border-b border-brand-muted shadow-sm data-[scrolled=true]:shadow-md motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out"
        data-scrolled="false">
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-20 group-data-[scrolled=true]:h-16 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out">
+      <div class="flex items-center justify-between h-20 group-data-[scrolled=true]:h-16 motion-safe:transition-[height] motion-safe:duration-200 motion-safe:ease-out">
         <a href="/" class="inline-flex items-center font-bold text-xl text-brand-dark shrink-0">
           <picture style="aspect-ratio: 1226 / 450;" class="block">
             <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
-            <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="120" height="44" class="h-14 w-auto block group-data-[scrolled=true]:h-11 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out" loading="eager" />
+            <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="120" height="44" class="h-14 w-auto block group-data-[scrolled=true]:h-11 motion-safe:transition-[height] motion-safe:duration-200 motion-safe:ease-out motion-safe:delay-150" loading="eager" />
           </picture>
         </a>
 
@@ -126,8 +126,13 @@
       var nav = document.querySelector('nav[data-scrolled]');
       if (!nav) return;
       var ticking = false;
+      var prev = nav.getAttribute('data-scrolled') === 'true';
       function update() {
-        nav.setAttribute('data-scrolled', window.scrollY > 8 ? 'true' : 'false');
+        var cur = prev ? window.scrollY > 4 : window.scrollY > 24;
+        if (cur !== prev) {
+          nav.setAttribute('data-scrolled', cur ? 'true' : 'false');
+          prev = cur;
+        }
         ticking = false;
       }
       function onScroll() {
