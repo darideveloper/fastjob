@@ -25,7 +25,7 @@ def test_dashboard_ui_shows_zero_for_negative_balance(client, user):
     # We look for the specific pattern from the template
     if b"-1337" in response.content:
         print(response.content.decode())
-    assert b'<p class="text-3xl font-extrabold text-brand">0</p>' in response.content
+    assert b'<p class="text-3xl font-extrabold text-brand mb-2">0</p>' in response.content
     assert b"-1337" not in response.content
 
 @pytest.mark.django_db

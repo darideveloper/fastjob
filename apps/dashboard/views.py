@@ -107,6 +107,9 @@ def set_active_cv(request, cv_id):
 @require_POST
 def delete_cv(request, cv_id):
     cv = get_object_or_404(CV, pk=cv_id, user=request.user)
+    if request.user.is_campaign_active:
+        messages.error(request, "Para eliminar un CV, primero pausa tu campaña.")
+        return redirect("dashboard")
     was_active = request.user.active_cv_id == cv.pk
     # Atomic: either both the row deletion AND the active_cv fallback land,
     # or neither does. A crash mid-flow used to leave the user with

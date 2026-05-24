@@ -16,6 +16,7 @@ from django.utils import timezone
 from apps.companies.models import Blacklist
 from apps.companies.queries import matching_companies_qs
 from apps.mailing.engine import (
+    CVFileMissingError,
     QuotaExceededError,
     TokenExpiredError,
     TokenRefreshTransientError,
@@ -157,6 +158,16 @@ def process_mailing_queue(self):
                 send_campaign_paused_notification.delay(user.pk, "quota")
                 logger.warning("Quota exceeded for user_pk=%s, campaign paused.", user.pk)
 
+            except CVFileMissingError as exc:
+                log.status = MailingLog.Status.FAILED
+                log.error_message = str(exc)
+                log.save(update_fields=["status", "error_message"])
+                user.is_campaign_active = False
+                user.campaign_pause_reason = "missing_cv"
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                send_campaign_paused_notification.delay(user.pk, "missing_cv")
+                logger.warning("CV file missing for user_pk=%s, campaign paused.", user.pk)
+
             except Exception as exc:
                 log.status = MailingLog.Status.FAILED
                 log.error_message = str(exc)
@@ -197,8 +208,26 @@ def send_campaign_paused_notification(user_pk, reason):
             f"Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
             "El equipo de FastJob"
         )
+    elif reason == "unlinked":
+        subject = "FastJob: Vuelve a conectar tu cuenta de correo"
+        relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
+        message = (
+            f"Hola {user.first_name or user.email},\n\n"
+            "Has desconectado tu cuenta de correo y tu campaña ha sido pausada.\n\n"
+            f"Vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
+            "El equipo de FastJob"
+        )
+    elif reason == "missing_cv":
+        subject = "FastJob: Tu archivo CV no está disponible"
+        message = (
+            f"Hola {user.first_name or user.email},\n\n"
+            "Tu archivo CV no se encuentra disponible y tu campaña ha sido pausada.\n\n"
+            "Por favor, sube un nuevo CV desde tu panel de control para continuar.\n\n"
+            f"Panel de control: {dashboard_url}\n\n"
+            "El equipo de FastJob"
+        )
     else:
-        # Default fallback (unlinked or other)
+        # Unknown reason — no email sent.
         return
 
     send_mail(

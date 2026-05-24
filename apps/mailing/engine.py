@@ -1,12 +1,14 @@
 """
 Mailing engine: sends CVs via user-linked Google or Microsoft OAuth2 accounts.
 
-Two failure modes are surfaced to callers:
+Three failure modes are surfaced to callers:
 
 - ``TokenExpiredError``  — terminal: the refresh token is dead (revoked, expired,
   scope mismatch). The worker pauses the campaign and asks the user to re-link.
 - ``TokenRefreshTransientError`` — retryable: upstream outage, rate limit, or
   network blip. The worker should log + skip this user-tick without pausing.
+- ``CVFileMissingError`` — terminal: the active CV file cannot be read from
+  storage. The worker pauses the campaign and asks the user to re-upload.
 
 Refresh requests persist any rotated ``refresh_token`` returned by the provider
 (Microsoft rotates on every call; Google rotates rarely). The refresh+save block
@@ -49,6 +51,10 @@ class TokenRefreshTransientError(Exception):
 
 class QuotaExceededError(Exception):
     """Provider-enforced daily sending limit reached."""
+
+
+class CVFileMissingError(Exception):
+    """The user's active CV file could not be read from storage."""
 
 
 # OAuth-protocol error codes that mean "the refresh token itself is dead."
@@ -406,9 +412,7 @@ def send_cv_email(user, company, template, log):
             "content_type": "application/pdf"
         }
     except (OSError, FileNotFoundError, ValueError, AttributeError) as e:
-        user.is_campaign_active = False
-        user.save(update_fields=["is_campaign_active"])
-        raise Exception(f"Failed to read CV file: {e}")
+        raise CVFileMissingError(f"Failed to read CV file: {e}")
 
     provider, social, token = _get_social_token(user)
 

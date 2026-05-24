@@ -97,20 +97,27 @@ def test_delete_cv_falls_back_to_newest_remaining(client, user_with_cv):
         file=SimpleUploadedFile("n.pdf", b"%PDF n"),
         name="Newer",
     )
-    # active is still cv_old, but cv_new is a newer CV. Delete the active one.
+    # Campaign must be paused before deletion (guard prevents deletion while active).
+    user_with_cv.is_campaign_active = False
+    user_with_cv.save(update_fields=["is_campaign_active"])
     client.force_login(user_with_cv)
+    # Delete the active one — falls back to newest remaining.
     client.post(reverse("delete_cv", args=[cv_old.pk]))
     user_with_cv.refresh_from_db()
     assert user_with_cv.active_cv_id == cv_new.pk
 
 
 @pytest.mark.django_db
-def test_delete_last_cv_pauses_campaign(client, user_with_cv):
+def test_delete_last_cv_when_campaign_paused(client, user_with_cv):
     cv = user_with_cv.active_cv
+    # Campaign must be paused before deletion.
+    user_with_cv.is_campaign_active = False
+    user_with_cv.save(update_fields=["is_campaign_active"])
     client.force_login(user_with_cv)
     client.post(reverse("delete_cv", args=[cv.pk]))
     user_with_cv.refresh_from_db()
     assert user_with_cv.active_cv is None
+    # Campaign stays paused (was already False).
     assert user_with_cv.is_campaign_active is False
 
 
@@ -205,3 +212,34 @@ def test_delete_account_removes_user_and_cvs(client, user_with_cv):
     assert resp.status_code == 302
     assert not User.objects.filter(pk=pk).exists()
     assert CV.objects.filter(user_id=pk).count() == 0
+
+
+@pytest.mark.django_db
+def test_delete_cv_rejected_when_campaign_active(client, user_with_cv):
+    """Server guard blocks CV deletion while campaign is active."""
+    cv = user_with_cv.active_cv
+    assert user_with_cv.is_campaign_active
+    client.force_login(user_with_cv)
+    resp = client.post(reverse("delete_cv", args=[cv.pk]), follow=True)
+
+    messages_list = list(resp.context["messages"])
+    assert any("primero pausa tu campaña" in str(m) for m in messages_list)
+    user_with_cv.refresh_from_db()
+    assert user_with_cv.active_cv_id == cv.pk
+    assert user_with_cv.is_campaign_active
+
+
+@pytest.mark.django_db
+def test_delete_cv_allowed_when_campaign_paused(client, user_with_cv):
+    """Deletion works normally when campaign is paused."""
+    cv = user_with_cv.active_cv
+    user_with_cv.is_campaign_active = False
+    user_with_cv.save(update_fields=["is_campaign_active"])
+    client.force_login(user_with_cv)
+    resp = client.post(reverse("delete_cv", args=[cv.pk]))
+    assert resp.status_code == 302
+
+    user_with_cv.refresh_from_db()
+    # When it's the only CV, active_cv becomes None and campaign stays False.
+    assert user_with_cv.active_cv is None
+    assert user_with_cv.is_campaign_active is False

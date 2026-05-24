@@ -45,4 +45,6 @@ def pause_campaign_on_unlink(sender, request, socialaccount, **kwargs):
         user.is_campaign_active = False
         user.campaign_pause_reason = "unlinked"
         user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+        from apps.mailing.tasks import send_campaign_paused_notification
+        send_campaign_paused_notification.delay(user.pk, "unlinked")
         logger.info("Campaign paused for user_pk=%s after OAuth unlink (%s)", user.pk, socialaccount.provider)

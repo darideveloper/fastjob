@@ -57,6 +57,9 @@ def test_delete_cv_rolls_back_active_cv_fallback_on_failure(client, user_with_cv
     """delete_cv has two writes: removing the row + repointing active_cv.
     A crash between them used to leave active_cv pointing at a deleted PK.
     With atomic(), both land or neither does."""
+    # Guard blocks deletion while campaign is active — pause first.
+    user_with_cv.is_campaign_active = False
+    user_with_cv.save(update_fields=["is_campaign_active"])
     cv2 = CV.objects.create(user=user_with_cv, file=SimpleUploadedFile("e.pdf", b"x"))
     target = user_with_cv.active_cv
     assert target is not None
