@@ -376,7 +376,7 @@ Each social link MUST:
 - contain a 24 × 24 inline SVG using `fill="currentColor"` so it inherits the link color,
 - use the same hover treatment as the legal links (`text-gray-500 hover:text-brand transition`).
 
-The cluster MUST NOT break the footer's existing layout: at `< sm`, the copyright, social cluster, and legal-links cluster stack vertically; at `sm+`, copyright sits on the left, the social cluster in the middle, and legal links on the right.
+The cluster MUST NOT break the footer's existing layout: at `< sm`, the copyright, social cluster, and legal-links cluster stack vertically; at `sm+`, the copyright text sits on the left, and the social-links cluster is grouped with the legal links on the right.
 
 #### Scenario: Instagram link renders with accessible markup
 - **WHEN** any page that extends `base.html` is rendered
@@ -394,6 +394,13 @@ The cluster MUST NOT break the footer's existing layout: at `< sm`, the copyrigh
 - **WHEN** the footer renders
 - **THEN** `document.documentElement.scrollWidth === 320` (no horizontal overflow)
 - **AND** the copyright line, the social cluster, and the legal-links cluster are stacked vertically (the existing `flex flex-col sm:flex-row` parent is preserved)
+
+#### Scenario: Social links are right-aligned with legal links on desktop
+- **GIVEN** an anonymous visitor at viewport 1280 × 800
+- **WHEN** the footer renders
+- **THEN** the copyright text sits alone on the left side of the footer
+- **AND** the Instagram icon and legal links ("Privacidad", "Términos", "Contacto") appear in the same horizontal group on the right side
+- **AND** the Instagram icon's horizontal centre is to the right of `window.innerWidth / 2`
 
 ### Requirement: Scroll-Reveal Animation System
 

@@ -166,18 +166,18 @@
   <footer class="bg-white border-t border-brand-muted mt-12">
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
       <span class="text-sm text-gray-500">&copy; {% now "Y" %} FastJob. Todos los derechos reservados.</span>
-      <div class="flex items-center gap-3">
-        {% for s in social_links %}
-          <a href="{{ s.url }}"
-             aria-label="{{ s.aria_label }}"
-             target="_blank"
-             rel="noopener"
-             class="text-gray-500 hover:text-brand transition">
-            {{ s.svg|safe }}
-          </a>
-        {% endfor %}
-      </div>
-      <div class="flex gap-4 text-sm text-gray-500">
+      <div class="flex items-center gap-4 text-sm text-gray-500">
+        <div class="flex items-center gap-3">
+          {% for s in social_links %}
+            <a href="{{ s.url }}"
+               aria-label="{{ s.aria_label }}"
+               target="_blank"
+               rel="noopener"
+               class="text-gray-500 hover:text-brand transition">
+              {{ s.svg|safe }}
+            </a>
+          {% endfor %}
+        </div>
         <a href="#" class="hover:text-brand transition-colors">Privacidad</a>
         <a href="#" class="hover:text-brand transition-colors">Términos</a>
         <a href="#" class="hover:text-brand transition-colors">Contacto</a>
