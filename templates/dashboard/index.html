@@ -211,14 +211,14 @@
               <div data-combobox="area"
                    data-name="area_filter"
                    data-value="{% for a in user.area_filters.all %}{{ a.name }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                   data-placeholder="Todos los sectores…"></div>
+                   data-placeholder="Escribe o elige un sector (ej. Tecnología)…"></div>
             </div>
             <div>
               <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Ubicación</label>
               <div data-combobox="location"
                    data-name="location_filter"
                    data-value="{% for l in user.location_filters.all %}{{ l.name }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                   data-placeholder="Todas las ubicaciones…"></div>
+                   data-placeholder="Escribe o elige una ubicación (ej. Madrid)…"></div>
             </div>
           </div>
           <button type="submit"

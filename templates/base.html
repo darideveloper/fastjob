@@ -44,13 +44,14 @@
 
   {% block navbar %}
   <!-- Navbar -->
-  <nav class="bg-white shadow-sm border-b border-brand-muted">
+  <nav class="group sticky top-0 z-40 bg-white border-b border-brand-muted shadow-sm data-[scrolled=true]:shadow-md motion-safe:transition-shadow motion-safe:duration-200 motion-safe:ease-out"
+       data-scrolled="false">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+      <div class="flex items-center justify-between h-20 group-data-[scrolled=true]:h-16 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out">
         <a href="/" class="inline-flex items-center font-bold text-xl text-brand-dark shrink-0">
-          <picture>
+          <picture style="aspect-ratio: 1226 / 450;" class="block">
             <source srcset="{% static 'images/fastjob-logo.webp' %}" type="image/webp" />
-            <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="120" height="44" class="h-11 w-auto block" loading="eager" />
+            <img src="{% static 'images/fastjob-logo.png' %}" alt="FastJob" width="120" height="44" class="h-14 w-auto block group-data-[scrolled=true]:h-11 motion-safe:transition-all motion-safe:duration-200 motion-safe:ease-out" loading="eager" />
           </picture>
         </a>
 
@@ -64,13 +65,13 @@
               </svg>
               {{ user.visible_credits }} envíos
             </span>
-            <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium">Panel</a>
-            <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium">Comprar</a>
+            <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Panel</a>
+            <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Comprar</a>
             <a href="/accounts/logout/" class="text-sm bg-brand-muted hover:bg-brand-soft text-brand-dark px-3 py-1.5 rounded-lg font-medium transition">Salir</a>
           {% else %}
-            <a href="/payments/paquetes/" class="text-sm font-medium text-gray-700 hover:text-brand">Paquetes</a>
-            <a href="/accounts/login/" class="text-sm font-medium text-gray-700 hover:text-brand">Iniciar sesión</a>
-            <a href="/accounts/google/login/?next=/dashboard/" class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-dark transition">
+            <a href="/payments/paquetes/" class="text-sm font-medium text-gray-700 hover:text-brand transition-colors">Paquetes</a>
+            <a href="/accounts/login/" class="text-sm font-medium text-gray-700 hover:text-brand transition-colors">Iniciar sesión</a>
+            <a href="/accounts/google/login/?next=/dashboard/" class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-dark hover:shadow-md transition">
               Empezar gratis
             </a>
           {% endif %}
@@ -106,19 +107,37 @@
             </svg>
             {{ user.visible_credits }} envíos
           </span>
-          <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium">Panel</a>
-          <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium">Comprar</a>
+          <a href="/dashboard/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Panel</a>
+          <a href="/payments/paquetes/" class="text-sm text-gray-700 hover:text-brand font-medium transition-colors">Comprar</a>
           <a href="/accounts/logout/" class="text-sm bg-brand-muted hover:bg-brand-soft text-brand-dark px-3 py-1.5 rounded-lg font-medium transition self-start">Salir</a>
         {% else %}
-          <a href="/payments/paquetes/" class="text-sm font-medium text-gray-700 hover:text-brand">Paquetes</a>
-          <a href="/accounts/login/" class="text-sm font-medium text-gray-700 hover:text-brand">Iniciar sesión</a>
-          <a href="/accounts/google/login/?next=/dashboard/" class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-dark transition self-start">
+          <a href="/payments/paquetes/" class="text-sm font-medium text-gray-700 hover:text-brand transition-colors">Paquetes</a>
+          <a href="/accounts/login/" class="text-sm font-medium text-gray-700 hover:text-brand transition-colors">Iniciar sesión</a>
+          <a href="/accounts/google/login/?next=/dashboard/" class="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-brand-dark hover:shadow-md transition self-start">
             Empezar gratis
           </a>
         {% endif %}
       </div>
     </div>
   </nav>
+  <script>
+    (function () {
+      var nav = document.querySelector('nav[data-scrolled]');
+      if (!nav) return;
+      var ticking = false;
+      function update() {
+        nav.setAttribute('data-scrolled', window.scrollY > 8 ? 'true' : 'false');
+        ticking = false;
+      }
+      function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(update);
+      }
+      update();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    })();
+  </script>
   {% endblock navbar %}
 
   <!-- Messages -->
@@ -147,9 +166,9 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
       <span class="text-sm text-gray-500">&copy; {% now "Y" %} FastJob. Todos los derechos reservados.</span>
       <div class="flex gap-4 text-sm text-gray-500">
-        <a href="#" class="hover:text-brand">Privacidad</a>
-        <a href="#" class="hover:text-brand">Términos</a>
-        <a href="#" class="hover:text-brand">Contacto</a>
+        <a href="#" class="hover:text-brand transition-colors">Privacidad</a>
+        <a href="#" class="hover:text-brand transition-colors">Términos</a>
+        <a href="#" class="hover:text-brand transition-colors">Contacto</a>
       </div>
     </div>
   </footer>

@@ -61,7 +61,7 @@
     var dropdown = document.createElement('ul');
     dropdown.className = [
       'absolute left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg',
-      'mt-1 max-h-48 overflow-y-auto'
+      'mt-1 max-h-96 overflow-y-auto'
     ].join(' ');
     dropdown.style.display = 'none';
     container.appendChild(dropdown);
