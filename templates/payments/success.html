@@ -4,19 +4,19 @@
 {% block content %}
 <div class="bg-gradient-to-br from-brand-cyan/15 via-white to-brand/10">
   <div class="max-w-lg mx-auto px-4 py-20 text-center">
-    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 motion-safe:animate-[scale-in_0.4s_ease-out]">
       <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
     </div>
-    <h1 class="text-h1 font-extrabold text-brand-ink mb-3">¡Pago completado!</h1>
+    <h1 data-reveal data-reveal-delay="150" class="text-h1 font-extrabold text-brand-ink mb-3 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">¡Pago completado!</h1>
     {% if payment %}
       <p class="text-brand-ink/80 mb-2">Se han añadido a tu cuenta:</p>
-      <p class="text-display font-extrabold text-brand-dark mb-2">{{ payment.credits_granted }}</p>
+      <p data-reveal data-reveal-delay="300" class="text-display font-extrabold text-brand-dark mb-2 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">{{ payment.credits_granted }}</p>
       <p class="text-caption text-gray-500 mb-6">envíos</p>
     {% endif %}
     <p class="text-gray-500 mb-8">Ya puedes iniciar o reanudar tu campaña desde el panel de control.</p>
-    <a href="/dashboard/" class="inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-dark text-white font-bold px-8 py-3 rounded-xl transition shadow focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
+    <a href="/dashboard/" data-reveal data-reveal-delay="450" class="inline-flex items-center justify-center min-h-[44px] bg-brand hover:bg-brand-dark text-white font-bold px-8 py-3 rounded-xl transition shadow focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
       Ir al Panel de Control
     </a>
   </div>

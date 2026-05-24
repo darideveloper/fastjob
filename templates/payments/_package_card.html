@@ -1,4 +1,4 @@
-<div class="bg-white rounded-2xl border border-brand-muted p-6 sm:p-8 flex flex-col relative
+<div data-reveal data-reveal-delay="{{ forloop.counter0 }}" class="group bg-white rounded-2xl border border-brand-muted p-6 sm:p-8 flex flex-col relative motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out hover:shadow-lg hover:-translate-y-1
   {% if is_popular %}shadow-lg ring-2 ring-brand-dark{% else %}shadow-sm{% endif %}">
   {% if is_popular %}
     <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-dark text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -17,20 +17,20 @@
   </div>
 
   <ul class="space-y-2 mb-8 flex-1">
-    <li class="flex items-center gap-2 text-sm text-brand-ink">
-      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <li class="group flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0 motion-safe:transition-transform motion-safe:duration-150 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
       <span><strong>{{ package.credits }}</strong> CVs enviados exitosamente</span>
     </li>
-    <li class="flex items-center gap-2 text-sm text-brand-ink">
-      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <li class="group flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0 motion-safe:transition-transform motion-safe:duration-150 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
       Anti-spam Slow-Drip incluido
     </li>
-    <li class="flex items-center gap-2 text-sm text-brand-ink">
-      <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <li class="group flex items-center gap-2 text-sm text-brand-ink">
+      <svg class="w-4 h-4 text-green-500 shrink-0 motion-safe:transition-transform motion-safe:duration-150 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
       </svg>
       Sin fecha de caducidad

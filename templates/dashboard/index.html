@@ -18,7 +18,7 @@
 
   <!-- Pause Reason Banner -->
   {% if user.campaign_pause_reason %}
-    <div class="mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 shadow-sm 
+    <div data-reveal="slide-down" data-reveal-delay="0" class="mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 shadow-sm motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out
         {% if user.campaign_pause_reason == 'quota' %}
           bg-amber-50 border-amber-200 text-amber-800
         {% else %}
@@ -58,7 +58,7 @@
   {% endif %}
 
   <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+  <div data-reveal data-reveal-delay="0" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
     <div>
       <h1 class="text-h2 font-bold text-brand-dark">Panel de Control</h1>
       <p class="text-gray-500 text-sm">Gestiona tu campaña de envío de CV</p>
@@ -85,7 +85,7 @@
 
   <!-- Stats -->
   <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-    <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5">
+    <div data-reveal data-reveal-delay="0" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out hover:shadow-md hover:border-brand/20">
       <p class="text-sm text-gray-500 mb-1">Envíos disponibles</p>
       <p class="text-3xl font-extrabold text-brand mb-2">{{ user.visible_credits }}</p>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -97,19 +97,19 @@
         </form>
       </div>
     </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5">
+    <div data-reveal data-reveal-delay="100" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out hover:shadow-md hover:border-brand/20">
       <p class="text-sm text-gray-500 mb-1">Enviados hoy</p>
       <p class="text-3xl font-extrabold text-brand-ink">{{ sent_today }}</p>
       <p class="text-xs text-gray-400 mt-1">{{ sent_this_week }} en los últimos 7 días</p>
     </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5">
+    <div data-reveal data-reveal-delay="200" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out hover:shadow-md hover:border-brand/20">
       <p class="text-sm text-gray-500 mb-1">CVs enviados</p>
       <p class="text-3xl font-extrabold text-brand-ink">{{ sent_count }}</p>
       {% if failed_count %}
         <p class="text-xs text-red-500 mt-1">{{ failed_count }} fallidos</p>
       {% endif %}
     </div>
-    <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5">
+    <div data-reveal data-reveal-delay="300" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-5 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out hover:shadow-md hover:border-brand/20">
       <p class="text-sm text-gray-500 mb-1">Cuenta vinculada</p>
       {% if user.linked_provider == 'google' %}
         <span class="font-semibold">Gmail</span>
@@ -127,7 +127,7 @@
     <div class="lg:col-span-1 space-y-6">
 
       <!-- CV list -->
-      <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6">
+      <div data-reveal data-reveal-delay="0" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
         <h2 class="text-h2 font-bold mb-4 text-brand-dark">Tus CVs</h2>
 
         {% if cvs %}
@@ -196,7 +196,7 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6" data-filter-widget>
+      <div data-reveal data-reveal-delay="100" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out" data-filter-widget>
         <div class="flex flex-col gap-2 mb-4">
           <h2 class="text-h2 font-bold text-brand-dark">Filtros de búsqueda</h2>
           <div class="self-start shrink-0 whitespace-nowrap bg-brand-soft text-brand-dark text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest border border-brand-muted">
@@ -228,7 +228,7 @@
         </form>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-red-200 p-6">
+      <div data-reveal data-reveal-delay="200" class="bg-white rounded-2xl shadow-sm border border-red-200 p-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
         <h2 class="text-h2 font-bold mb-2 text-red-600">Zona peligrosa</h2>
         <p class="text-xs text-gray-500 mb-3">Elimina tu cuenta y todos tus datos de forma permanente (GDPR).</p>
         <a href="{% url 'delete_account' %}" class="inline-flex items-center min-h-[44px] text-sm text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2 rounded px-2">Eliminar mi cuenta →</a>
@@ -238,7 +238,7 @@
 
     <!-- Right column: Recent activity -->
     <div class="lg:col-span-2 flex">
-      <div class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 flex flex-col w-full">
+      <div data-reveal data-reveal-delay="0" class="bg-white rounded-2xl shadow-sm border border-brand-muted p-6 flex flex-col w-full motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
         <h2 class="text-h2 font-bold mb-4 text-brand-dark">Actividad reciente</h2>
         {% if recent_logs %}
           <div class="overflow-x-auto">

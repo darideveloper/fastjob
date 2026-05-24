@@ -1,0 +1,27 @@
+[data-reveal] {
+  opacity: 0 !important;
+  transform: translateY(1.5rem) !important;
+}
+
+[data-reveal="slide-down"] {
+  transform: translateY(-1.5rem) !important;
+}
+
+@keyframes scale-in {
+  0% { transform: scale(0); }
+  80% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  [data-reveal="slide-down"] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
