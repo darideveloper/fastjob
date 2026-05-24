@@ -165,7 +165,10 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-brand-muted mt-12">
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <span class="text-sm text-gray-500">&copy; {% now "Y" %} FastJob. Todos los derechos reservados.</span>
+      <div class="flex flex-col items-center sm:items-start">
+        <span class="text-sm text-gray-500">&copy; {% now "Y" %} FastJob. Todos los derechos reservados.</span>
+        <p class="text-xs text-gray-400">Powered by <a href="https://api.whatsapp.com/send?phone=5214493402622" target="_blank" rel="noopener" class="text-gray-400 hover:text-brand transition">DariDeveloper</a></p>
+      </div>
       <div class="flex items-center gap-4 text-sm text-gray-500">
         <div class="flex items-center gap-3">
           {% for s in social_links %}
