@@ -3,7 +3,9 @@
 {% block title %}FastJob — Envía tu CV a cientos de empresas{% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/combobox.js' %}"></script>
+<script src="{% static 'js/combobox.js' %}?v=6"></script>
+<script src="{% static 'js/vendor/typed.min.js' %}?v=6"></script>
+<script src="{% static 'js/search-suggestion.js' %}?v=6"></script>
 {% endblock %}
 
 {% block content %}
@@ -109,6 +111,10 @@
     <p data-reveal data-reveal-delay="100" class="text-gray-500 max-w-xl mx-auto mb-10 motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">
       Selecciona tu sector y ubicación para ver cuántas empresas de nuestra base de datos encajan contigo antes de empezar.
     </p>
+
+    <span data-search-suggestion aria-hidden="true"
+          data-reveal data-reveal-delay="150"
+          class="text-brand text-sm cursor-pointer hover:text-brand-dark transition inline-block mt-2 mb-4"></span>
 
     <div class="max-w-3xl mx-auto" data-filter-widget>
       <div data-reveal data-reveal-delay="200" class="bg-white p-4 sm:p-6 rounded-2xl border border-brand-muted shadow-sm mb-8 motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">

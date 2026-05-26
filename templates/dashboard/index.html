@@ -10,7 +10,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/combobox.js' %}"></script>
+<script src="{% static 'js/combobox.js' %}?v=6"></script>
+<script src="{% static 'js/vendor/typed.min.js' %}?v=6"></script>
+<script src="{% static 'js/search-suggestion.js' %}?v=6"></script>
 {% endblock %}
 
 {% block content %}
@@ -264,8 +266,10 @@
           <div class="self-start shrink-0 whitespace-nowrap bg-brand-soft text-brand-dark text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest border border-brand-muted">
             <span data-company-counter>—</span> empresas
           </div>
-        </div>
-        <form method="post" action="{% url 'update_filters' %}">
+          </div>
+          <span data-search-suggestion aria-hidden="true"
+                class="text-brand text-sm cursor-pointer hover:text-brand-dark transition inline-block mb-4"></span>
+          <form method="post" action="{% url 'update_filters' %}">
           {% csrf_token %}
           <div class="space-y-4">
             <div>

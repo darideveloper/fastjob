@@ -109,6 +109,7 @@
         updatePills();
       }
     }
+    container._addValue = addValue;
 
     function removeValue(val) {
       selected = selected.filter(function(v) { return v !== val; });
@@ -208,6 +209,12 @@
       }
     });
 
+    function removeAll() {
+      selected = [];
+      updatePills();
+    }
+    container._removeAll = removeAll;
+
     // Initial render
     updatePills();
   }
@@ -293,14 +300,46 @@
     });
   }
 
+  // --- Expose public API for search-suggestion.js ---
+  var resolveReady = null;
+  var _readyResolved = false;
+
+  window.FastJobFilter = {
+    get optionsPromise() { return optionsPromise; },
+    readyPromise: new Promise(function (resolve) { resolveReady = resolve; }),
+    addValue: function (widgetElement, comboboxType, value) {
+      var container = widgetElement.querySelector('[data-combobox="' + comboboxType + '"]');
+      if (container && typeof container._addValue === 'function') {
+        container._addValue(value);
+      }
+    },
+    clearWidget: function (widgetElement) {
+      [].forEach.call(widgetElement.querySelectorAll('[data-combobox]'), function (container) {
+        if (typeof container._removeAll === 'function') {
+          container._removeAll();
+        }
+      });
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', function () {
     var widgets = document.querySelectorAll('[data-filter-widget]');
-    if (!widgets.length) return;
+    if (!widgets.length) {
+      if (resolveReady) resolveReady();
+      return;
+    }
 
     function loadWidgets() {
       fetchOptions()
-        .then(function (opts) { initWidgets(widgets, opts); })
-        .catch(function () { renderOptionsError(widgets, loadWidgets); });
+        .then(function (opts) {
+          window.FastJobFilter.optionsData = opts;
+          initWidgets(widgets, opts);
+          if (!_readyResolved) { _readyResolved = true; resolveReady(); }
+        })
+        .catch(function () {
+          renderOptionsError(widgets, loadWidgets);
+          if (!_readyResolved) { _readyResolved = true; resolveReady(); }
+        });
     }
 
     loadWidgets();
