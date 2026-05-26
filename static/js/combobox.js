@@ -31,6 +31,8 @@
     var initialValues = container.dataset.value ? container.dataset.value.split(',') : [];
     var selected = initialValues.filter(function(v) { return v.trim().length > 0; });
     var placeholder = container.dataset.placeholder || 'Selecciona opciones…';
+    var comboboxType = container.dataset.combobox;
+    var noFilterLabel = comboboxType === 'area' ? '— TODOS LOS SECTORES —' : comboboxType === 'location' ? '— TODAS LAS UBICACIONES —' : '— Todos —';
 
     container.style.position = 'relative';
     container.innerHTML = '';
@@ -61,7 +63,7 @@
     var dropdown = document.createElement('ul');
     dropdown.className = [
       'absolute left-0 right-0 z-20 bg-white border border-gray-200 rounded-xl shadow-lg',
-      'mt-1 max-h-96 overflow-y-auto'
+      'mt-1 max-h-[480px] overflow-y-auto'
     ].join(' ');
     dropdown.style.display = 'none';
     container.appendChild(dropdown);
@@ -125,18 +127,18 @@
 
       dropdown.innerHTML = '';
 
-      if (selected.length > 0) {
-        var clearLi = document.createElement('li');
-        clearLi.textContent = '— Limpiar todos —';
-        clearLi.className = 'px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 cursor-pointer italic';
-        clearLi.addEventListener('mousedown', function (e) {
-          e.preventDefault();
-          selected = [];
-          updatePills();
-          dropdown.style.display = 'none';
-        });
-        dropdown.appendChild(clearLi);
-      }
+      var clearLi = document.createElement('li');
+      clearLi.textContent = noFilterLabel;
+      clearLi.className = 'px-3 py-2 text-sm text-brand-dark font-semibold border-b border-gray-100 hover:bg-gray-50 cursor-pointer italic';
+      clearLi.style.textTransform = 'uppercase';
+      clearLi.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        selected = [];
+        textInput.value = '';
+        updatePills();
+        dropdown.style.display = 'none';
+      });
+      dropdown.appendChild(clearLi);
 
       filtered.forEach(function (opt) {
         var li = document.createElement('li');
@@ -156,11 +158,6 @@
         empty.textContent = 'Sin resultados';
         empty.className = 'px-3 py-2 text-sm text-gray-400 italic';
         dropdown.appendChild(empty);
-      } else if (!filtered.length && !term && selected.length === options.length) {
-        var allSelected = document.createElement('li');
-        allSelected.textContent = 'Todos seleccionados';
-        allSelected.className = 'px-3 py-2 text-sm text-gray-400 italic';
-        dropdown.appendChild(allSelected);
       }
 
       if (dropdown.children.length > 0) {
