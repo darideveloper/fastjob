@@ -1,0 +1,5 @@
+## 1. Implementation
+- [x] 1.1 In `templates/home.html`, move the `<!-- Company Finder -->` `<section>` (lines 108–153) to immediately after the hero `</section>` (after line 35), before the `<!-- Features -->` section
+- [x] 1.2 Change the `<!-- Features -->` section outer `<section>` class from `max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20` to `max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-gray-50` to add visual separation from the Company Finder section above it
+- [x] 1.3 Verify the resulting section order in `templates/home.html` is: Hero → Company Finder → Features (bg-gray-50) → Trust Signals → Pricing Teaser
+- [ ] 1.4 Visually confirm in the browser that: (a) there is a visual break between the Company Finder and Features sections, (b) no layout is broken, (c) all interactive elements (comboboxes, counter, search suggestion, CTAs) still work correctly in the new position
