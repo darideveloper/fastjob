@@ -290,9 +290,6 @@
           }
 
           window.FastJobFilter.optionsData = data;
-          if (typeof window.FastJobFilter.onOptionsChange === 'function') {
-            window.FastJobFilter.onOptionsChange(data);
-          }
         })
         .catch(function () {});
     }, 250);

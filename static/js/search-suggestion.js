@@ -31,13 +31,6 @@
   function initTyped(el, displayStrings) {
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    var parent = el.parentElement;
-    var widget = parent
-      ? (parent.matches && parent.matches('[data-filter-widget]')
-          ? parent
-          : parent.querySelector('[data-filter-widget]'))
-      : null;
-
     if (reducedMotion) {
       el.textContent = displayStrings[0];
       return null;
@@ -53,22 +46,6 @@
       showCursor: true,
       cursorChar: '|'
     });
-
-    if (widget) {
-      var inputs = widget.querySelectorAll('[data-combobox] input[type="text"]');
-      [].forEach.call(inputs, function (input) {
-        input.addEventListener('focus', function () { typed.stop(); });
-        input.addEventListener('blur', function () {
-          setTimeout(function () {
-            var anyFocused = false;
-            [].forEach.call(inputs, function (inp) {
-              if (inp === document.activeElement) anyFocused = true;
-            });
-            if (!anyFocused) typed.start();
-          }, 100);
-        });
-      });
-    }
 
     return typed;
   }
@@ -107,7 +84,13 @@
         typedInstances.push(typed);
       }
 
+      var widgetInputs = widget ? widget.querySelectorAll('[data-combobox] input[type="text"]') : [];
+      [].forEach.call(widgetInputs, function (input) {
+        input.addEventListener('focus', hideSuggestions);
+      });
+
       var clickHandler = function () {
+        hideSuggestions();
         if (!typed) return;
         var seq = typed.sequence;
         var pos = typed.arrayPos;
@@ -139,51 +122,33 @@
     });
   }
 
-  function rebuildSuggestions(newOpts) {
-    currentOpts = newOpts;
+  var userInteracted = false;
+
+  function hideSuggestions() {
+    if (userInteracted) return;
+    userInteracted = true;
 
     typedInstances.forEach(function (instance) {
-      try { instance.destroy(); } catch (e) {}
+      try { instance.stop(); } catch (e) {}
     });
-    typedInstances = [];
 
     var suggestionEls = document.querySelectorAll('[data-search-suggestion]');
-    if (!suggestionEls.length) return;
-
-    if (!currentOpts || !currentOpts.areas || !currentOpts.locations || currentOpts.areas.length < 2 || currentOpts.locations.length < 2) {
-      [].forEach.call(suggestionEls, function (el) {
-        el.textContent = 'Busca por sector y ubicación';
-      });
-      return;
-    }
-
-    var sug = buildSuggestions(currentOpts);
-    if (!sug) {
-      [].forEach.call(suggestionEls, function (el) {
-        el.textContent = 'Busca por sector y ubicación';
-      });
-      return;
-    }
-
     [].forEach.call(suggestionEls, function (el) {
-      var parent = el.parentElement;
-      var widget = parent
-        ? (parent.matches && parent.matches('[data-filter-widget]')
-            ? parent
-            : parent.querySelector('[data-filter-widget]'))
-        : null;
-
-      // Clear existing content so Typed.js can re-initialise
-      el.innerHTML = '';
-
-      var typed = initTyped(el, sug.displayStrings);
-      if (typed) {
-        typedInstances.push(typed);
-      }
+      el.style.transition = 'opacity 0.3s ease';
+      el.style.opacity = '0';
     });
-  }
 
-  NS.onOptionsChange = rebuildSuggestions;
+    setTimeout(function () {
+      typedInstances.forEach(function (instance) {
+        try { instance.destroy(); } catch (e) {}
+      });
+      typedInstances = [];
+
+      [].forEach.call(suggestionEls, function (el) {
+        el.innerHTML = '';
+      });
+    }, 350);
+  }
 
   NS.readyPromise.then(function () {
     currentOpts = NS.optionsData;

@@ -10,9 +10,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/combobox.js' %}?v=9"></script>
+<script src="{% static 'js/combobox.js' %}?v=11"></script>
 <script src="{% static 'js/vendor/typed.min.js' %}?v=6"></script>
-<script src="{% static 'js/search-suggestion.js' %}?v=8"></script>
+<script src="{% static 'js/search-suggestion.js' %}?v=10"></script>
 {% endblock %}
 
 {% block content %}
@@ -268,7 +268,7 @@
           </div>
           </div>
           <span data-search-suggestion aria-hidden="true"
-                class="text-brand text-sm cursor-pointer hover:text-brand-dark transition inline-block mb-4"></span>
+                class="text-brand text-sm cursor-pointer hover:text-brand-dark transition-colors inline-block mb-4 min-h-[1.25rem]"></span>
           <form method="post" action="{% url 'update_filters' %}">
           {% csrf_token %}
           <div class="space-y-4">
