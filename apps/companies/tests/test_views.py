@@ -217,3 +217,99 @@ def test_filter_options_fails_open_when_ratelimit_cache_unavailable(client):
         for _ in range(5):
             resp = client.get(url, HTTP_X_FORWARDED_FOR="5.5.5.5")
             assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# /api/companies/available-filters/
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_available_filters_no_params_returns_all(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    resp = client.get(reverse("company_available_filters"))
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tecnología" in data["areas"]
+    assert "diseño" in data["areas"]
+    assert "madrid" in data["locations"]
+    assert "barcelona" in data["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_area_constrains_locations(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="valencia")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    resp = client.get(reverse("company_available_filters"), {"area": ["tecnología"]})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "madrid" in data["locations"]
+    assert "valencia" not in data["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_invalid_area_returns_400(client):
+    resp = client.get(reverse("company_available_filters") + "?area=bricolaje")
+    assert resp.status_code == 400
+    assert resp.json() == {"error": "invalid_filter"}
+
+
+@pytest.mark.django_db
+def test_available_filters_invalid_location_returns_400(client):
+    resp = client.get(reverse("company_available_filters") + "?location=marte")
+    assert resp.status_code == 400
+    assert resp.json() == {"error": "invalid_filter"}
+
+
+@pytest.mark.django_db
+def test_available_filters_cache_control_header(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    Company.objects.create(email="a@x.com", name="a", area=a1)
+    resp = client.get(reverse("company_available_filters"))
+    assert resp["Cache-Control"] == "public, max-age=60"
+
+
+@pytest.mark.django_db
+def test_available_filters_invalid_filter_not_cached(client):
+    resp = client.get(reverse("company_available_filters") + "?area=bricolaje")
+    assert resp.status_code == 400
+    assert resp["Cache-Control"] == "no-store"
+
+
+@override_settings(RATELIMIT_ENABLE=True, RATELIMIT_FILTER_COUNT="2/h")
+@pytest.mark.django_db
+def test_available_filters_throttles_per_resolved_client_ip(client):
+    url = reverse("company_available_filters")
+    assert client.get(url, HTTP_X_FORWARDED_FOR="6.6.6.6").status_code == 200
+    assert client.get(url, HTTP_X_FORWARDED_FOR="6.6.6.6").status_code == 200
+    assert client.get(url, HTTP_X_FORWARDED_FOR="6.6.6.6").status_code == 429
+    assert client.get(url, HTTP_X_FORWARDED_FOR="7.7.7.7").status_code == 200
+
+
+@pytest.mark.django_db
+def test_available_filters_case_insensitive_validation(client):
+    a1, _ = Area.objects.get_or_create(name="Tecnología")
+    l1, _ = Location.objects.get_or_create(name="Madrid")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    resp = client.get(reverse("company_available_filters") + "?area=tecnología")
+    assert resp.status_code == 200
+
+
+@pytest.mark.django_db
+def test_available_filters_response_contains_no_identifying_fields(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    Company.objects.create(email="hr@acme.com", name="acme", area=a1, location=l1)
+    resp = client.get(reverse("company_available_filters"))
+    keys = set(resp.json().keys())
+    assert keys == {"areas", "locations"}
+    for forbidden in ("email", "name", "id", "pk"):
+        assert forbidden not in keys

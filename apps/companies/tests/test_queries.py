@@ -5,6 +5,7 @@ from django.core.cache import cache
 from apps.companies.models import Company, Area, Location
 from apps.companies.queries import (
     bust_filter_caches,
+    get_available_filters,
     get_company_count,
     get_filter_options,
     matching_companies_qs,
@@ -249,3 +250,142 @@ def test_bust_on_company_delete():
     bust_filter_caches()
     opts = get_filter_options()
     assert "tecnología" not in opts["areas"]
+
+
+# ---------------------------------------------------------------------------
+# get_available_filters
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_available_filters_no_filters_returns_all():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    result = get_available_filters()
+    assert "tecnología" in result["areas"]
+    assert "diseño" in result["areas"]
+    assert "madrid" in result["locations"]
+    assert "barcelona" in result["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_area_constrains_locations():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="valencia")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    result = get_available_filters(areas=["tecnología"])
+    assert "madrid" in result["locations"]
+    assert "valencia" not in result["locations"]
+    assert "tecnología" in result["areas"]
+    assert "diseño" in result["areas"]
+
+
+@pytest.mark.django_db
+def test_available_filters_location_constrains_areas():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="derecho")
+    a3, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="valencia")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l1)
+    Company.objects.create(email="c@x.com", name="c", area=a3, location=l2)
+    result = get_available_filters(locations=["madrid"])
+    assert "tecnología" in result["areas"]
+    assert "derecho" in result["areas"]
+    assert "diseño" not in result["areas"]
+    assert "madrid" in result["locations"]
+    assert "valencia" in result["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_both_constrain_both():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="derecho")
+    a3, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    l3, _ = Location.objects.get_or_create(name="valencia")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a1, location=l2)
+    Company.objects.create(email="c@x.com", name="c", area=a2, location=l1)
+    Company.objects.create(email="d@x.com", name="d", area=a3, location=l3)
+    result = get_available_filters(areas=["tecnología"], locations=["madrid"])
+    assert "tecnología" in result["areas"]
+    assert "derecho" in result["areas"]
+    assert "diseño" not in result["areas"]
+    assert "madrid" in result["locations"]
+    assert "barcelona" in result["locations"]
+    assert "valencia" not in result["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_multi_area_uses_or():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="valencia")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    result = get_available_filters(areas=["tecnología", "diseño"])
+    assert "madrid" in result["locations"]
+    assert "valencia" in result["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_cross_constraint_but_no_overlap():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="derecho")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    # tecnología only in madrid, derecho only in barcelona
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2)
+    # Selecting áreas con barcelona: only derecho has companies in barcelona
+    result = get_available_filters(locations=["barcelona"])
+    assert "derecho" in result["areas"]
+    assert "tecnología" not in result["areas"]
+    # Selecting ubicaciones con tecnología: only madrid has tecnología companies
+    result2 = get_available_filters(areas=["tecnología"])
+    assert "madrid" in result2["locations"]
+    assert "barcelona" not in result2["locations"]
+    # Both filters together show the cross-constraint
+    result3 = get_available_filters(areas=["tecnología"], locations=["barcelona"])
+    # areas available in barcelona
+    assert "derecho" in result3["areas"]
+    assert "tecnología" not in result3["areas"]
+    # locations with tecnología companies
+    assert "madrid" in result3["locations"]
+    assert "barcelona" not in result3["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_caching(django_assert_num_queries):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    get_available_filters(areas=["tecnología"])
+    with django_assert_num_queries(0):
+        result = get_available_filters(areas=["tecnología"])
+    assert "madrid" in result["locations"]
+
+
+@pytest.mark.django_db
+def test_available_filters_cache_bust():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1)
+    get_available_filters(areas=["tecnología"])
+    # Add a new location for tecnología
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    Company.objects.create(email="b@x.com", name="b", area=a1, location=l2)
+    bust_filter_caches()
+    result = get_available_filters(areas=["tecnología"])
+    assert "barcelona" in result["locations"]
+    assert "madrid" in result["locations"]

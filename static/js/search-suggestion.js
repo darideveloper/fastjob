@@ -4,17 +4,12 @@
   var NS = window.FastJobFilter;
   if (!NS) return;
 
-  NS.readyPromise.then(function () {
-    var suggestionEls = document.querySelectorAll('[data-search-suggestion]');
-    if (!suggestionEls.length) return;
+  var typedInstances = [];
+  var currentOpts = null;
 
-    var opts = NS.optionsData;
-
+  function buildSuggestions(opts) {
     if (!opts || !opts.areas || !opts.locations || opts.areas.length < 2 || opts.locations.length < 2) {
-      [].forEach.call(suggestionEls, function (el) {
-        el.textContent = 'Busca por sector y ubicación';
-      });
-      return;
+      return null;
     }
 
     var displayStrings = [];
@@ -30,7 +25,74 @@
       stringMeta.push({ area: area, location: loc });
     }
 
+    return { displayStrings: displayStrings, stringMeta: stringMeta };
+  }
+
+  function initTyped(el, displayStrings) {
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var parent = el.parentElement;
+    var widget = parent
+      ? (parent.matches && parent.matches('[data-filter-widget]')
+          ? parent
+          : parent.querySelector('[data-filter-widget]'))
+      : null;
+
+    if (reducedMotion) {
+      el.textContent = displayStrings[0];
+      return null;
+    }
+
+    var typed = new Typed(el, {
+      strings: displayStrings,
+      typeSpeed: 50,
+      backSpeed: 30,
+      backDelay: 2000,
+      loop: true,
+      shuffle: true,
+      showCursor: true,
+      cursorChar: '|'
+    });
+
+    if (widget) {
+      var inputs = widget.querySelectorAll('[data-combobox] input[type="text"]');
+      [].forEach.call(inputs, function (input) {
+        input.addEventListener('focus', function () { typed.stop(); });
+        input.addEventListener('blur', function () {
+          setTimeout(function () {
+            var anyFocused = false;
+            [].forEach.call(inputs, function (inp) {
+              if (inp === document.activeElement) anyFocused = true;
+            });
+            if (!anyFocused) typed.start();
+          }, 100);
+        });
+      });
+    }
+
+    return typed;
+  }
+
+  function initSuggestionElements() {
+    var suggestionEls = document.querySelectorAll('[data-search-suggestion]');
+    if (!suggestionEls.length) return;
+
+    if (!currentOpts || !currentOpts.areas || !currentOpts.locations || currentOpts.areas.length < 2 || currentOpts.locations.length < 2) {
+      [].forEach.call(suggestionEls, function (el) {
+        el.textContent = 'Busca por sector y ubicación';
+      });
+      return;
+    }
+
+    var sug = buildSuggestions(currentOpts);
+    if (!sug) {
+      [].forEach.call(suggestionEls, function (el) {
+        el.textContent = 'Busca por sector y ubicación';
+      });
+      return;
+    }
+
+    typedInstances = [];
 
     [].forEach.call(suggestionEls, function (el) {
       var parent = el.parentElement;
@@ -40,48 +102,22 @@
             : parent.querySelector('[data-filter-widget]'))
         : null;
 
-      if (reducedMotion) {
-        el.textContent = displayStrings[0];
-        return;
+      var typed = initTyped(el, sug.displayStrings);
+      if (typed) {
+        typedInstances.push(typed);
       }
 
-      var typed = new Typed(el, {
-        strings: displayStrings,
-        typeSpeed: 50,
-        backSpeed: 30,
-        backDelay: 2000,
-        loop: true,
-        shuffle: true,
-        showCursor: true,
-        cursorChar: '|'
-      });
-
-      if (widget) {
-        var inputs = widget.querySelectorAll('[data-combobox] input[type="text"]');
-        [].forEach.call(inputs, function (input) {
-          input.addEventListener('focus', function () { typed.stop(); });
-          input.addEventListener('blur', function () {
-            setTimeout(function () {
-              var anyFocused = false;
-              [].forEach.call(inputs, function (inp) {
-                if (inp === document.activeElement) anyFocused = true;
-              });
-              if (!anyFocused) typed.start();
-            }, 100);
-          });
-        });
-      }
-
-      el.addEventListener('click', function () {
+      var clickHandler = function () {
+        if (!typed) return;
         var seq = typed.sequence;
         var pos = typed.arrayPos;
         var currentDisplay = typed.strings[seq[pos]];
         if (!currentDisplay) return;
 
         var meta = null;
-        for (var m = 0; m < displayStrings.length; m++) {
-          if (displayStrings[m] === currentDisplay) {
-            meta = stringMeta[m];
+        for (var m = 0; m < sug.displayStrings.length; m++) {
+          if (sug.displayStrings[m] === currentDisplay) {
+            meta = sug.stringMeta[m];
             break;
           }
         }
@@ -97,7 +133,60 @@
         if (meta.location && widget) {
           NS.addValue(widget, 'location', meta.location);
         }
-      });
+      };
+
+      el.addEventListener('click', clickHandler);
     });
+  }
+
+  function rebuildSuggestions(newOpts) {
+    currentOpts = newOpts;
+
+    typedInstances.forEach(function (instance) {
+      try { instance.destroy(); } catch (e) {}
+    });
+    typedInstances = [];
+
+    var suggestionEls = document.querySelectorAll('[data-search-suggestion]');
+    if (!suggestionEls.length) return;
+
+    if (!currentOpts || !currentOpts.areas || !currentOpts.locations || currentOpts.areas.length < 2 || currentOpts.locations.length < 2) {
+      [].forEach.call(suggestionEls, function (el) {
+        el.textContent = 'Busca por sector y ubicación';
+      });
+      return;
+    }
+
+    var sug = buildSuggestions(currentOpts);
+    if (!sug) {
+      [].forEach.call(suggestionEls, function (el) {
+        el.textContent = 'Busca por sector y ubicación';
+      });
+      return;
+    }
+
+    [].forEach.call(suggestionEls, function (el) {
+      var parent = el.parentElement;
+      var widget = parent
+        ? (parent.matches && parent.matches('[data-filter-widget]')
+            ? parent
+            : parent.querySelector('[data-filter-widget]'))
+        : null;
+
+      // Clear existing content so Typed.js can re-initialise
+      el.innerHTML = '';
+
+      var typed = initTyped(el, sug.displayStrings);
+      if (typed) {
+        typedInstances.push(typed);
+      }
+    });
+  }
+
+  NS.onOptionsChange = rebuildSuggestions;
+
+  NS.readyPromise.then(function () {
+    currentOpts = NS.optionsData;
+    initSuggestionElements();
   });
 })();

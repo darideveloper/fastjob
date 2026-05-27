@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django_ratelimit.decorators import ratelimit
 
-from .queries import get_company_count, get_filter_options
+from .queries import get_available_filters, get_company_count, get_filter_options
 
 
 def _invalid_filter_response():
@@ -38,6 +38,29 @@ def filter_options_view(request):
     # without spending the per-IP rate-limit budget on every page view.
     # Aligned with the 5-minute server-side cache in get_filter_options().
     response["Cache-Control"] = "public, max-age=300"
+    return response
+
+
+@require_GET
+@ratelimit(key="ip", rate=_filter_count_rate, block=True)
+def available_filters_view(request):
+    options = get_filter_options()
+    areas = [v.strip() for v in request.GET.getlist("area") if v.strip()]
+    locations = [v.strip() for v in request.GET.getlist("location") if v.strip()]
+
+    allowed_areas = {a.strip().lower() for a in options["areas"]}
+    allowed_locations = {loc.strip().lower() for loc in options["locations"]}
+
+    for area in areas:
+        if area.strip().lower() not in allowed_areas:
+            return _invalid_filter_response()
+    for location in locations:
+        if location.strip().lower() not in allowed_locations:
+            return _invalid_filter_response()
+
+    result = get_available_filters(areas or None, locations or None)
+    response = JsonResponse(result)
+    response["Cache-Control"] = "public, max-age=60"
     return response
 
 

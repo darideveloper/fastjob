@@ -3,6 +3,7 @@
 
   var OPTIONS_URL = '/api/companies/filter-options/';
   var COUNT_URL = '/api/companies/count/';
+  var AVAILABLE_URL = '/api/companies/available-filters/';
 
   var optionsPromise = null;
 
@@ -25,7 +26,8 @@
     return optionsPromise;
   }
 
-  function initCombobox(container, options, onChange) {
+  function initCombobox(container, initialOptions, onChange) {
+    var options = initialOptions;
     var name = container.dataset.name;
     // data-value is expected to be a comma-separated list of selected names
     var initialValues = container.dataset.value ? container.dataset.value.split(',') : [];
@@ -214,9 +216,14 @@
 
     // Initial render
     updatePills();
+
+    container._updateOptions = function(newOptions) {
+      options = newOptions;
+    };
   }
 
   var countTimer = null;
+  var availableTimer = null;
 
   function scheduleCount(widget) {
     clearTimeout(countTimer);
@@ -235,8 +242,8 @@
         params.append('location', input.value);
       });
 
-      var url = COUNT_URL;
       var queryString = params.toString();
+      var url = COUNT_URL;
       if (queryString) url += '?' + queryString;
 
       fetch(url)
@@ -250,19 +257,66 @@
     }, 250);
   }
 
+  function scheduleAvailableFilters(widget) {
+    clearTimeout(availableTimer);
+    availableTimer = setTimeout(function () {
+      var areaInputs = widget.querySelectorAll('[data-combobox="area"] input[type=hidden]');
+      var locInputs = widget.querySelectorAll('[data-combobox="location"] input[type=hidden]');
+
+      var params = new URLSearchParams();
+      areaInputs.forEach(function(input) {
+        params.append('area', input.value);
+      });
+      locInputs.forEach(function(input) {
+        params.append('location', input.value);
+      });
+
+      var queryString = params.toString();
+      var url = AVAILABLE_URL;
+      if (queryString) url += '?' + queryString;
+
+      fetch(url)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.areas || !data.locations) return;
+
+          var areaContainer = widget.querySelector('[data-combobox="area"]');
+          var locContainer = widget.querySelector('[data-combobox="location"]');
+          if (areaContainer && typeof areaContainer._updateOptions === 'function') {
+            areaContainer._updateOptions(data.areas);
+          }
+          if (locContainer && typeof locContainer._updateOptions === 'function') {
+            locContainer._updateOptions(data.locations);
+          }
+
+          window.FastJobFilter.optionsData = data;
+          if (typeof window.FastJobFilter.onOptionsChange === 'function') {
+            window.FastJobFilter.onOptionsChange(data);
+          }
+        })
+        .catch(function () {});
+    }, 250);
+  }
+
   function initWidgets(widgets, opts) {
     widgets.forEach(function (widget) {
       var areaContainer = widget.querySelector('[data-combobox="area"]');
       var locContainer = widget.querySelector('[data-combobox="location"]');
 
+      function onChange() {
+        scheduleCount(widget);
+        scheduleAvailableFilters(widget);
+      }
+
       if (areaContainer) {
-        initCombobox(areaContainer, opts.areas, function () { scheduleCount(widget); });
+        initCombobox(areaContainer, opts.areas, onChange);
       }
       if (locContainer) {
-        initCombobox(locContainer, opts.locations, function () { scheduleCount(widget); });
+        initCombobox(locContainer, opts.locations, onChange);
       }
 
       scheduleCount(widget);
+      scheduleAvailableFilters(widget);
     });
   }
 

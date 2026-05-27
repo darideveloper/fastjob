@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 OPTIONS_CACHE_KEY = "companies:filter-options:v1"
 COUNT_VERSION_KEY = "companies:count:version"
+AVAILABLE_FILTERS_TTL = 60  # 1 minute (same as count)
 OPTIONS_TTL = 300  # 5 minutes
 COUNT_TTL = 60  # 1 minute
 
@@ -84,8 +85,77 @@ def get_company_count(areas=None, locations=None):
     return count
 
 
+def get_available_filters(areas=None, locations=None):
+    """Return available filter options constrained by cross-dimensional filtering.
+
+    Each dimension is constrained by the *other* dimension only:
+    - available_areas: areas with companies in the selected locations (if any)
+    - available_locations: locations with companies in the selected areas (if any)
+
+    When no filters are selected, falls back to get_filter_options().
+    Accepts string lists, model instances, and QuerySets (like matching_companies_qs).
+    """
+    if not areas and not locations:
+        return get_filter_options()
+
+    from .models import Area, Location
+
+    if areas:
+        if hasattr(areas, "values_list"):
+            areas = list(areas.values_list("name", flat=True))
+        elif not isinstance(areas, (list, tuple)):
+            areas = [areas]
+        areas = [str(a).lower() for a in areas]
+
+    if locations:
+        if hasattr(locations, "values_list"):
+            locations = list(locations.values_list("name", flat=True))
+        elif not isinstance(locations, (list, tuple)):
+            locations = [locations]
+        locations = [str(l).lower() for l in locations]
+
+    area_key = ",".join(sorted(areas)) if areas else ""
+    loc_key = ",".join(sorted(locations)) if locations else ""
+
+    version = cache.get(COUNT_VERSION_KEY, 0)
+    raw_key = f"{version}|{area_key}|{loc_key}"
+    cache_key = f"companies:available-filters:v1:{sha1(raw_key.encode()).hexdigest()}"
+
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    available_areas_qs = Area.objects.all()
+    if locations:
+        available_areas_qs = available_areas_qs.filter(
+            companies__location__name__in=locations
+        )
+
+    available_locations_qs = Location.objects.all()
+    if areas:
+        available_locations_qs = available_locations_qs.filter(
+            companies__area__name__in=areas
+        )
+
+    result = {
+        "areas": list(
+            available_areas_qs.values_list("name", flat=True)
+            .distinct()
+            .order_by("name")
+        ),
+        "locations": list(
+            available_locations_qs.values_list("name", flat=True)
+            .distinct()
+            .order_by("name")
+        ),
+    }
+
+    cache.set(cache_key, result, AVAILABLE_FILTERS_TTL)
+    return result
+
+
 def bust_filter_caches():
-    """Invalidate the options list cache and orphan all count caches via version bump."""
+    """Invalidate the options list cache and orphan all count/available-filters caches via version bump."""
     cache.delete(OPTIONS_CACHE_KEY)
     version = cache.get(COUNT_VERSION_KEY, 0)
     cache.set(COUNT_VERSION_KEY, version + 1, timeout=None)
