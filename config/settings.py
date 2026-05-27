@@ -224,6 +224,9 @@ if STORAGE_AWS:
     }
 
     # 7. Optimization & Security
+    # Default object parameters for media/private uploads only.
+    # StaticStorage overrides this with a shorter 5-minute cache so
+    # CDN updates propagate quickly after collectstatic.
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
     AWS_DEFAULT_ACL = None
 else:

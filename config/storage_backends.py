@@ -5,9 +5,18 @@ class StaticStorage(S3Boto3Storage):
     """
     Handles static files (CSS, JS, images).
     Stored in: bucket/project_folder/static/
+
+    Static files must be overwritable by collectstatic so deployed
+    updates actually reach the CDN.  A shorter Cache-Control (5 min)
+    ensures stale assets don't stick around after a deploy.
     """
     location = settings.STATIC_LOCATION
     default_acl = "public-read"
+    file_overwrite = True
+
+    object_parameters = {
+        "CacheControl": "public, max-age=300",
+    }
 
 class PublicMediaStorage(S3Boto3Storage):
     """
