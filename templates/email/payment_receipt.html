@@ -1,16 +1,12 @@
-{% extends "email/base.html" %}
-
-{% block email_content %}
-  <p>Hola {{ user.first_name|default:user.email }},</p>
-  <p>Gracias por tu compra. Aquí tienes los detalles de tu transacción:</p>
-  <ul>
-    <li>Paquete: {{ package.name }}</li>
-    <li>Precio: {{ payment.amount_eur }} €</li>
-    <li>Créditos otorgados: {{ payment.credits_granted }}</li>
-    <li>Saldo total: {{ user.credits_remaining }}</li>
-  </ul>
-  <p>Puedes ver tu factura y gestionar tus datos de facturación en el portal de Stripe:</p>
-  <p><a href="{{ billing_url }}">Gestionar facturación en Stripe</a></p>
-  <p>Accede a tu dashboard para continuar usando FastJob:</p>
-  <p><a href="{{ dashboard_url }}">Ir a tu Dashboard</a></p>
-{% endblock %}
+<p>Hola {{ user.first_name|default:user.email }},</p>
+<p>Gracias por tu compra. Aquí tienes los detalles de tu transacción:</p>
+<ul>
+  <li>Paquete: {{ package.name }}</li>
+  <li>Precio: {{ payment.amount_eur }} €</li>
+  <li>Créditos otorgados: {{ payment.credits_granted }}</li>
+  <li>Saldo total: {{ user.credits_remaining }}</li>
+</ul>
+<p>Puedes ver tu factura y gestionar tus datos de facturación en el portal de Stripe:</p>
+<p><a href="{{ billing_url }}">Gestionar facturación en Stripe</a></p>
+<p>Accede a tu dashboard para continuar usando FastJob:</p>
+<p><a href="{{ dashboard_url }}">Ir a tu Dashboard</a></p>

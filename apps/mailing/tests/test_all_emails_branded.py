@@ -36,6 +36,13 @@ def test_all_emails_use_branded_layout(user):
         assert cfg.email_logo_url in rendered
         assert cfg.email_footer_text in rendered
         assert "<!DOCTYPE html>" in rendered
+        
+        # Verify that the content of the template is NOT empty
+        assert len(body_html.strip()) > 0
+        # Verify that the content is actually in the rendered result
+        # We strip tags from body_html for a more robust check if needed, 
+        # but here we just check if it's there.
+        assert body_html in rendered
 @pytest.mark.django_db
 def test_branded_email_with_custom_settings():
     SystemSettings.objects.update_or_create(pk=1, defaults={

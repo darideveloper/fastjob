@@ -1,17 +1,13 @@
-{% extends "email/base.html" %}
-
-{% block email_content %}
-  <p>Hola,</p>
-  {% if reason == 'quota' %}
-    <p>Tu campaña ha sido pausada porque has alcanzado tu límite de cuota.</p>
-  {% elif reason == 'expired' %}
-    <p>Tu campaña ha sido pausada porque ha caducado.</p>
-  {% elif reason == 'unlinked' %}
-    <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.</p>
-  {% elif reason == 'missing_cv' %}
-    <p>Tu campaña ha sido pausada porque no se ha encontrado tu CV.</p>
-  {% else %}
-    <p>Tu campaña ha sido pausada por motivos de seguridad o configuración.</p>
-  {% endif %}
-  <p>Por favor, revisa tu dashboard para más detalles.</p>
-{% endblock %}
+<p>Hola,</p>
+{% if reason == 'quota' %}
+  <p>Tu campaña ha sido pausada porque has alcanzado tu límite de cuota.</p>
+{% elif reason == 'expired' %}
+  <p>Tu campaña ha sido pausada porque ha caducado.</p>
+{% elif reason == 'unlinked' %}
+  <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.</p>
+{% elif reason == 'missing_cv' %}
+  <p>Tu campaña ha sido pausada porque no se ha encontrado tu CV.</p>
+{% else %}
+  <p>Tu campaña ha sido pausada por motivos de seguridad o configuración.</p>
+{% endif %}
+<p>Por favor, revisa tu dashboard para más detalles.</p>

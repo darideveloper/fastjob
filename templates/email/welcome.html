@@ -1,12 +1,8 @@
-{% extends "email/base.html" %}
-
-{% block email_content %}
-  <p>Hola {{ user.first_name|default:user.email }},</p>
-  <p>Bienvenido a FastJob. Tienes <strong>{{ user.credits_remaining }}</strong> envíos disponibles para comenzar tu búsqueda.</p>
-  <p>Para aprovechar al máximo nuestra plataforma, te recomendamos:</p>
-  <ul>
-    <li><a href="{{ dashboard_url }}">Subir tu CV</a></li>
-    <li><a href="{{ oauth_url }}">Vincular tu cuenta de Google o Microsoft</a></li>
-  </ul>
-  <p>¡Empieza a enviar tus CVs hoy mismo!</p>
-{% endblock %}
+<p>Hola {{ user.first_name|default:user.email }},</p>
+<p>Bienvenido a FastJob. Tienes <strong>{{ user.credits_remaining }}</strong> envíos disponibles para comenzar tu búsqueda.</p>
+<p>Para aprovechar al máximo nuestra plataforma, te recomendamos:</p>
+<ul>
+  <li><a href="{{ dashboard_url }}">Subir tu CV</a></li>
+  <li><a href="{{ oauth_url }}">Vincular tu cuenta de Google o Microsoft</a></li>
+</ul>
+<p>¡Empieza a enviar tus CVs hoy mismo!</p>
