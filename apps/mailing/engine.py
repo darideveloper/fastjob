@@ -29,6 +29,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.mailing.email import render_branded_email
 from apps.mailing.models import SystemSettings
 
 logger = logging.getLogger(__name__)
@@ -393,6 +394,9 @@ def send_cv_email(user, company, template, log):
         company_name=company.name,
         unsubscribe_url=unsubscribe_url,
     )
+
+    body_html = render_branded_email(subject, body_html)
+
 
     # Defence against header injection: a staff-authored template containing
     # `\r\nBcc: ...` in the subject would otherwise smuggle headers into Gmail's

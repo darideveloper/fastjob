@@ -1,0 +1,5 @@
+Hola {{ user.first_name|default:user.email }},
+
+Te informamos que tus créditos actuales son bajos: {{ user.credits_remaining }} créditos.
+
+Puedes comprar más créditos en cualquier momento desde nuestra página de paquetes: {{ packages_url }}

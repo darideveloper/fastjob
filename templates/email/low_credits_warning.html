@@ -1,0 +1,8 @@
+{% extends "email/base.html" %}
+
+{% block email_content %}
+  <p>Hola {{ user.first_name|default:user.email }},</p>
+  <p>Te informamos que tus créditos actuales son bajos: <strong>{{ user.credits_remaining }}</strong> créditos.</p>
+  <p>Puedes comprar más créditos en cualquier momento desde nuestra página de paquetes:</p>
+  <p><a href="{{ packages_url }}">Comprar más créditos</a></p>
+{% endblock %}

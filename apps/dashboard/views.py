@@ -214,6 +214,7 @@ def delete_account(request):
         # Atomic: a crash mid-loop must not leave the user with their
         # account still alive but half their CVs missing. The whole block
         # commits or rolls back as one unit.
+        email = user.email
         with transaction.atomic():
             # Explicitly drop each CV file from object storage. The C9
             # `pre_delete` signal would also fire under cascade, so this
@@ -226,6 +227,8 @@ def delete_account(request):
             # SocialToken. StripePayment has on_delete=SET_NULL so records
             # survive for accounting.
             user.delete()
+            from apps.accounts.tasks import send_account_deleted_email
+            send_account_deleted_email.delay(email)
 
         # Logout AFTER the transaction commits — flushing the session
         # before the delete succeeds would log the user out of a still-

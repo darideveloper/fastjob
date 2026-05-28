@@ -1,0 +1,9 @@
+{% extends "email/base.html" %}
+
+{% block email_content %}
+  <p>Hola,</p>
+  <p>Tu cuenta ha sido eliminada con éxito.</p>
+  <p>Toda tu información personal, CVs y registros de actividad han sido eliminados de nuestros sistemas.</p>
+  <p>Nota: Por motivos de cumplimiento legal, conservamos registros de transacciones financieras (facturas de Stripe) durante el tiempo requerido por las autoridades fiscales.</p>
+  <p><a href="{{ home_url }}">Ir a la página principal</a></p>
+{% endblock %}

@@ -1,0 +1,15 @@
+Hola,
+
+{% if reason == 'quota' %}
+Tu campaña ha sido pausada porque has alcanzado tu límite de cuota.
+{% elif reason == 'expired' %}
+Tu campaña ha sido pausada porque ha caducado.
+{% elif reason == 'unlinked' %}
+Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.
+{% elif reason == 'missing_cv' %}
+Tu campaña ha sido pausada porque no se ha encontrado tu CV.
+{% else %}
+Tu campaña ha sido pausada por motivos de seguridad o configuración.
+{% endif %}
+
+Por favor, revisa tu dashboard para más detalles.

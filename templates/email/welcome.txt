@@ -1,0 +1,10 @@
+Hola {{ user.first_name|default:user.email }},
+
+Bienvenido a FastJob. Tienes {{ user.credits_remaining }} envíos disponibles para comenzar tu búsqueda.
+
+Para aprovechar al máximo nuestra plataforma, te recomendamos:
+
+- Subir tu CV: {{ dashboard_url }}
+- Vincular tu cuenta de Google o Microsoft: {{ oauth_url }}
+
+¡Empieza a enviar tus CVs hoy mismo!

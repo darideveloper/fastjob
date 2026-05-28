@@ -123,6 +123,14 @@ def process_mailing_queue(self):
                     credits_remaining=F("credits_remaining") - 1
                 )
                 user.refresh_from_db(fields=["credits_remaining"])
+                
+                # Check low-credits threshold
+                if user.credits_remaining <= SystemSettings.get().low_credits_threshold:
+                    if user.last_low_credits_warning_at is None:
+                        updated = User.objects.filter(pk=user.pk, last_low_credits_warning_at__isnull=True).update(last_low_credits_warning_at=timezone.now())
+                        if updated:
+                            send_low_credits_warning.delay(user.pk)
+
                 company.last_received_at = now
                 company.save(update_fields=["last_received_at"])
                 contacted_this_tick.add(company.id)
@@ -177,6 +185,10 @@ def process_mailing_queue(self):
         cache.delete(lock_id)
 
 
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from apps.mailing.email import render_branded_email
+
 @shared_task
 def send_campaign_paused_notification(user_pk, reason):
     """Email the user explaining why their campaign was paused."""
@@ -187,53 +199,54 @@ def send_campaign_paused_notification(user_pk, reason):
     except User.DoesNotExist:
         return
 
-    dashboard_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
+    context = {"user": user, "reason": reason}
+    subject = "FastJob: Tu campaña ha sido pausada"
     
-    if reason == "quota":
-        subject = "FastJob: Límite diario de tu proveedor alcanzado"
-        message = (
-            f"Hola {user.first_name or user.email},\n\n"
-            "Tu proveedor de correo (Gmail/Outlook) ha alcanzado su límite diario de envíos. "
-            "Tu campaña se ha pausado automáticamente para evitar bloqueos.\n\n"
-            "No tienes que hacer nada. Tu campaña se reanudará mañana cuando el límite se restablezca.\n\n"
-            f"Puedes ver el estado en tu panel: {dashboard_url}\n\n"
-            "El equipo de FastJob"
-        )
-    elif reason == "expired":
-        subject = "FastJob: Vuelve a conectar tu cuenta de correo"
-        relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
-        message = (
-            f"Hola {user.first_name or user.email},\n\n"
-            "Tu sesión de correo ha expirado y tu campaña ha sido pausada.\n\n"
-            f"Por favor, vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
-            "El equipo de FastJob"
-        )
-    elif reason == "unlinked":
-        subject = "FastJob: Vuelve a conectar tu cuenta de correo"
-        relink_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
-        message = (
-            f"Hola {user.first_name or user.email},\n\n"
-            "Has desconectado tu cuenta de correo y tu campaña ha sido pausada.\n\n"
-            f"Vuelve a iniciar sesión para reanudarla: {relink_url}\n\n"
-            "El equipo de FastJob"
-        )
-    elif reason == "missing_cv":
-        subject = "FastJob: Tu archivo CV no está disponible"
-        message = (
-            f"Hola {user.first_name or user.email},\n\n"
-            "Tu archivo CV no se encuentra disponible y tu campaña ha sido pausada.\n\n"
-            "Por favor, sube un nuevo CV desde tu panel de control para continuar.\n\n"
-            f"Panel de control: {dashboard_url}\n\n"
-            "El equipo de FastJob"
-        )
-    else:
-        # Unknown reason — no email sent.
+    body_html = render_branded_email(
+        subject=subject,
+        body_html=render_to_string("email/campaign_paused_notification.html", context),
+        context=context
+    )
+    body_text = render_to_string("email/campaign_paused_notification.txt", context)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=body_text,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    msg.attach_alternative(body_html, "text/html")
+    msg.send(fail_silently=True)
+
+
+@shared_task
+def send_low_credits_warning(user_pk):
+    from apps.accounts.models import User
+    try:
+        user = User.objects.get(pk=user_pk)
+    except User.DoesNotExist:
         return
 
-    send_mail(
+    packages_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/payments/paquetes/"
+    context = {"user": user, "packages_url": packages_url}
+    subject = "FastJob: Tus créditos se están agotando"
+    
+    body_html = render_branded_email(
         subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
+        body_html=render_to_string("email/low_credits_warning.html", context),
+        context=context
     )
+    body_text = render_to_string("email/low_credits_warning.txt", context)
+
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=body_text,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        msg.attach_alternative(body_html, "text/html")
+        msg.send(fail_silently=True)
+    except Exception as e:
+        logger.warning("Failed to send low credits warning to user_pk=%s: %s", user_pk, e)
+

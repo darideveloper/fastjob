@@ -1,0 +1,9 @@
+Hola,
+
+Tu cuenta ha sido eliminada con éxito.
+
+Toda tu información personal, CVs y registros de actividad han sido eliminados de nuestros sistemas.
+
+Nota: Por motivos de cumplimiento legal, conservamos registros de transacciones financieras (facturas de Stripe) durante el tiempo requerido por las autoridades fiscales.
+
+Página principal: {{ home_url }}

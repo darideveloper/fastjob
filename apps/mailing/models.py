@@ -1,7 +1,7 @@
 import string
 import uuid
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxLengthValidator
+from django.core.validators import MaxLengthValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -46,6 +46,29 @@ _SAFE_FORMATTER = _SafeFormatter()
 
 
 class SystemSettings(models.Model):
+    email_logo_url = models.URLField(
+        default="https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png",
+        verbose_name="URL del logo de email",
+        help_text="URL de la imagen del logo que aparecerá en los correos.",
+    )
+    email_brand_color = models.CharField(
+        max_length=7,
+        default="#007BFF",
+        validators=[RegexValidator(r'^#(?:[0-9a-fA-F]{3}){1,2}$', 'Debe ser un color hexadecimal válido (ej: #007BFF).')],
+        verbose_name="Color de marca del email",
+        help_text="Código hexadecimal del color de marca (ej: #007BFF).",
+    )
+    email_footer_text = models.TextField(
+        default="© 2026 FastJob. Todos los derechos reservados.",
+        verbose_name="Texto del pie de página",
+        help_text="Texto que aparecerá en el pie de página de los correos.",
+    )
+    low_credits_threshold = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Umbral de alerta de créditos bajos",
+        help_text="Número de créditos bajo el cual se enviará una alerta.",
+    )
     global_send_interval_minutes = models.IntegerField(
         default=5,
         verbose_name="Intervalo de envío (minutos)",

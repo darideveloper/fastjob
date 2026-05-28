@@ -1,14 +1,23 @@
 import logging
 
 from allauth.account.signals import user_signed_up
-from allauth.socialaccount.signals import social_account_removed
+from allauth.socialaccount.signals import social_account_added, social_account_removed
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
+
+from apps.accounts.tasks import send_oauth_link_email, send_welcome_email
+from apps.mailing.tasks import send_campaign_paused_notification
 
 from .models import CV
 
 
 logger = logging.getLogger(__name__)
+
+@receiver(social_account_added)
+def notify_oauth_link(sender, request, socialaccount, **kwargs):
+    """Notify the user that a new social account has been linked."""
+    send_oauth_link_email.delay(socialaccount.user.pk, socialaccount.provider)
+    logger.info("Sent OAuth link email to user_pk=%s for provider=%s", socialaccount.user.pk, socialaccount.provider)
 
 SIGNUP_BONUS_CREDITS = 5
 
@@ -28,10 +37,12 @@ def cv_pre_delete(sender, instance, **kwargs):
 def grant_signup_bonus(sender, request, user, **kwargs):
     """Give every new user a handful of free credits so they can try the product."""
     from apps.mailing.models import SystemSettings
+    from apps.accounts.tasks import send_welcome_email
     if user.credits_remaining == 0:
         cfg = SystemSettings.get()
         user.credits_remaining = cfg.initial_free_credits
         user.save(update_fields=["credits_remaining"])
+        send_welcome_email.delay(user.pk)
 
 @receiver(social_account_removed)
 def pause_campaign_on_unlink(sender, request, socialaccount, **kwargs):

@@ -1,0 +1,7 @@
+Hola,
+
+Has vinculado correctamente tu cuenta de {{ provider }} a FastJob.
+
+Ya puedes usar esta cuenta para iniciar sesión y gestionar tus campañas.
+
+Dashboard: {{ dashboard_url }}

@@ -1,0 +1,12 @@
+Hola {{ user.first_name|default:user.email }},
+
+Gracias por tu compra. Aquí tienes los detalles de tu transacción:
+
+- Paquete: {{ package.name }}
+- Precio: {{ payment.amount_eur }} €
+- Créditos otorgados: {{ payment.credits_granted }}
+- Saldo total: {{ user.credits_remaining }}
+
+Puedes ver tu factura y gestionar tus datos de facturación en el portal de Stripe: {{ billing_url }}
+
+Accede a tu dashboard para continuar usando FastJob: {{ dashboard_url }}

@@ -51,6 +51,24 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Branding de Emails",
+            {
+                "fields": (
+                    "email_logo_url",
+                    "email_brand_color",
+                    "email_footer_text",
+                    "low_credits_threshold",
+                ),
+                "description": (
+                    "Configuración visual de los correos automáticos. "
+                    "El logo aparece en la cabecera. "
+                    "El color de marca se usa en la línea decorativa. "
+                    "El texto de pie de página se incluye en todas las plantillas. "
+                    "El umbral de créditos bajos define cuándo enviar alertas automáticas."
+                ),
+            },
+        ),
+        (
             "Visibilidad de Correos",
             {
                 "fields": ("save_emails_to_sent_folder",),

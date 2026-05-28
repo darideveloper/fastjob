@@ -148,7 +148,7 @@ def _handle_successful_payment(session):
 
     user = payment.user
     if user:
-        from django.db.models import Case, When, Value
+        from django.db.models import Case, When, Value, F
         # Atomic increment: total_purchased_credits is always increased.
         # For credits_remaining, we "forgive" the debt if it's negative by
         # adding the absolute value of the negative balance in addition to the
@@ -165,4 +165,9 @@ def _handle_successful_payment(session):
         customer = session.get("customer")
         if customer and not user.stripe_customer_id:
             update_kwargs["stripe_customer_id"] = customer
+        
+        update_kwargs["last_low_credits_warning_at"] = None
         User.objects.filter(pk=user.pk).update(**update_kwargs)
+
+        from apps.payments.tasks import send_payment_receipt_email
+        send_payment_receipt_email.delay(user.pk, payment.pk)
