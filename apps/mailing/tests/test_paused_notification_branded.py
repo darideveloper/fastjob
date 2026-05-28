@@ -36,6 +36,6 @@ def test_paused_notification_uses_branded_layout(user_with_cv):
     html_content = [alt[0] for alt in email.alternatives if alt[1] == "text/html"][0]
     
     # Check for branded elements in the rendered email
-    assert "https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png" in html_content
+    assert "https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png" in html_content
     assert "#007BFF" in html_content
     assert "© 2026 FastJob. Todos los derechos reservados." in html_content

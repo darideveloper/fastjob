@@ -17,6 +17,6 @@ def test_cv_email_uses_branded_layout(user_with_cv, company):
     body_html = args[4]
     
     assert "<h1>Test</h1>" in body_html
-    assert "https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png" in body_html
+    assert "https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png" in body_html
     assert "© 2026 FastJob. Todos los derechos reservados." in body_html
     assert "<!DOCTYPE html>" in body_html

@@ -917,6 +917,12 @@ All fields MUST have Spanish verbose names. A Django migration MUST be created t
 - **THEN** all existing `SystemSettings` rows gain the four new columns with their default values.
 - **AND** no existing field values are altered.
 
+#### Scenario: Default branding uses the new URL and Spanish label
+- **GIVEN** a freshly seeded database or a system where the admin has not overridden the logo URL.
+- **WHEN** a branded email is rendered or the admin panel is viewed.
+- **THEN** the logo `<img>` tag MUST point to `https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png`.
+- **AND** the field label in the Django admin MUST be `"URL del logo en emails"`.
+
 ### Requirement: User Model Tracks Low-Credits Warning
 
 The `User` model (`apps/accounts/models.py`) SHALL gain a nullable `DateTimeField` `last_low_credits_warning_at` (default `None`, verbose name `"Último aviso de envíos bajos"`). This field tracks when the most recent low-credits warning email was sent to the user. It MUST be reset to `None` when the user purchases credits (i.e., when `total_purchased_credits` is incremented in `_handle_successful_payment`).

@@ -6,7 +6,7 @@ class TestEmailBranding(TestCase):
     def test_email_branding_defaults(self):
         cfg = SystemSettings.get()
         rendered = render_branded_email("Test Subject", "<p>Hello</p>")
-        self.assertIn("https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png", rendered)
+        self.assertIn("https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png", rendered)
         self.assertIn("#007BFF", rendered)
         self.assertIn("© 2026 FastJob. Todos los derechos reservados.", rendered)
         self.assertIn("<p>Hello</p>", rendered)

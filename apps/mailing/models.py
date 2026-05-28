@@ -47,8 +47,8 @@ _SAFE_FORMATTER = _SafeFormatter()
 
 class SystemSettings(models.Model):
     email_logo_url = models.URLField(
-        default="https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png",
-        verbose_name="URL del logo de email",
+        default="https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png",
+        verbose_name="URL del logo en emails",
         help_text="URL de la imagen del logo que aparecerá en los correos.",
     )
     email_brand_color = models.CharField(

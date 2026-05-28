@@ -37,6 +37,6 @@ def test_oauth_link_email_uses_branded_layout(user):
     email = mail.outbox[0]
     html_content = [alt[0] for alt in email.alternatives if alt[1] == "text/html"][0]
     
-    assert "https://raw.githubusercontent.com/daridev/fastjob/main/static/images/fastjob-logo.png" in html_content
+    assert "https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png" in html_content
     assert "#007BFF" in html_content
     assert "© 2026 FastJob. Todos los derechos reservados." in html_content
