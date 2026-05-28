@@ -139,6 +139,7 @@
         textInput.value = '';
         updatePills();
         dropdown.style.display = 'none';
+        setTimeout(function() { textInput.blur(); }, 0);
       });
       dropdown.appendChild(clearLi);
 
@@ -151,6 +152,7 @@
           e.preventDefault();
           addValue(opt);
           dropdown.style.display = 'none';
+          setTimeout(function() { textInput.blur(); }, 0);
         });
         dropdown.appendChild(li);
       });
