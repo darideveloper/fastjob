@@ -5,6 +5,24 @@ Newest entries at the top.
 
 ---
 
+## 2026-05-28 — Session 6: Relink redirect loop & unlinking removal
+
+### Done
+
+- **Fixed Relink Redirect Loop:** Modified "Vincular ahora" in the dashboard warning banner to point to `/accounts/logout/` (via `account_logout` url name) instead of `/accounts/login/` to resolve the redirection loop.
+- **Removed Account Unlinking:** Unmounted `/accounts/3rdparty/` routes and deleted the unused `templates/socialaccount/connections.html` template to completely disable manual user unlinking of social accounts.
+- **Added Defensive Safeguard:** Registered a defensive dummy redirect named `socialaccount_signup` pointing to `/accounts/login/` in `config/urls.py` to prevent potential NoReverseMatch errors in `django-allauth`.
+- **Aligned Test Suite:**
+  - Replaced connections url preservation test with assertions verifying `/accounts/3rdparty/` is unmounted (Resolver404) and `socialaccount_signup` redirects safely.
+  - Aligned pause notification tests in `test_pause_notifications.py` and `test_repro_notification.py` to match the newly unified branded email subjects and bodies.
+  - Fixed `test_storage.py` to use a hermetic mock-boto3 storage approach, bypassing the static test settings overrides.
+
+### Validation
+
+- All 386 tests successfully pass under virtualenv.
+
+---
+
 ## 2026-04-24 — Session 5: P1 tail + full P2 sweep
 
 ### Done
