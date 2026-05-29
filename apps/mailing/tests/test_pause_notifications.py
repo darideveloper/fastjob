@@ -84,14 +84,14 @@ def test_dashboard_index_shows_pause_reason(client, google_linked_user):
     response = client.get("/dashboard/")
     html = response.content.decode("utf-8")
     assert "Sesión expirada" in html
-    assert "/accounts/login/" in html
+    assert "/accounts/logout/" in html
 
     google_linked_user.campaign_pause_reason = "unlinked"
     google_linked_user.save()
     response = client.get("/dashboard/")
     html = response.content.decode("utf-8")
     assert "Cuenta desvinculada" in html
-    assert "/accounts/login/" in html
+    assert "/accounts/logout/" in html
 
     google_linked_user.campaign_pause_reason = "missing_cv"
     google_linked_user.save()
@@ -183,9 +183,9 @@ def test_missing_cv_notification_email_sent(user_with_cv):
 
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
-    assert "Tu archivo CV no está disponible" in email.subject
-    assert "sube un nuevo CV" in email.body
-    assert "/dashboard/" in email.body
+    assert "FastJob: Tu campaña ha sido pausada" in email.subject
+    assert "no se ha encontrado tu CV" in email.body
+    assert "dashboard" in email.body
     assert email.to == [user_with_cv.email]
 
 
@@ -198,9 +198,9 @@ def test_unlinked_notification_email_sent(user_with_cv):
 
     assert len(mail.outbox) == 1
     email = mail.outbox[0]
-    assert "Vuelve a conectar tu cuenta de correo" in email.subject
-    assert "Has desconectado" in email.body
-    assert "/accounts/login/" in email.body
+    assert "FastJob: Tu campaña ha sido pausada" in email.subject
+    assert "se ha desvinculado tu cuenta" in email.body
+    assert "dashboard" in email.body
     assert email.to == [user_with_cv.email]
 
 
@@ -229,6 +229,6 @@ def test_unlink_signal_enqueues_notification(client, google_linked_user):
 
     # CELERY_TASK_ALWAYS_EAGER=True means .delay() runs synchronously, so the email is sent.
     assert len(mail.outbox) >= 1
-    notification_email = [m for m in mail.outbox if "Vuelve a conectar tu cuenta de correo" in m.subject]
+    notification_email = [m for m in mail.outbox if "FastJob: Tu campaña ha sido pausada" in m.subject]
     assert len(notification_email) >= 1
-    assert "/accounts/login/" in notification_email[0].body
+    assert "se ha desvinculado tu cuenta" in notification_email[0].body

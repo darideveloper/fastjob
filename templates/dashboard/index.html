@@ -53,7 +53,7 @@
 
       {% if user.campaign_pause_reason == 'expired' or user.campaign_pause_reason == 'unlinked' %}
         <div class="shrink-0">
-          <a href="/accounts/login/" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-xl shadow-sm text-white bg-red-600 hover:bg-red-700 transition">
+          <a href="{% url 'account_logout' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-semibold rounded-xl shadow-sm text-white bg-red-600 hover:bg-red-700 transition">
             Vincular ahora
           </a>
         </div>

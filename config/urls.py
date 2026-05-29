@@ -30,13 +30,15 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="account_login", permanent=False),
         name="account_signup",
     ),
-    # `socialaccount.urls` was historically mounted at `/accounts/3rdparty/`
-    # by allauth.urls; preserve that shape so `socialaccount_connections` keeps
-    # the same path. Provider URL modules carry their own `google/` /
-    # `microsoft/` prefix internally, so mount them at `accounts/` (not
-    # `accounts/google/`) to reproduce the original `/accounts/google/login/`
-    # shape configured in the OAuth provider consoles.
-    path("accounts/3rdparty/", include("allauth.socialaccount.urls")),
+    # Mounting `allauth.socialaccount.urls` at `/accounts/3rdparty/` is removed
+    # to completely disable social account unlinking/connections management.
+    # To prevent NoReverseMatch failures if allauth reverses socialaccount_signup,
+    # we mount a defensive redirect to the standard login screen.
+    path(
+        "accounts/3rdparty/signup/",
+        RedirectView.as_view(pattern_name="account_login", permanent=False),
+        name="socialaccount_signup",
+    ),
     path("accounts/", include("allauth.socialaccount.providers.google.urls")),
     path("accounts/", include("allauth.socialaccount.providers.microsoft.urls")),
     path("dashboard/", include("apps.dashboard.urls")),

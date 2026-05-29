@@ -38,11 +38,23 @@ def test_oauth_login_routes_still_resolve():
     assert reverse("microsoft_login") == "/accounts/microsoft/login/"
 
 
-def test_socialaccount_connections_route_preserved():
-    # socialaccount.urls used to be mounted at /accounts/3rdparty/ via
-    # allauth.urls. Preserve that shape so any hardcoded references / docs /
-    # bookmarks keep working.
-    assert reverse("socialaccount_connections") == "/accounts/3rdparty/"
+def test_socialaccount_connections_route_unmounted():
+    # Verify that the unlinking/connections route is completely unmounted.
+    with pytest.raises(NoReverseMatch):
+        reverse("socialaccount_connections")
+
+    with pytest.raises(Resolver404):
+        resolve("/accounts/3rdparty/")
+
+    with pytest.raises(Resolver404):
+        resolve("/accounts/3rdparty/connections/")
+
+
+def test_defensive_socialaccount_signup_redirects():
+    # Verify the defensive redirect matches expectation and resolves to prevent crashes
+    assert reverse("socialaccount_signup") == "/accounts/3rdparty/signup/"
+    match = resolve("/accounts/3rdparty/signup/")
+    assert match.func.view_class.__name__ == "RedirectView"
 
 
 @pytest.mark.parametrize(

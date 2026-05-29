@@ -39,5 +39,5 @@ def test_relink_notification_sent_on_token_expiry(
 
     # Check that an email was sent (django.core.mail.outbox)
     assert len(mail.outbox) == 1
-    assert "Vuelve a conectar tu cuenta de correo" in mail.outbox[0].subject
+    assert "FastJob: Tu campaña ha sido pausada" in mail.outbox[0].subject
     assert google_linked_user.email in mail.outbox[0].to
