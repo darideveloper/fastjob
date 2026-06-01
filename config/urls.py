@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 
-from apps.core.views import HomeView
+from apps.core.views import HomeView, PrivacyView, TermsView
 from config.health import healthz
 
 # Custom error handlers: Django's defaults are replaced to provide:
@@ -45,6 +45,8 @@ urlpatterns = [
     path("payments/", include("apps.payments.urls")),
     path("", include("apps.companies.urls")),
     path("healthz", healthz, name="healthz"),
+    path("privacidad/", PrivacyView.as_view(), name="privacy"),
+    path("terminos/", TermsView.as_view(), name="terms"),
     path("", include("apps.mailing.urls")),
     path("", HomeView.as_view(), name="home"),
 ]

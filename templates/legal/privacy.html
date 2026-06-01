@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Política de Privacidad — FastJob{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold mb-8 text-brand-dark">Política de Privacidad</h1>
+
+    <div class="prose prose-indigo max-w-none space-y-6 text-gray-700">
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Introducción</h2>
+            <p>
+                En FastJob, valoramos tu privacidad y nos comprometemos a proteger tus datos personales. Esta política describe cómo recopilamos, usamos y protegemos la información que nos proporcionas al usar nuestro servicio de automatización de envíos de CV.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">2. Información que recopilamos</h2>
+            <ul class="list-disc pl-5 space-y-2">
+                <li>
+                    <strong>Datos de Identidad:</strong> Nombre, dirección de correo electrónico y foto de perfil obtenidos a través de Google o Microsoft OAuth.
+                </li>
+                <li>
+                    <strong>Contenido de CV:</strong> Información contenida en los archivos PDF que subes a nuestra plataforma, incluyendo datos de contacto, educación e historial laboral.
+                </li>
+                <li>
+                    <strong>Uso del Servicio:</strong> Registros de envíos realizados, empresas destinatarias, marcas de tiempo y estado de la entrega.
+                </li>
+                <li>
+                    <strong>Datos de Pago:</strong> Identificadores de cliente de Stripe y estado de transacciones. No almacenamos los datos de tus tarjetas de crédito en nuestros servidores.
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">3. Uso de Google API y Declaración de Uso Limitado</h2>
+            <p>
+                FastJob utiliza el permiso <code>gmail.modify</code> para enviar correos electrónicos en tu nombre.
+            </p>
+            <p class="mt-4 p-4 bg-brand-soft border border-brand-muted rounded-lg italic">
+                El uso y la transferencia por parte de FastJob de la información recibida de las API de Google a cualquier otra aplicación cumplirán con la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener" class="text-brand hover:underline">Política de Datos del Usuario de los Servicios de API de Google</a>, incluidos los requisitos de Uso Limitado.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">4. Distribución de CV y Almacenamiento</h2>
+            <p>
+                Tus archivos CV se almacenan de forma privada y segura en servidores de DigitalOcean Spaces. Para la distribución a empresas, generamos enlaces de descarga únicos (UUID) que tienen una validez limitada en el tiempo (5 minutos) para evitar el acceso público no autorizado a tus documentos.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">5. Sistema de Baja y Lista Negra Global</h2>
+            <p>
+                Respetamos el derecho de los destinatarios a no recibir correos no deseados. Cuando una empresa utiliza el enlace de "Darse de baja" incluido en tus correos, se añade a una <strong>lista negra global</strong>. Esto significa que ningún usuario de FastJob podrá volver a enviar correos a esa dirección específica, garantizando el cumplimiento de las preferencias de privacidad de los destinatarios a nivel de plataforma.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Cookies</h2>
+            <p>
+                Utilizamos únicamente cookies técnicas y funcionales necesarias para el funcionamiento del servicio, tales como las cookies de sesión de Django y cookies de seguridad CSRF. No utilizamos cookies de rastreo con fines publicitarios de terceros.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Retención de Datos</h2>
+            <p>
+                Al eliminar tu cuenta, eliminamos tus archivos CV y tus tokens de acceso OAuth. Sin embargo, por motivos de cumplimiento legal y fiscal, conservamos registros de transacciones financieras (facturas de Stripe) durante el tiempo requerido por las autoridades competentes.
+            </p>
+        </section>
+
+        <section>
+            <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Contacto</h2>
+            <p>
+                Si tienes preguntas sobre esta política, puedes contactarnos a través de los canales de soporte indicados en el panel de control.
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}

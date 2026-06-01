@@ -16,3 +16,11 @@ class HomeView(TemplateView):
         floor = SystemSettings.get().displayed_sends_floor
         context["successful_sends_count"] = max(real_count, floor)
         return context
+
+
+class PrivacyView(TemplateView):
+    template_name = "legal/privacy.html"
+
+
+class TermsView(TemplateView):
+    template_name = "legal/terms.html"
