@@ -484,7 +484,14 @@ The filter form submission ("Actualizar búsqueda") MUST be unaffected: the user
 
 #### Scenario: Keyboard Enter selection also blurs the input
 
-- **GIVEN** an authenticated user on the dashboard with keyboard focus on the area combobox
-- **WHEN** they press ArrowDown to highlight the first option and press Enter
-- **THEN** the option is selected and the text input loses focus (same behavior as mouse click)
+- GIVEN an authenticated user on the dashboard with keyboard focus on the area combobox
+- WHEN they press ArrowDown to highlight the first option and press Enter
+- THEN the option is selected and the text input loses focus (same behavior as mouse click)
 
+
+### Requirement: Payment History Position on Dashboard Layout
+The dashboard layout SHALL append the payment history section at the very bottom of the page, below the existing main two-column grid.
+
+#### Scenario: Payment history section position
+- **WHEN** the dashboard page `index.html` is rendered
+- **THEN** the payment history section is placed at the bottom, below the activity and filter grids.
