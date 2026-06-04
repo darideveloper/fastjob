@@ -681,14 +681,19 @@ Internally, `combobox.js` SHALL store each initialized combobox's `addValue` fun
 - **THEN** each `{% static %}` script tag in `{% block extra_js %}` has a `?v=N` query parameter (e.g. `combobox.js?v=5`)
 - **AND** the three script tags use the same version number for consistency
 
-### Requirement: Footer links MUST point to the legal pages
-The footer in `templates/base.html` SHALL provide functional links to the Privacy Policy and Terms of Service pages. The current placeholders (`#`) MUST be replaced with internal URL names.
+### Requirement: Footer links MUST point to the legal and contact pages
+The footer in `templates/base.html` SHALL provide functional links to the Privacy Policy, Terms of Service, and a direct contact email. The current placeholders (`#`) MUST be replaced with internal URL names or a direct email link.
 
 - "Privacidad" link MUST point to the URL named `privacy`.
 - "Términos" link MUST point to the URL named `terms`.
+- "Contacto" link MUST point to `mailto:admin@fastjob.es`.
 
 #### Scenario: Footer links are functional
 - **WHEN** any page extending `base.html` is rendered
 - **THEN** the "Privacidad" link has an `href` attribute resolving to `/privacidad/`
 - **AND** the "Términos" link has an `href` attribute resolving to `/terminos/`
+
+#### Scenario: Footer contact link is functional
+- **WHEN** any page extending `base.html` is rendered
+- **THEN** the "Contacto" link has an `href` attribute resolving to `mailto:admin@fastjob.es`
 
