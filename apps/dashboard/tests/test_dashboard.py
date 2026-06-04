@@ -243,3 +243,39 @@ def test_delete_cv_allowed_when_campaign_paused(client, user_with_cv):
     # When it's the only CV, active_cv becomes None and campaign stays False.
     assert user_with_cv.active_cv is None
     assert user_with_cv.is_campaign_active is False
+
+
+@pytest.mark.django_db
+def test_dashboard_displays_payment_history(client, user):
+    from apps.payments.models import CreditPackage, StripePayment
+
+    client.force_login(user)
+
+    # 1. User has no payments: should render empty state
+    resp = client.get(reverse("dashboard"))
+    assert resp.status_code == 200
+    assert "payments" in resp.context
+    assert len(resp.context["payments"]) == 0
+    assert resp.context["has_completed_payments"] is False
+    assert "Aún no has realizado ninguna compra" in resp.content.decode()
+
+    # 2. User has a completed payment: should show payment history table and Stripe portal button
+    package = CreditPackage.objects.create(name="Paquete Súper", price_eur=9.99, credits=50)
+    StripePayment.objects.create(
+        user=user,
+        package=package,
+        stripe_session_id="cs_test_123",
+        amount_eur=9.99,
+        credits_granted=50,
+        status=StripePayment.Status.COMPLETED,
+    )
+
+    resp = client.get(reverse("dashboard"))
+    assert resp.status_code == 200
+    assert len(resp.context["payments"]) == 1
+    assert resp.context["has_completed_payments"] is True
+    assert "Facturación y Recibos (Stripe)" in resp.content.decode()
+    assert "Paquete Súper" in resp.content.decode()
+    assert "+50 envíos" in resp.content.decode()
+    assert "9,99 €" in resp.content.decode() or "9.99 €" in resp.content.decode()
+
