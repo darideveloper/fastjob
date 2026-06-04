@@ -596,7 +596,7 @@ The existing footer layout invariant MUST be preserved: at `< sm`, the copyright
 #### Scenario: Attribution renders below copyright on every page
 - **WHEN** any page that extends `base.html` is rendered
 - **THEN** the footer contains a `Powered by DariDeveloper` text node
-- **AND** `DariDeveloper` is wrapped in an `<a>` with `href="https://api.whatsapp.com/send?phone=5214493402622"`
+- **AND** `DariDeveloper` is wrapped in an `<a>` with `href="https://www.darideveloper.com/"`
 - **AND** that anchor carries `target="_blank"` and `rel` containing `noopener`
 - **AND** the `<a>` uses `text-gray-400 hover:text-brand transition` styling
 - **AND** the attribution line is below the `© … FastJob` copyright text
