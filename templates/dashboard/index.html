@@ -374,7 +374,7 @@
         <h2 class="text-h2 font-bold text-brand-dark">Historial de compras</h2>
         <p class="text-gray-500 text-sm">Consulta tus compras de créditos y su estado</p>
       </div>
-      {% if payments %}
+      {% if has_completed_payments %}
         <form method="post" action="{% url 'billing_portal' %}">
           {% csrf_token %}
           <button type="submit" class="inline-flex items-center gap-2 min-h-[40px] bg-brand-soft hover:bg-brand-muted text-brand-dark text-sm font-semibold px-4 py-2 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
