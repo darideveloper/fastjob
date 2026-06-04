@@ -256,10 +256,9 @@ def test_dashboard_displays_payment_history(client, user):
     assert resp.status_code == 200
     assert "payments" in resp.context
     assert len(resp.context["payments"]) == 0
-    assert resp.context["has_completed_payments"] is False
     assert "Aún no has realizado ninguna compra" in resp.content.decode()
 
-    # 2. User has a completed payment: should show payment history table and Stripe portal button
+    # 2. User has a completed payment: should show payment history table
     package = CreditPackage.objects.create(name="Paquete Súper", price_eur=9.99, credits=50)
     StripePayment.objects.create(
         user=user,
@@ -273,8 +272,6 @@ def test_dashboard_displays_payment_history(client, user):
     resp = client.get(reverse("dashboard"))
     assert resp.status_code == 200
     assert len(resp.context["payments"]) == 1
-    assert resp.context["has_completed_payments"] is True
-    assert "Facturación y Recibos (Stripe)" in resp.content.decode()
     assert "Paquete Súper" in resp.content.decode()
     assert "+50 envíos" in resp.content.decode()
     assert "9,99 €" in resp.content.decode() or "9.99 €" in resp.content.decode()

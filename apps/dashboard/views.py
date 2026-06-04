@@ -37,7 +37,6 @@ def index(request):
 
     user_logs = MailingLog.objects.filter(user=user)
     payments = StripePayment.objects.filter(user=user).select_related("package").order_by("-created_at")
-    has_completed_payments = any(p.status == StripePayment.Status.COMPLETED for p in payments)
 
     context = {
         "user": user,
@@ -50,7 +49,6 @@ def index(request):
         "sent_this_week": user_logs.filter(status=MailingLog.Status.SENT, sent_at__gte=week_start).count(),
         "failed_count": user_logs.filter(status=MailingLog.Status.FAILED).count(),
         "payments": payments,
-        "has_completed_payments": has_completed_payments,
     }
     return render(request, "dashboard/index.html", context)
 
