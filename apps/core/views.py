@@ -4,6 +4,7 @@ from django.views.generic import TemplateView
 
 from apps.mailing.models import MailingLog, SystemSettings
 from apps.payments.models import CreditPackage
+from .models import FAQ
 
 
 class MicrosoftIdentityAssociationView(View):
@@ -27,6 +28,9 @@ class HomeView(TemplateView):
         real_count = MailingLog.objects.filter(status=MailingLog.Status.SENT).count()
         floor = SystemSettings.get().displayed_sends_floor
         context["successful_sends_count"] = max(real_count, floor)
+        context["faqs"] = list(
+            FAQ.objects.filter(is_active=True).order_by("order")
+        )
         return context
 
 

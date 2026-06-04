@@ -176,4 +176,38 @@
   </div>
 </section>
 
+<!-- FAQs -->
+<section id="faqs" class="py-20 bg-white scroll-mt-20">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 data-reveal data-reveal-delay="0" class="text-3xl font-bold text-brand-ink mb-4 text-wrap: balance motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">Preguntas frecuentes</h2>
+      <p data-reveal data-reveal-delay="100" class="text-gray-500 motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">Resolvemos tus dudas sobre cómo FastJob te ayuda a encontrar tu próximo empleo.</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto">
+      <div data-reveal data-reveal-delay="200" class="motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">
+        {% for faq in faqs %}
+        <details id="faq-{{ forloop.counter }}" class="group bg-white border border-brand-muted rounded-2xl p-6 mb-4 shadow-sm">
+          <summary class="flex items-center justify-between cursor-pointer list-none [&::-webkit-details-marker]:hidden focus-visible:ring-2 focus-visible:ring-accent outline-none rounded-lg">
+            <span class="text-lg font-bold text-brand-ink">{{ faq.question }}</span>
+            <span class="ml-4 flex-shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">
+              <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </span>
+          </summary>
+          <div class="mt-4 text-gray-600 leading-relaxed">
+            {{ faq.answer|safe }}
+          </div>
+        </details>
+        {% empty %}
+        <div class="text-center py-8 text-gray-400">
+          No hay preguntas frecuentes disponibles en este momento.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
 {% endblock %}
