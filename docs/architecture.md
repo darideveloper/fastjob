@@ -13,7 +13,7 @@ A few design decisions upfront, because they explain the rest of the system:
 1. **Monolith over microservices.** The whole product fits in one codebase. Splitting auth, mailing, and payments into separate services would quadruple the ops burden for zero correctness benefit at this scale.
 2. **Celery over cron.** A cron-driven shell script would work for "send one email every 5 minutes," but it would get tangled when we need per-user rate limits, retries on transient failures, and dynamic pauses. Celery gives us those for free.
 3. **OAuth send over our own SMTP.** The user's own Gmail/Outlook account is the email sender. That's the entire deliverability moat — we are **not** a new mail server that ISPs have to learn to trust.
-4. **Link over attachment.** PDF attachments blow up spam scores. A UUID-scrambled download link attached to a specific `MailingLog` row is indistinguishable from a link in a personal email.
+4. **Attachment over link.** Generic job application emails with attachments are standard professional practice. By sending from the user's own Gmail/Outlook account, we maintain high deliverability while providing the CV in the format recruiters expect.
 
 ---
 
@@ -58,8 +58,6 @@ flowchart TB
     K --> M
     K -->|write MailingLog| DB
 
-    C -->|click download link| V
-    V -->|pre-signed URL| S
     C -->|GET unsubscribe link| V
     V -->|render confirm form| C
     C -->|POST confirm form| V
@@ -76,7 +74,7 @@ flowchart TB
 |---|---|---|
 | `apps/accounts` | Custom `User` model (extends `AbstractUser`), signup bonus signal, allauth adapter. | `models.py`, `signals.py`, `adapters.py` |
 | `apps/companies` | `Company` + `Blacklist` models, Excel importer, admin import view. | `models.py`, `importers.py`, `admin.py` |
-| `apps/mailing` | Core. `EmailTemplate`, `MailingLog`, `SystemSettings` (singleton — fields: `global_send_interval_minutes`, `company_cooldown_hours`, `max_emails_per_day_per_user`), Celery task, engine, rate-limit middleware, public views (CV download + unsubscribe). | `tasks.py`, `engine.py`, `views.py`, `middleware.py` |
+| `apps/mailing` | Core. `EmailTemplate`, `MailingLog`, `SystemSettings` (singleton — fields: `global_send_interval_minutes`, `company_cooldown_hours`, `max_emails_per_day_per_user`), Celery task, engine, rate-limit middleware, public view (unsubscribe). | `tasks.py`, `engine.py`, `views.py`, `middleware.py` |
 | `apps/payments` | `CreditPackage`, `StripePayment`, Stripe Checkout + webhook handler. | `views.py`, `models.py` |
 | `apps/dashboard` | User-facing dashboard — CV upload, filters, campaign toggle. Authenticated views only. | `views.py` |
 
@@ -131,7 +129,7 @@ All persistent state. OAuth tokens live here (encrypted at rest via your DB host
 
 ### DigitalOcean Spaces
 
-User CV PDFs. Private bucket (`AWS_DEFAULT_ACL = "private"`). Each download request generates a **time-limited pre-signed URL** (5 minutes, configurable via `AWS_QUERYSTRING_EXPIRE`).
+User CV PDFs. Private bucket (`AWS_DEFAULT_ACL = "private"`). Files are fetched by the Celery worker and attached to outbound emails.
 
 ---
 
@@ -148,7 +146,7 @@ flowchart LR
     Stripe -->|TLS + HMAC signature| Django
 ```
 
-- **Public endpoints** (`/cv/<uuid>/`, `/unsubscribe/<uuid>/`): rate-limited by IP, token is the only authentication. The unsubscribe URL uses a **two-step flow**: `GET` renders a confirmation page (no state change — prevents email-client pre-fetch scanners from silently blacklisting recipients), and `POST` commits the unsubscribe. The view is `@csrf_exempt` because the recipient has no session; the UUID token in the URL is the authentication factor. The same POST endpoint is also the RFC 8058 one-click unsubscribe target included in `List-Unsubscribe` / `List-Unsubscribe-Post` email headers.
+- **Public endpoint** (`/unsubscribe/<uuid>/`): rate-limited by IP, token is the only authentication. The unsubscribe URL uses a **two-step flow**: `GET` renders a confirmation page (no state change — prevents email-client pre-fetch scanners from silently blacklisting recipients), and `POST` commits the unsubscribe. The view is `@csrf_exempt` because the recipient has no session; the UUID token in the URL is the authentication factor. The same POST endpoint is also the RFC 8058 one-click unsubscribe target included in `List-Unsubscribe` / `List-Unsubscribe-Post` email headers.
 - **User endpoints** (`/dashboard/*`): session cookie, CSRF protected.
 - **Admin endpoints** (`/admin/*`): `is_staff=True` gate, additional CSRF, no public exposure recommended.
 - **Webhook endpoint** (`/payments/webhook/`): signature-verified via `stripe.Webhook.construct_event`. No other auth.

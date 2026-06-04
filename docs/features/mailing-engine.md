@@ -10,9 +10,9 @@ A Celery periodic task (`process_mailing_queue`) fires once a minute. On each ti
 
 1. Picks a random eligible company (not blacklisted, not in 12-hour cooldown, matching the user's area/location filters).
 2. Picks a random active `EmailTemplate` (subject + HTML body).
-3. Creates a `MailingLog` row with unique UUIDs for the download and unsubscribe links.
+3. Creates a `MailingLog` row with a unique UUID for the unsubscribe link.
 4. Refreshes the user's OAuth token if needed.
-5. Sends the email via the user's Gmail or Microsoft mailbox.
+5. Sends the email with the CV PDF as a direct attachment via the user's Gmail or Microsoft mailbox.
 6. Decrements the user's credit and updates the company's `last_received_at`.
 
 If the OAuth token can't be refreshed, the user's campaign is paused and they get a re-link notification email (see [`notifications.md`](notifications.md)).
@@ -81,7 +81,6 @@ erDiagram
         bool is_active
     }
     MailingLog {
-        uuid cv_download_token
         uuid unsubscribe_token
         datetime sent_at
         string status
@@ -107,12 +106,12 @@ flowchart TD
     Candidates --> PickCompany[Pick 1 random company]
     PickCompany --> PickTemplate[Pick 1 random active template]
     PickTemplate -->|none| LoopUser
-    PickTemplate --> CreateLog[INSERT MailingLog with UUIDs]
+    PickTemplate --> CreateLog[INSERT MailingLog with unsubscribe UUID]
     CreateLog --> Send{Provider?}
     Send -->|Google| RefreshG[Refresh Gmail token if expired]
     Send -->|Microsoft| RefreshM[Refresh Graph token if expired]
-    RefreshG --> Gmail[POST gmail.googleapis.com/messages/send]
-    RefreshM --> Graph[POST graph.microsoft.com/me/sendMail]
+    RefreshG --> Gmail[POST gmail.googleapis.com/messages/send w/ attachment]
+    RefreshM --> Graph[POST graph.microsoft.com/me/sendMail w/ attachment]
     Gmail --> Success
     Graph --> Success
     RefreshG -->|refresh fails| Pause
@@ -130,14 +129,21 @@ flowchart TD
 
 ### Gmail (Google)
 
-We build a MIME message and base64-url-encode it per the Gmail REST API contract:
+We build a MIME message with a PDF attachment and base64-url-encode it per the Gmail REST API contract:
 
 ```python
-msg = MIMEMultipart("alternative")
+msg = MIMEMultipart("mixed")
 msg["To"] = to_email
 msg["From"] = from_email
 msg["Subject"] = subject
+
+# Body
 msg.attach(MIMEText(body_html, "html", "utf-8"))
+
+# Attachment
+attachment_part = MIMEApplication(cv_content, _subtype="pdf")
+attachment_part['Content-Disposition'] = f'attachment; filename="CV.pdf"'
+msg.attach(attachment_part)
 
 raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
@@ -148,11 +154,11 @@ requests.post(
 )
 ```
 
-**Why this matters:** Gmail's send endpoint requires **raw RFC 2822** email, not structured JSON. You can't just send `{"to": ..., "subject": ...}`. The MIME encoding is what makes "From" headers honored.
+**Why this matters:** Gmail's send endpoint requires **raw RFC 2822** email for complex structures like attachments.
 
 ### Microsoft Graph
 
-Graph accepts structured JSON, which is more forgiving:
+Graph accepts structured JSON, including base64-encoded attachments:
 
 ```python
 requests.post(
@@ -163,6 +169,14 @@ requests.post(
             "subject": subject,
             "body": {"contentType": "HTML", "content": body_html},
             "toRecipients": [{"emailAddress": {"address": to_email}}],
+            "attachments": [
+                {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "name": "CV.pdf",
+                    "contentType": "application/pdf",
+                    "contentBytes": base64_encoded_cv
+                }
+            ]
         },
         "saveToSentItems": SystemConfig.get().save_emails_to_sent_folder,
     },
@@ -231,7 +245,6 @@ Spam filters at scale use **footprint detection**: if 10 000 emails with the exa
 
 **Placeholder substitution** (via `EmailTemplate.render`):
 - `{company_name}` → Company.name
-- `{cv_url}` → `/cv/<uuid>/` (unique per MailingLog)
 - `{unsubscribe_url}` → `/unsubscribe/<uuid>/` (unique per MailingLog)
 
 **Example:** see [`email-templates.md`](email-templates.md) for the 3 shipped variants.
@@ -282,7 +295,7 @@ Read-only audit log of every send. Filter by `status` (sent/failed), search by r
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | env | — | OAuth app |
 | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | env | — | OAuth app |
 | `REDIS_URL` | env | `redis://localhost:6379/0` | Celery broker + result backend |
-| `SITE_DOMAIN` | env | `localhost:8000` | Used to build `cv_url` and `unsubscribe_url` |
+| `SITE_DOMAIN` | env | `localhost:8000` | Used to build `unsubscribe_url` |
 
 ---
 
@@ -321,6 +334,6 @@ See [`monitoring.md`](monitoring.md) for the full test strategy.
 
 - [`authentication.md`](authentication.md) — where the OAuth tokens come from.
 - [`email-templates.md`](email-templates.md) — how templates are authored and randomized.
-- [`cv-management.md`](cv-management.md) — the signed download URLs this engine generates tokens for.
+- [`cv-management.md`](cv-management.md) — secure object storage for CV files.
 - [`blacklist-unsubscribe.md`](blacklist-unsubscribe.md) — how recipients opt out.
 - [`notifications.md`](notifications.md) — the re-link flow when OAuth fails.

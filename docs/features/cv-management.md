@@ -1,6 +1,6 @@
 # CV Management
 
-Each user can store **multiple CVs** and choose which one is "active." The active CV is the one the mailing engine sends. Every email snapshots the CV in use at send-time, so changing the active CV later doesn't retroactively affect emails already in recipients' inboxes. All PDFs live in private DigitalOcean Spaces storage and are served via UUID-scoped, time-limited download links.
+Each user can store **multiple CVs** and choose which one is "active." The active CV is the one the mailing engine sends. Every email snapshots the CV in use at send-time, so changing the active CV later doesn't retroactively affect emails already in recipients' inboxes. All PDFs live in private DigitalOcean Spaces storage and are fetched by the mailing engine to be sent as direct attachments.
 
 ---
 
@@ -10,20 +10,16 @@ Each user can store **multiple CVs** and choose which one is "active." The activ
 flowchart LR
     User -->|upload PDF| Django
     Django -->|PUT private object| Spaces[(DigitalOcean Spaces)]
-    Engine[Mailing engine] -->|create MailingLog| DB[(DB)]
-    DB -.cv_download_token = UUID.-> Email[Email body contains /cv/UUID/]
+    Engine[Mailing engine] -->|read file| Spaces
+    Engine -->|attach PDF| Email[Email with PDF attachment]
     Email --> Company
-    Company -->|GET /cv/UUID/| Django
-    Django -->|pre-signed URL, TTL=5min| Company
-    Company -->|GET pre-signed URL| Spaces
-    Spaces -->|PDF bytes| Company
 ```
 
-**Why this indirection:** three distinct problems are solved by the layers.
+**Why this approach:**
 
-1. **Deliverability.** PDF attachments score high on spam filters and often trigger antivirus scans that delay or quarantine the email. A link in an email body looks identical to a link in a personal recommendation email.
-2. **Per-send tracking.** If the link were `/cv/<user_id>/`, one leaked URL would expose every email that user has ever sent. With `/cv/<uuid>/`, a leaked URL only affects one send.
-3. **Private storage.** The PDF itself is never publicly reachable. Only the Django server has IAM credentials, and it only hands out **time-limited** URLs (5 minutes by default).
+1. **User Expectation.** Generic job application emails with attachments are standard professional practice. Recruiter workflows often involve immediate preview or bulk-downloading attachments from their inbox.
+2. **Account Reputation.** By sending from the user's own Gmail/Outlook account, the email carries high inherent trust. Generic spam filters that often flag third-party links are bypassed because the attachment is part of a "human" interaction.
+3. **Private storage.** The PDF itself is never publicly reachable. Only the Django server has IAM credentials to fetch the file from Spaces before attaching it to the outbound OAuth-signed email.
 
 ---
 
@@ -96,31 +92,11 @@ user.save(update_fields=["active_cv"])
 - `POST /dashboard/cv/<id>/activar/` — set that CV as `user.active_cv`.
 - `POST /dashboard/cv/<id>/eliminar/` — delete the CV (file + row). If it was the active one, fall back to the most recent remaining CV; if there are none, auto-pause the campaign.
 
-### Download endpoint
+### Legacy Download endpoint (Optional)
 
 `GET /cv/<uuid:token>/`
 
-1. Look up `MailingLog` by `cv_download_token`.
-2. Prefer `log.cv` (the snapshot at send-time); fall back to `log.user.active_cv` for legacy logs that predate the `cv` FK.
-3. Ask boto3 for a pre-signed URL from that CV's file path.
-4. HTTP 302 redirect to that URL.
-
-```python
-s3 = boto3.client(
-    "s3",
-    region_name=AWS_S3_REGION_NAME,
-    endpoint_url=AWS_S3_ENDPOINT_URL,
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    config=Config(signature_version="s3v4"),
-)
-url = s3.generate_presigned_url(
-    "get_object",
-    Params={"Bucket": AWS_STORAGE_BUCKET_NAME, "Key": user.cv_file.name},
-    ExpiresIn=AWS_QUERYSTRING_EXPIRE,  # 300
-)
-return redirect(url)
-```
+While the engine now defaults to attachments, the `/cv/` endpoint still exists for legacy tracking or optional link-based variants. It redirects to a time-limited pre-signed URL from S3/Spaces.
 
 ---
 
@@ -128,11 +104,9 @@ return redirect(url)
 
 | Concern | Mitigation |
 |---|---|
-| Leaked download URL re-shared | Not a leak of the PDF directly — only a leak of the *routing token*. The pre-signed URL that's actually handed out expires in 5 min. Re-sharing the `/cv/<uuid>/` URL does let the re-sharer hit our endpoint repeatedly, which is why we **rate-limit that endpoint at 30/hour/IP**. |
-| Brute force of UUIDs | UUID4 = 122 bits of entropy. At 30 requests/hour/IP, guessing would take longer than the heat death of the sun. |
+| Large File Handling | Celery workers fetch the PDF from Spaces into memory/temp file before sending. The 10 MB limit prevents memory exhaustion. |
 | IAM leak | Credentials are env vars; Spaces key should be scoped to a single bucket, not account-wide. See `deploy.md`. |
-| Token reuse across sends | Every `MailingLog` gets its **own** `cv_download_token` via `default=uuid.uuid4`. |
-| PDF contains malicious content | Out of scope. We trust users not to upload malware. P3 item: integrate ClamAV scanning. |
+| Attachment Sensitivity | CVs are sent directly to the recipient. No public URLs are generated or shared in the default flow. |
 
 See [`security.md`](security.md) for the full threat model.
 

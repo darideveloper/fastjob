@@ -10,8 +10,8 @@
 flowchart LR
     Admin -->|CRUD| Templates[(EmailTemplate rows)]
     Engine -->|order_by ? .first| Templates
-    Templates -->|.render company, cv_url, unsubscribe_url| Email[Rendered subject + HTML body]
-    Email --> Send[Gmail / Graph API]
+    Templates -->|.render company, unsubscribe_url| Email[Rendered subject + HTML body]
+    Email --> Send[Gmail / Graph API with attachment]
 ```
 
 Three templates are pre-seeded by migration `0002_seed_templates`. You can add more at any time — the engine randomizes across **all active** ones immediately, no restart needed.
@@ -38,7 +38,7 @@ class EmailTemplate(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def render(self, company_name, cv_url, unsubscribe_url) -> tuple[str, str]:
+    def render(self, company_name, unsubscribe_url) -> tuple[str, str]:
         ...
 ```
 
@@ -49,10 +49,9 @@ class EmailTemplate(models.Model):
 | Placeholder | Replaced with |
 |---|---|
 | `{company_name}` | `Company.name` |
-| `{cv_url}` | `/cv/<uuid>/` — unique per `MailingLog` |
 | `{unsubscribe_url}` | `/unsubscribe/<uuid>/` — unique per `MailingLog` |
 
-Both UUIDs are generated fresh for every `MailingLog` row, so each email's links are unique even when the same template is reused.
+The UUID is generated fresh for every `MailingLog` row, so each email's unsubscribe link is unique even when the same template is reused. Note: the CV is sent as an attachment, so there is no `{cv_url}` placeholder in the default flow.
 
 ### Randomization
 
@@ -74,7 +73,7 @@ template = EmailTemplate.objects.filter(is_active=True).order_by("?").first()
 | Breve — Cercano | `¿Tienen vacantes en {company_name}?` | Friendly, brief |
 | Motivacional — Entusiasta | `Propuesta de candidatura — {company_name}` | Enthusiastic |
 
-All three embed the CV download button and an unsubscribe footer. The footer is mandatory for CAN-SPAM / GDPR compliance — never remove it.
+All three embed an unsubscribe footer. The footer is mandatory for CAN-SPAM / GDPR compliance — never remove it.
 
 ---
 
@@ -90,14 +89,14 @@ All three embed the CV download button and an unsubscribe footer. The footer is 
 ### Live preview in admin
 
 Every template row has a **"Ver preview"** link in the admin list. It opens `/admin/mailing/emailtemplate/<id>/preview/`, which:
-- Renders the template with sample placeholders (`company_name="Empresa Ejemplo S.L."`, dummy `cv_url`/`unsubscribe_url`).
+- Renders the template with sample placeholders (`company_name="Empresa Ejemplo S.L."`, dummy `unsubscribe_url`).
 - Shows the fully-rendered subject + HTML body in a recipient-like frame.
 - Surfaces any `KeyError` (unknown placeholder) as a big red warning, so you catch typos before activating the template.
 
 ### HTML authoring tips
 
 - Keep inline styles — many email clients strip external CSS.
-- Always include `{cv_url}` and `{unsubscribe_url}` or the email will not pass the engine's rendering (it would raise a `KeyError`).
+- Always include `{unsubscribe_url}` or the email will not pass the engine's rendering (it would raise a `KeyError`).
 - Use the admin preview above as your first-pass sanity check; use a dedicated email tool (Litmus, Email on Acid) for client compatibility.
 
 ---

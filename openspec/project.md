@@ -1,7 +1,7 @@
 # Project Context
 
 ## Purpose
-FastJob is a Django-based SaaS designed to automate the process of sending CVs to company databases. It enables job seekers to send personalized applications directly from their own Gmail or Outlook accounts via OAuth2. The system is architected for maximum deliverability by using a "slow-drip" mailing engine, randomized email templates, and providing CVs via time-limited links instead of attachments.
+FastJob is a Django-based SaaS designed to automate the process of sending CVs to company databases. It enables job seekers to send personalized applications directly from their own Gmail or Outlook accounts via OAuth2. The system is architected for maximum deliverability by using a "slow-drip" mailing engine, randomized email templates, and providing CVs via PDF attachments sent directly from the user's account.
 
 ## Tech Stack
 - **Backend**: Django 4.2 (Server-Side Rendering)
@@ -26,7 +26,7 @@ FastJob is a Django-based SaaS designed to automate the process of sending CVs t
 - **Monolithic Design**: All core features (auth, mailing, payments) reside in a single codebase for operational simplicity.
 - **Modular Apps**: Code is organized into functional apps under the `apps/` directory (e.g., `apps.accounts`, `apps.mailing`).
 - **Slow-Drip Engine**: Celery Beat schedules mailing tasks to ensure emails are sent at controlled intervals, mimicking human behavior.
-- **Link over Attachment**: CVs are shared via UUID-scrambled links to signed S3 URLs to avoid spam filters.
+- **Direct File Attachments**: CVs are sent as PDF attachments directly in the email. This leverages the user's personal account reputation to bypass generic spam filters that often flag third-party links.
 - **OAuth Send**: Uses the user's personal reputation by sending from their own authorized accounts rather than a central SMTP server.
 
 ### Testing Strategy
@@ -47,9 +47,9 @@ FastJob is a Django-based SaaS designed to automate the process of sending CVs t
 - **Cool-down**: A per-company limit (default 12 hours) to avoid double-emailing the same company too quickly.
 
 ## Important Constraints
-- **Deliverability**: Avoid any patterns that look like mass-spam (no attachments, varied templates, slow rate).
+- **Deliverability**: Avoid any patterns that look like mass-spam (varied templates, slow rate, personal account sending).
 - **OAuth Tokens**: Long-running token correctness is governed by the OAuth requirements in `specs/mailing/spec.md` — rotated refresh tokens must be persisted (Microsoft rotates on every refresh), transient upstream errors must not pause campaigns, and `GOOGLE_OAUTH_PROJECT_MODE` / `MICROSOFT_TENANT` env vars are surfaced via `/healthz` and `manage.py check_oauth_config`.
-- **Privacy**: CVs are sensitive; access via links must be time-limited and logged.
+- **Privacy**: CVs are sensitive; since they are sent as attachments, the source files must be stored securely and access must be strictly limited to the mailing engine.
 
 ## External Dependencies
 - **Google Cloud Console**: For Gmail API access.
