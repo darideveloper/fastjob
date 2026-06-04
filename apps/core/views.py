@@ -1,7 +1,19 @@
+from django.http import JsonResponse
+from django.views import View
 from django.views.generic import TemplateView
 
 from apps.mailing.models import MailingLog, SystemSettings
 from apps.payments.models import CreditPackage
+
+
+class MicrosoftIdentityAssociationView(View):
+    def get(self, request, *args, **kwargs):
+        data = {
+            "associatedApplications": [
+                {"applicationId": "3853b95b-027f-4c59-94e4-d697b2a603a9"}
+            ]
+        }
+        return JsonResponse(data)
 
 
 class HomeView(TemplateView):
