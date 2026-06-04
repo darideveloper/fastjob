@@ -36,6 +36,8 @@ def index(request):
     week_start = now - timedelta(days=7)
 
     user_logs = MailingLog.objects.filter(user=user)
+    payments = StripePayment.objects.filter(user=user).select_related("package").order_by("-created_at")
+
     context = {
         "user": user,
         "recent_logs": page.object_list,
@@ -46,6 +48,7 @@ def index(request):
         "sent_today": user_logs.filter(status=MailingLog.Status.SENT, sent_at__gte=today_start).count(),
         "sent_this_week": user_logs.filter(status=MailingLog.Status.SENT, sent_at__gte=week_start).count(),
         "failed_count": user_logs.filter(status=MailingLog.Status.FAILED).count(),
+        "payments": payments,
     }
     return render(request, "dashboard/index.html", context)
 

@@ -3,12 +3,20 @@ from django.test import override_settings
 from django.urls import path
 
 
+from django.http import HttpResponse
+
 def error_view(request):
     raise Exception("Test exception")
 
 
+def dummy_view(request):
+    return HttpResponse()
+
+
 urlpatterns = [
     path("error/", error_view),
+    path("privacidad/", dummy_view, name="privacy"),
+    path("terminos/", dummy_view, name="terms"),
 ]
 
 # Register the handler in the test module so it's picked up by ROOT_URLCONF

@@ -366,5 +366,94 @@
     </div>
 
   </div>
+
+  <!-- Historial de Pagos Section -->
+  <div data-reveal data-reveal-delay="100" class="mt-8 bg-white rounded-2xl shadow-sm border border-brand-muted p-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-h2 font-bold text-brand-dark">Historial de compras</h2>
+        <p class="text-gray-500 text-sm">Consulta tus compras de créditos y su estado</p>
+      </div>
+      {% if payments %}
+        <form method="post" action="{% url 'billing_portal' %}">
+          {% csrf_token %}
+          <button type="submit" class="inline-flex items-center gap-2 min-h-[40px] bg-brand-soft hover:bg-brand-muted text-brand-dark text-sm font-semibold px-4 py-2 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Facturación y Recibos (Stripe)
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if payments %}
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[640px] text-sm text-left">
+          <thead>
+            <tr class="border-b border-brand-muted pb-2">
+              <th class="py-3 text-gray-500 font-medium">Concepto</th>
+              <th class="py-3 text-gray-500 font-medium text-center">Envíos</th>
+              <th class="py-3 text-gray-500 font-medium text-right">Importe</th>
+              <th class="py-3 text-gray-500 font-medium text-center">Fecha</th>
+              <th class="py-3 text-gray-500 font-medium text-right">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-brand-muted">
+            {% for payment in payments %}
+              <tr class="hover:bg-brand-muted/40 transition-colors">
+                <td class="py-3.5 font-medium text-brand-ink">
+                  {{ payment.package.name|default:"Créditos de Envíos" }}
+                </td>
+                <td class="py-3.5 text-center text-gray-600 font-semibold">
+                  +{{ payment.credits_granted }} envíos
+                </td>
+                <td class="py-3.5 text-right font-bold text-brand-dark">
+                  {{ payment.amount_eur }} €
+                </td>
+                <td class="py-3.5 text-center text-gray-500">
+                  {% if payment.completed_at %}
+                    {{ payment.completed_at|date:"d/m/Y H:i" }}
+                  {% else %}
+                    {{ payment.created_at|date:"d/m/Y H:i" }} (Iniciado)
+                  {% endif %}
+                </td>
+                <td class="py-3.5 text-right">
+                  {% if payment.status == 'completed' %}
+                    <span class="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-semibold">
+                      <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                      Completado
+                    </span>
+                  {% elif payment.status == 'pending' %}
+                    <span class="inline-flex items-center gap-1 text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-semibold">
+                      <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                      Pendiente
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center gap-1 text-xs bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-semibold">
+                      <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                      Fallido
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="flex flex-col items-center justify-center text-center py-10 text-gray-400">
+        <svg class="w-12 h-12 mb-3 text-brand/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+        <p class="text-sm font-medium">Aún no has realizado ninguna compra.</p>
+        <p class="text-xs mt-1">Cuando compres un paquete de envíos, aparecerá aquí.</p>
+        <a href="{% url 'payment_packages' %}" class="mt-4 inline-flex items-center gap-1 bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-dark transition shadow">
+          Ver paquetes disponibles
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}
