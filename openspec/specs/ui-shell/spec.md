@@ -379,7 +379,7 @@ Every user-facing template that extends `templates/base.html` (including `base.h
 ### Requirement: Footer renders a scalable social-links cluster
 The footer in `templates/base.html` SHALL render a cluster of social-network links sourced from a template-iterable collection (e.g. a `social_links` context variable supplied by a context processor, or an inline `{% with %}` list). The data shape per entry MUST include `name`, `url`, `aria_label`, and `svg` (inline SVG markup) so adding a new social network later is a one-line list addition — never a copy-paste of footer markup.
 
-The initial collection MUST contain exactly one entry: Instagram, pointing to `https://instagram.com/joinfastjob`, with `aria_label="FastJob en Instagram"`.
+The initial collection MUST contain exactly one entry: Instagram, pointing to `https://www.instagram.com/fastjob.es`, with `aria_label="FastJob en Instagram"`.
 
 Each social link MUST:
 - be rendered as an `<a>` with `target="_blank"` and `rel="noopener"`,
@@ -391,7 +391,7 @@ The cluster MUST NOT break the footer's existing layout: at `< sm`, the copyrigh
 
 #### Scenario: Instagram link renders with accessible markup
 - **WHEN** any page that extends `base.html` is rendered
-- **THEN** the footer contains exactly one `<a>` whose `href` is `https://instagram.com/joinfastjob`
+- **THEN** the footer contains exactly one `<a>` whose `href` is `https://www.instagram.com/fastjob.es`
 - **AND** that anchor carries `aria-label="FastJob en Instagram"`, `target="_blank"`, and `rel` containing `noopener`
 - **AND** it contains an inline `<svg>` with `width="24"` and `height="24"` whose paths use `fill="currentColor"`
 

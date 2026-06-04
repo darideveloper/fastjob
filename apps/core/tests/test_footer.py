@@ -29,3 +29,18 @@ def test_footer_legal_links(client):
     
     assert f'href="{privacy_url}"'.encode() in response.content
     assert f'href="{terms_url}"'.encode() in response.content
+
+@pytest.mark.django_db
+def test_footer_instagram_link(client):
+    """
+    Verify that the footer contains the correct Instagram link.
+    """
+    url = reverse("home")
+    response = client.get(url)
+    
+    assert response.status_code == 200
+    # Check for the official Instagram link
+    assert b'href="https://www.instagram.com/fastjob.es"' in response.content
+    assert b'aria-label="FastJob en Instagram"' in response.content
+    assert b'target="_blank"' in response.content
+    assert b'rel="noopener"' in response.content

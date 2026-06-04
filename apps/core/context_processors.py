@@ -10,7 +10,7 @@ def social_links(request):
         "social_links": [
             {
                 "name": "Instagram",
-                "url": "https://instagram.com/joinfastjob",
+                "url": "https://www.instagram.com/fastjob.es",
                 "aria_label": "FastJob en Instagram",
                 "svg": INSTAGRAM_SVG,
             },
