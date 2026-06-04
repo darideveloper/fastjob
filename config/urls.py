@@ -1,4 +1,5 @@
 from allauth.account.views import LoginView, LogoutView
+from allauth.socialaccount.views import login_cancelled, login_error
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
@@ -38,6 +39,16 @@ urlpatterns = [
         "accounts/3rdparty/signup/",
         RedirectView.as_view(pattern_name="account_login", permanent=False),
         name="socialaccount_signup",
+    ),
+    path(
+        "accounts/social/login/cancelled/",
+        login_cancelled,
+        name="socialaccount_login_cancelled",
+    ),
+    path(
+        "accounts/social/login/error/",
+        login_error,
+        name="socialaccount_login_error",
     ),
     path("accounts/", include("allauth.socialaccount.providers.google.urls")),
     path("accounts/", include("allauth.socialaccount.providers.microsoft.urls")),

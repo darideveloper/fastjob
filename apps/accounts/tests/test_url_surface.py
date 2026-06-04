@@ -57,6 +57,17 @@ def test_defensive_socialaccount_signup_redirects():
     assert match.func.view_class.__name__ == "RedirectView"
 
 
+def test_socialaccount_login_cancelled_and_error_resolve():
+    assert reverse("socialaccount_login_cancelled") == "/accounts/social/login/cancelled/"
+    assert reverse("socialaccount_login_error") == "/accounts/social/login/error/"
+
+    match_cancelled = resolve("/accounts/social/login/cancelled/")
+    assert match_cancelled.url_name == "socialaccount_login_cancelled"
+
+    match_error = resolve("/accounts/social/login/error/")
+    assert match_error.url_name == "socialaccount_login_error"
+
+
 @pytest.mark.parametrize(
     "name",
     [
