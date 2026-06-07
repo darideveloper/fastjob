@@ -9,7 +9,7 @@ Django SaaS que envía CVs a bases de datos de empresas desde la **propia cuenta
 | Backend | Django 4.2 (SSR) |
 | DB | PostgreSQL |
 | Queue | Celery + Redis |
-| Auth | django-allauth (Google `gmail.modify`, Microsoft `Mail.Send`) |
+| Auth | django-allauth (Google `gmail.send`, Microsoft `Mail.Send`) |
 | Storage | DigitalOcean Spaces (S3 compatible) |
 | Payments | Stripe (EUR) |
 | Frontend | Server-rendered + Tailwind CDN |
@@ -43,7 +43,7 @@ El entorno local estará disponible **exclusivamente** a través de `https://fas
 
 1. Crea un proyecto en [Google Cloud Console](https://console.cloud.google.com).
 2. APIs & Services → Library → habilita **Gmail API**.
-3. APIs & Services → OAuth consent screen → External → añade el scope `https://www.googleapis.com/auth/gmail.modify`.
+3. APIs & Services → OAuth consent screen → External → añade el scope `https://www.googleapis.com/auth/gmail.send`.
 4. Credentials → Create Credentials → OAuth client ID → Web application.
 5. Authorized redirect URI: `https://fastjob.loca.lt/accounts/google/login/callback/` (Google allows `http://localhost:8000` for local dev, but `https` is required when using `localtunnel`).
 6. Añade los credentials al modelo `SocialApp` en Django Admin.

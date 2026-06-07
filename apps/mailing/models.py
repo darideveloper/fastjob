@@ -96,11 +96,6 @@ class SystemSettings(models.Model):
         verbose_name="Multiplicador oculto de envíos",
         help_text="Multiplicador oculto para envíos extra (ej: 1.10 = 10% extra)",
     )
-    save_emails_to_sent_folder = models.BooleanField(
-        default=False,
-        verbose_name="Guardar en carpeta Enviados",
-        help_text="Si está activado, los correos enviados se guardarán en la carpeta 'Enviados' del usuario.",
-    )
     displayed_sends_floor = models.IntegerField(
         default=0,
         verbose_name="Mínimo de envíos mostrados",

@@ -10,7 +10,7 @@ The content MUST include:
 - **Identity Data**: Use of Google and Microsoft OAuth for authentication and profile retrieval.
 - **CV Content**: Storage of PDF documents in secure private buckets and the use of time-limited UUID links for distribution.
 - **Payment Data**: Use of Stripe for transaction processing without local storage of credit card numbers.
-- **Email Access**: Explicit mention of the `gmail.modify` and `Mail.Send` scopes used to send emails on the user's behalf.
+- **Email Access**: Explicit mention of the `gmail.send` and `Mail.Send` scopes used to send emails on the user's behalf.
 - **Google Limited Use Disclosure**: Explicit statement that the use and transfer of information received from Google APIs to any other app will adhere to [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
 - **Global Blacklist Disclosure**: Statement explaining that if a recipient unsubscribes, they are added to a global blacklist that prevents all FastJob users from contacting them.
 - **Cookies**: Disclosure of functional-only cookies (session and CSRF) required for the operation of the service.

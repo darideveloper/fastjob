@@ -69,17 +69,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Visibilidad de Correos",
-            {
-                "fields": ("save_emails_to_sent_folder",),
-                "description": (
-                    "Si está activado, los correos enviados se guardarán en la carpeta 'Enviados' "
-                    "del buzón de cada usuario (Gmail y Outlook). Si está desactivado, los correos "
-                    "se envían pero no quedan registrados en la carpeta Enviados."
-                ),
-            },
-        ),
-        (
             "Página de Paquetes",
             {
                 "fields": ("displayed_sends_floor",),

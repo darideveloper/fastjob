@@ -110,7 +110,6 @@ def test_microsoft_token_refresh_raises_when_api_fails(microsoft_linked_user):
 
 @pytest.mark.django_db
 def test_send_cv_email_via_google_success(google_linked_user, company, email_template):
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(
         user=google_linked_user,
         company=company,
@@ -243,7 +242,6 @@ def test_microsoft_refresh_failure_log_excludes_raw_body(microsoft_linked_user, 
 @pytest.mark.django_db
 def test_send_cv_email_strips_crlf_from_subject(google_linked_user, company, email_template):
     """A staff template with `\r\nBcc:` in the subject must not smuggle headers."""
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     email_template.subject = "Hola {company_name}\r\nBcc: attacker@evil.com"
     email_template.save()
 
@@ -786,7 +784,6 @@ def test_locked_recheck_short_circuits_when_other_worker_already_refreshed(
 @pytest.mark.django_db
 def test_send_emits_list_unsubscribe_headers_gmail(google_linked_user, company, email_template):
     """MIME sent to Gmail must contain both RFC 2369 / RFC 8058 unsubscribe headers."""
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
     log = MailingLog.objects.create(
         user=google_linked_user,
         company=company,
@@ -920,60 +917,4 @@ def test_graph_fallback_warning_emitted_once_per_process(
     assert rec.status == 400
     assert rec.fallback == "x-prefix"
 
-# ---------------------------------------------------------------------------
-# Global Email Visibility Toggle (SystemSettings)
-# ---------------------------------------------------------------------------
 
-@pytest.mark.django_db
-def test_send_cv_email_via_microsoft_honors_visibility_enabled(microsoft_linked_user, company, email_template):
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
-    log = MailingLog.objects.create(user=microsoft_linked_user, company=company, email_template=email_template)
-    with patch("apps.mailing.engine.requests.post") as mock_post:
-        mock_post.return_value = MagicMock(status_code=202)
-        send_cv_email(microsoft_linked_user, company, email_template, log)
-    # 1 call: sendMail
-    assert mock_post.call_count == 1
-    assert mock_post.call_args.kwargs["json"]["saveToSentItems"] is True
-
-@pytest.mark.django_db
-def test_send_cv_email_via_microsoft_honors_visibility_disabled(microsoft_linked_user, company, email_template):
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
-    log = MailingLog.objects.create(user=microsoft_linked_user, company=company, email_template=email_template)
-    with patch("apps.mailing.engine.requests.post") as mock_post:
-        mock_post.return_value = MagicMock(status_code=202)
-        send_cv_email(microsoft_linked_user, company, email_template, log)
-    # 1 call: sendMail
-    assert mock_post.call_count == 1
-    assert mock_post.call_args.kwargs["json"]["saveToSentItems"] is False
-
-@pytest.mark.django_db
-def test_send_cv_email_via_google_honors_visibility_disabled_by_trashing(google_linked_user, company, email_template):
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": False})
-    log = MailingLog.objects.create(user=google_linked_user, company=company, email_template=email_template)
-    
-    send_resp = MagicMock(status_code=200)
-    send_resp.json.return_value = {"id": "msg-123"}
-    trash_resp = MagicMock(status_code=200)
-    
-    with patch("apps.mailing.engine.requests.post", side_effect=[send_resp, trash_resp]) as mock_post:
-        send_cv_email(google_linked_user, company, email_template, log)
-    
-    # 2 calls: send + trash
-    assert mock_post.call_count == 2
-    assert "messages/send" in mock_post.call_args_list[0].args[0]
-    assert "messages/msg-123/trash" in mock_post.call_args_list[1].args[0]
-
-@pytest.mark.django_db
-def test_send_cv_email_via_google_honors_visibility_enabled_by_not_trashing(google_linked_user, company, email_template):
-    SystemSettings.objects.update_or_create(pk=1, defaults={"save_emails_to_sent_folder": True})
-    log = MailingLog.objects.create(user=google_linked_user, company=company, email_template=email_template)
-    
-    send_resp = MagicMock(status_code=200)
-    send_resp.json.return_value = {"id": "msg-123"}
-    
-    with patch("apps.mailing.engine.requests.post", return_value=send_resp) as mock_post:
-        send_cv_email(google_linked_user, company, email_template, log)
-    
-    # 1 call: send only
-    assert mock_post.call_count == 1
-    assert "messages/send" in mock_post.call_args[0][0]
