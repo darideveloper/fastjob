@@ -91,7 +91,7 @@ def process_mailing_queue(self):
                 continue
 
             companies = (
-                matching_companies_qs(user.area_filters.all(), user.location_filters.all())
+                matching_companies_qs(user.area_filters.all(), user.location_filters.all(), user.sub_area_filters.all())
                 .exclude(email__in=blacklist_subquery)
                 .exclude(id__in=cooldown_subquery)
                 .exclude(id__in=contacted_this_tick)

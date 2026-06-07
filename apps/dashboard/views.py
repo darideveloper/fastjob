@@ -133,16 +133,18 @@ def delete_cv(request, cv_id):
 @login_required
 @require_POST
 def update_filters(request):
-    from apps.companies.models import Area, Location
+    from apps.companies.models import Area, Location, SubArea
     from apps.companies.queries import get_filter_options
 
     user = request.user
     area_names = [v.strip() for v in request.POST.getlist("area_filter") if v.strip()]
     location_names = [v.strip() for v in request.POST.getlist("location_filter") if v.strip()]
+    sub_area_names = [v.strip() for v in request.POST.getlist("sub_area_filter") if v.strip()]
 
     options = get_filter_options()
     allowed_areas = {a.lower() for a in options["areas"]}
     allowed_locations = {loc.lower() for loc in options["locations"]}
+    allowed_sub_areas = {s.lower() for s in options["sub_areas"]}
 
     area_objs = []
     for area_name in area_names:
@@ -158,9 +160,17 @@ def update_filters(request):
             return redirect("dashboard")
         location_objs.append(Location.objects.get(name__iexact=location_name))
 
+    sub_area_objs = []
+    for sub_area_name in sub_area_names:
+        if sub_area_name.lower() not in allowed_sub_areas:
+            messages.error(request, f"Subactividad '{sub_area_name}' no válida.")
+            return redirect("dashboard")
+        sub_area_objs.append(SubArea.objects.get(name__iexact=sub_area_name))
+
     with transaction.atomic():
         user.area_filters.set(area_objs)
         user.location_filters.set(location_objs)
+        user.sub_area_filters.set(sub_area_objs)
     
     messages.success(request, "Filtros actualizados.")
     return redirect("dashboard")
@@ -260,6 +270,7 @@ def _serialize_user(user):
         "is_campaign_active": user.is_campaign_active,
         "area_filters": list(user.area_filters.values_list("name", flat=True)),
         "location_filters": list(user.location_filters.values_list("name", flat=True)),
+        "sub_area_filters": list(user.sub_area_filters.values_list("name", flat=True)),
         "stripe_customer_id": user.stripe_customer_id or None,
         "active_cv_id": user.active_cv_id,
         "linked_provider": user.linked_provider,

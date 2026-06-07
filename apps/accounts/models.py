@@ -24,6 +24,9 @@ class User(AbstractUser):
     location_filters = models.ManyToManyField(
         "companies.Location", blank=True, related_name="users_m2m", verbose_name="Filtros de localidad"
     )
+    sub_area_filters = models.ManyToManyField(
+        "companies.SubArea", blank=True, related_name="users_m2m", verbose_name="Filtros de subactividad"
+    )
     stripe_customer_id = models.CharField(max_length=200, blank=True, db_index=True, verbose_name="ID de cliente Stripe")
     total_purchased_credits = models.IntegerField(default=0, verbose_name="Total de envíos comprados")
     campaign_pause_reason = models.CharField(max_length=20, blank=True, verbose_name="Razón de pausa de campaña")

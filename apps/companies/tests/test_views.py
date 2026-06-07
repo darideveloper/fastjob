@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.test import override_settings
 from django.urls import reverse
 
-from apps.companies.models import Company, Area, Location
+from apps.companies.models import Company, Area, Location, SubArea
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +34,7 @@ def test_filter_options_payload_contains_no_identifying_fields(client):
     resp = client.get(reverse("company_filter_options"))
     data = resp.json()
     keys = set(data.keys())
-    assert keys == {"areas", "locations"}
+    assert keys == {"areas", "locations", "sub_areas"}
     for forbidden in ("email", "name", "id", "pk"):
         assert forbidden not in keys
 
@@ -111,6 +111,25 @@ def test_company_count_invalid_location_returns_400(client):
     resp = client.get(reverse("company_count") + "?location=marte")
     assert resp.status_code == 400
     assert resp.json() == {"error": "invalid_filter"}
+
+
+@pytest.mark.django_db
+def test_company_count_invalid_sub_area_returns_400(client):
+    s1, _ = SubArea.objects.get_or_create(name="limpieza")
+    Company.objects.create(email="a@x.com", name="a", sub_area=s1)
+    resp = client.get(reverse("company_count") + "?sub_area=invalidsubarea")
+    assert resp.status_code == 400
+    assert resp.json() == {"error": "invalid_filter"}
+
+
+@pytest.mark.django_db
+def test_company_count_with_multiple_valid_sub_areas(client):
+    s1, _ = SubArea.objects.get_or_create(name="limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="oficina")
+    Company.objects.create(email="a@x.com", name="a", sub_area=s1)
+    Company.objects.create(email="b@x.com", name="b", sub_area=s2)
+    resp = client.get(reverse("company_count"), {"sub_area": ["limpieza", "oficina"]})
+    assert resp.json()["count"] == 2
 
 
 @pytest.mark.django_db
@@ -270,6 +289,30 @@ def test_available_filters_invalid_location_returns_400(client):
 
 
 @pytest.mark.django_db
+def test_available_filters_invalid_sub_area_returns_400(client):
+    resp = client.get(reverse("company_available_filters") + "?sub_area=invalidsubarea")
+    assert resp.status_code == 400
+    assert resp.json() == {"error": "invalid_filter"}
+
+
+@pytest.mark.django_db
+def test_available_filters_sub_area_constrains_locations(client):
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="valencia")
+    s1, _ = SubArea.objects.get_or_create(name="limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="oficina")
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1, sub_area=s1)
+    Company.objects.create(email="b@x.com", name="b", area=a1, location=l2, sub_area=s2)
+    
+    resp = client.get(reverse("company_available_filters"), {"sub_area": ["limpieza"]})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "madrid" in data["locations"]
+    assert "valencia" not in data["locations"]
+
+
+@pytest.mark.django_db
 def test_available_filters_cache_control_header(client):
     a1, _ = Area.objects.get_or_create(name="tecnología")
     Company.objects.create(email="a@x.com", name="a", area=a1)
@@ -310,6 +353,6 @@ def test_available_filters_response_contains_no_identifying_fields(client):
     Company.objects.create(email="hr@acme.com", name="acme", area=a1, location=l1)
     resp = client.get(reverse("company_available_filters"))
     keys = set(resp.json().keys())
-    assert keys == {"areas", "locations"}
+    assert keys == {"areas", "locations", "sub_areas"}
     for forbidden in ("email", "name", "id", "pk"):
         assert forbidden not in keys

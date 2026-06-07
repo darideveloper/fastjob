@@ -47,9 +47,11 @@ def available_filters_view(request):
     options = get_filter_options()
     areas = [v.strip() for v in request.GET.getlist("area") if v.strip()]
     locations = [v.strip() for v in request.GET.getlist("location") if v.strip()]
+    sub_areas = [v.strip() for v in request.GET.getlist("sub_area") if v.strip()]
 
     allowed_areas = {a.strip().lower() for a in options["areas"]}
     allowed_locations = {loc.strip().lower() for loc in options["locations"]}
+    allowed_sub_areas = {s.strip().lower() for s in options["sub_areas"]}
 
     for area in areas:
         if area.strip().lower() not in allowed_areas:
@@ -57,8 +59,11 @@ def available_filters_view(request):
     for location in locations:
         if location.strip().lower() not in allowed_locations:
             return _invalid_filter_response()
+    for sub_area in sub_areas:
+        if sub_area.strip().lower() not in allowed_sub_areas:
+            return _invalid_filter_response()
 
-    result = get_available_filters(areas or None, locations or None)
+    result = get_available_filters(areas or None, locations or None, sub_areas or None)
     response = JsonResponse(result)
     response["Cache-Control"] = "public, max-age=60"
     return response
@@ -70,9 +75,11 @@ def companies_count_view(request):
     options = get_filter_options()
     areas = [v.strip() for v in request.GET.getlist("area") if v.strip()]
     locations = [v.strip() for v in request.GET.getlist("location") if v.strip()]
+    sub_areas = [v.strip() for v in request.GET.getlist("sub_area") if v.strip()]
 
     allowed_areas = {a.strip().lower() for a in options["areas"]}
     allowed_locations = {loc.strip().lower() for loc in options["locations"]}
+    allowed_sub_areas = {s.strip().lower() for s in options["sub_areas"]}
 
     for area in areas:
         if area.strip().lower() not in allowed_areas:
@@ -80,8 +87,11 @@ def companies_count_view(request):
     for location in locations:
         if location.strip().lower() not in allowed_locations:
             return _invalid_filter_response()
+    for sub_area in sub_areas:
+        if sub_area.strip().lower() not in allowed_sub_areas:
+            return _invalid_filter_response()
 
-    count = get_company_count(areas or None, locations or None)
+    count = get_company_count(areas or None, locations or None, sub_areas or None)
     response = JsonResponse({"count": count})
     # The count is a query-keyed integer with no per-user data, so a shared
     # cache may serve it. Aligned with the 60-second server-side cache in

@@ -14,7 +14,7 @@ import pytest
 
 from apps.companies import importers
 from apps.companies.importers import import_companies_from_xlsx
-from apps.companies.models import Blacklist, Company, CompanyImportBatch, Area, Location
+from apps.companies.models import Blacklist, Company, CompanyImportBatch, Area, Location, SubArea
 
 
 def make_xlsx(headers, rows):
@@ -336,3 +336,21 @@ def test_trailing_blank_rows_do_not_inflate_processed_rows():
     batch.refresh_from_db()
     assert batch.processed_rows == 2
     assert batch.created_count == 2
+
+
+@pytest.mark.django_db
+def test_import_maps_sub_activity():
+    f = make_xlsx(
+        ["EMPRESA", "EMAIL", "ACTIVIDAD", "SUB ACTIVIDAD", "PROVINCIA"],
+        [
+            ["Kiko Milano", "0383@stores.com", "COSMETICOS", "COSMETICA NATURAL", "ALICANTE"],
+        ],
+    )
+    created, updated, errors, _ = import_companies_from_xlsx(f)
+    assert created == 1
+    assert errors == []
+    c = Company.objects.get(email="0383@stores.com")
+    assert c.name == "kiko milano"
+    assert c.sub_area is not None
+    assert c.sub_area.name == "cosmetica natural"
+    assert SubArea.objects.filter(name="cosmetica natural").exists()

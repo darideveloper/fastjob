@@ -1,7 +1,7 @@
 import openpyxl
 from django.db import transaction
 
-from .models import Blacklist, Company, Area, Location
+from .models import Blacklist, Company, Area, Location, SubArea
 
 
 EXPECTED_HEADERS = {"email", "empresa"}
@@ -12,6 +12,7 @@ EXPECTED_HEADERS = {"email", "empresa"}
 COMPANY_UPDATE_FIELDS = [
     "name",
     "area",
+    "sub_area",
     "location",
     "address",
     "zip_code",
@@ -55,6 +56,8 @@ def _parse_row(row, header_map, row_num):
     raw_actividad = get("actividad")
     area_name = raw_actividad.split(":")[0].strip().lower()[:200] if raw_actividad else ""
 
+    sub_area_name = get("sub actividad").lower()[:200]
+
     location_name = get("provincia").lower()[:200]
     address = get("direccion").lower()[:500]
     zip_code = get("cp")[:20]
@@ -74,6 +77,7 @@ def _parse_row(row, header_map, row_num):
             "email": email,
             "name": name,
             "area_name": area_name,
+            "sub_area_name": sub_area_name,
             "location_name": location_name,
             "address": address,
             "zip_code": zip_code,
@@ -109,7 +113,7 @@ def _resolve_taxonomy(model, names, cache):
             cache[obj.name] = obj
 
 
-def _process_chunk(parsed_rows, blacklisted_set, seen_blacklisted, area_cache, location_cache):
+def _process_chunk(parsed_rows, blacklisted_set, seen_blacklisted, area_cache, location_cache, sub_area_cache):
     """Run one chunk: resolve taxonomy in bulk, partition by existing email,
     bulk_create new rows, bulk_update existing rows. Returns
     (created_delta, updated_delta, blacklisted_delta).
@@ -119,8 +123,10 @@ def _process_chunk(parsed_rows, blacklisted_set, seen_blacklisted, area_cache, l
 
     distinct_areas = {r["area_name"] for r in parsed_rows if r["area_name"]}
     distinct_locations = {r["location_name"] for r in parsed_rows if r["location_name"]}
+    distinct_sub_areas = {r["sub_area_name"] for r in parsed_rows if r["sub_area_name"]}
     _resolve_taxonomy(Area, distinct_areas, area_cache)
     _resolve_taxonomy(Location, distinct_locations, location_cache)
+    _resolve_taxonomy(SubArea, distinct_sub_areas, sub_area_cache)
 
     chunk_emails = [r["email"] for r in parsed_rows]
     existing_map = dict(
@@ -160,6 +166,7 @@ def _process_chunk(parsed_rows, blacklisted_set, seen_blacklisted, area_cache, l
             "email": email,
             "name": r["name"],
             "area": area_cache.get(r["area_name"]) if r["area_name"] else None,
+            "sub_area": sub_area_cache.get(r["sub_area_name"]) if r["sub_area_name"] else None,
             "location": location_cache.get(r["location_name"]) if r["location_name"] else None,
             "address": r["address"],
             "zip_code": r["zip_code"],
@@ -236,6 +243,7 @@ def import_companies_from_xlsx(file_path, batch=None, chunk_size=1000):
     seen_blacklisted = set()
     area_cache = {}
     location_cache = {}
+    sub_area_cache = {}
 
     created_total = 0
     updated_total = 0
@@ -270,6 +278,7 @@ def import_companies_from_xlsx(file_path, batch=None, chunk_size=1000):
                 seen_blacklisted,
                 area_cache,
                 location_cache,
+                sub_area_cache,
             )
 
         created_total += c

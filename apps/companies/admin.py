@@ -15,7 +15,7 @@ from django.urls import path, reverse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Company, Blacklist, Area, Location, CompanyImportBatch
+from .models import Company, Blacklist, Area, Location, SubArea, CompanyImportBatch
 from .tasks import process_company_import
 
 logger = logging.getLogger(__name__)
@@ -58,24 +58,38 @@ class AreaAdmin(admin.ModelAdmin):
     search_fields = ("name",)
 
 
+# Override verbose names in the admin UI without changing the original models
+Area._meta.verbose_name = "Área"
+Area._meta.verbose_name_plural = "Áreas"
+SubArea._meta.verbose_name = "Subárea"
+SubArea._meta.verbose_name_plural = "Subáreas"
+
+
+
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
 
 
+@admin.register(SubArea)
+class SubAreaAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+
+
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "area", "location", "province", "created_at")
-    list_filter = ("area", "location", "province", "community")
-    search_fields = ("name", "email", "area__name", "location__name", "address", "website")
+    list_display = ("name", "email", "area", "sub_area", "location", "province", "created_at")
+    list_filter = ("area", "sub_area", "location", "province", "community")
+    search_fields = ("name", "email", "area__name", "sub_area__name", "location__name", "address", "website")
     ordering = ("name",)
     fieldsets = (
         (None, {
             "fields": ("name", "email")
         }),
         ("Taxonomía", {
-            "fields": ("area", "location")
+            "fields": ("area", "sub_area", "location")
         }),
         ("Ubicación", {
             "fields": ("address", "zip_code", "province", "community")

@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/combobox.js' %}?v=11"></script>
+<script src="{% static 'js/combobox.js' %}?v=12"></script>
 <script src="{% static 'js/vendor/typed.min.js' %}?v=6"></script>
 <script src="{% static 'js/search-suggestion.js' %}?v=10"></script>
 {% endblock %}
@@ -285,6 +285,13 @@
                    data-name="location_filter"
                    data-value="{% for l in user.location_filters.all %}{{ l.name }}{% if not forloop.last %},{% endif %}{% endfor %}"
                    data-placeholder="Escribe o elige una ubicación (ej. Madrid)…"></div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Subactividad</label>
+              <div data-combobox="sub_area"
+                   data-name="sub_area_filter"
+                   data-value="{% for s in user.sub_area_filters.all %}{{ s.name }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                   data-placeholder="Escribe o elige una subactividad (ej. Productos de limpieza)…"></div>
             </div>
           </div>
           <button type="submit"

@@ -2,7 +2,7 @@
 import pytest
 from django.core.cache import cache
 
-from apps.companies.models import Company, Area, Location
+from apps.companies.models import Company, Area, Location, SubArea
 from apps.companies.queries import (
     bust_filter_caches,
     get_available_filters,
@@ -389,3 +389,66 @@ def test_available_filters_cache_bust():
     result = get_available_filters(areas=["tecnología"])
     assert "barcelona" in result["locations"]
     assert "madrid" in result["locations"]
+
+
+@pytest.mark.django_db
+def test_matching_qs_sub_area_filter():
+    s1, _ = SubArea.objects.get_or_create(name="productos de limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="productos de oficina")
+    Company.objects.create(email="a@x.com", name="A", sub_area=s1)
+    Company.objects.create(email="b@x.com", name="B", sub_area=s2)
+    qs = matching_companies_qs(sub_areas=["productos de limpieza"])
+    assert qs.count() == 1
+    assert qs.first().email == "a@x.com"
+
+
+@pytest.mark.django_db
+def test_filter_options_contains_sub_areas():
+    s, _ = SubArea.objects.get_or_create(name="productos de limpieza")
+    Company.objects.create(email="a@x.com", name="A", sub_area=s)
+    opts = get_filter_options()
+    assert "productos de limpieza" in opts["sub_areas"]
+
+
+@pytest.mark.django_db
+def test_get_company_count_with_sub_areas():
+    s1, _ = SubArea.objects.get_or_create(name="productos de limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="productos de oficina")
+    Company.objects.create(email="a@x.com", name="A", sub_area=s1)
+    Company.objects.create(email="b@x.com", name="B", sub_area=s2)
+    assert get_company_count(sub_areas=["productos de limpieza"]) == 1
+
+
+@pytest.mark.django_db
+def test_available_filters_sub_area_constrains_locations_and_areas():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    a2, _ = Area.objects.get_or_create(name="diseño")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    l2, _ = Location.objects.get_or_create(name="barcelona")
+    s1, _ = SubArea.objects.get_or_create(name="limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="oficina")
+
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1, sub_area=s1)
+    Company.objects.create(email="b@x.com", name="b", area=a2, location=l2, sub_area=s2)
+
+    result = get_available_filters(sub_areas=["limpieza"])
+    assert "madrid" in result["locations"]
+    assert "barcelona" not in result["locations"]
+    assert "tecnología" in result["areas"]
+    assert "diseño" not in result["areas"]
+
+
+@pytest.mark.django_db
+def test_available_filters_area_and_location_constrain_sub_areas():
+    a1, _ = Area.objects.get_or_create(name="tecnología")
+    l1, _ = Location.objects.get_or_create(name="madrid")
+    s1, _ = SubArea.objects.get_or_create(name="limpieza")
+    s2, _ = SubArea.objects.get_or_create(name="oficina")
+
+    Company.objects.create(email="a@x.com", name="a", area=a1, location=l1, sub_area=s1)
+    # this company matches area but not location
+    Company.objects.create(email="b@x.com", name="b", area=a1, location=None, sub_area=s2)
+
+    result = get_available_filters(areas=["tecnología"], locations=["madrid"])
+    assert "limpieza" in result["sub_areas"]
+    assert "oficina" not in result["sub_areas"]

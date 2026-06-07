@@ -34,7 +34,7 @@
     var selected = initialValues.filter(function(v) { return v.trim().length > 0; });
     var placeholder = container.dataset.placeholder || 'Selecciona opciones…';
     var comboboxType = container.dataset.combobox;
-    var noFilterLabel = comboboxType === 'area' ? '— TODOS LOS SECTORES —' : comboboxType === 'location' ? '— TODAS LAS UBICACIONES —' : '— Todos —';
+    var noFilterLabel = comboboxType === 'area' ? '— TODOS LOS SECTORES —' : comboboxType === 'location' ? '— TODAS LAS UBICACIONES —' : comboboxType === 'sub_area' ? '— TODAS LAS SUBACTIVIDADES —' : '— Todos —';
 
     container.style.position = 'relative';
     container.innerHTML = '';
@@ -232,6 +232,7 @@
     countTimer = setTimeout(function () {
       var areaInputs = widget.querySelectorAll('[data-combobox="area"] input[type=hidden]');
       var locInputs = widget.querySelectorAll('[data-combobox="location"] input[type=hidden]');
+      var subAreaInputs = widget.querySelectorAll('[data-combobox="sub_area"] input[type=hidden]');
       
       var counterEl = widget.querySelector('[data-company-counter]');
       if (!counterEl) return;
@@ -242,6 +243,9 @@
       });
       locInputs.forEach(function(input) {
         params.append('location', input.value);
+      });
+      subAreaInputs.forEach(function(input) {
+        params.append('sub_area', input.value);
       });
 
       var queryString = params.toString();
@@ -264,6 +268,7 @@
     availableTimer = setTimeout(function () {
       var areaInputs = widget.querySelectorAll('[data-combobox="area"] input[type=hidden]');
       var locInputs = widget.querySelectorAll('[data-combobox="location"] input[type=hidden]');
+      var subAreaInputs = widget.querySelectorAll('[data-combobox="sub_area"] input[type=hidden]');
 
       var params = new URLSearchParams();
       areaInputs.forEach(function(input) {
@@ -271,6 +276,9 @@
       });
       locInputs.forEach(function(input) {
         params.append('location', input.value);
+      });
+      subAreaInputs.forEach(function(input) {
+        params.append('sub_area', input.value);
       });
 
       var queryString = params.toString();
@@ -280,15 +288,19 @@
       fetch(url)
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
-          if (!data || !data.areas || !data.locations) return;
+          if (!data || !data.areas || !data.locations || !data.sub_areas) return;
 
           var areaContainer = widget.querySelector('[data-combobox="area"]');
           var locContainer = widget.querySelector('[data-combobox="location"]');
+          var subAreaContainer = widget.querySelector('[data-combobox="sub_area"]');
           if (areaContainer && typeof areaContainer._updateOptions === 'function') {
             areaContainer._updateOptions(data.areas);
           }
           if (locContainer && typeof locContainer._updateOptions === 'function') {
             locContainer._updateOptions(data.locations);
+          }
+          if (subAreaContainer && typeof subAreaContainer._updateOptions === 'function') {
+            subAreaContainer._updateOptions(data.sub_areas);
           }
 
           window.FastJobFilter.optionsData = data;
@@ -301,6 +313,7 @@
     widgets.forEach(function (widget) {
       var areaContainer = widget.querySelector('[data-combobox="area"]');
       var locContainer = widget.querySelector('[data-combobox="location"]');
+      var subAreaContainer = widget.querySelector('[data-combobox="sub_area"]');
 
       function onChange() {
         scheduleCount(widget);
@@ -312,6 +325,9 @@
       }
       if (locContainer) {
         initCombobox(locContainer, opts.locations, onChange);
+      }
+      if (subAreaContainer) {
+        initCombobox(subAreaContainer, opts.sub_areas, onChange);
       }
 
       scheduleCount(widget);

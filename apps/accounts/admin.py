@@ -41,11 +41,12 @@ class UserAdmin(BaseUserAdmin):
                 "active_cv", 
                 "area_filters", 
                 "location_filters", 
+                "sub_area_filters", 
                 "stripe_customer_id"
             ),
         }),
     )
-    filter_horizontal = ("area_filters", "location_filters")
+    filter_horizontal = ("area_filters", "location_filters", "sub_area_filters")
 
     def linked_provider(self, obj):
         return obj.linked_provider or "—"

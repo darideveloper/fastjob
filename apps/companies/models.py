@@ -56,6 +56,20 @@ class Location(LowercaseFieldsMixin, models.Model):
         return self.name
 
 
+class SubArea(LowercaseFieldsMixin, models.Model):
+    name = models.CharField(max_length=200, unique=True, verbose_name="Nombre")
+
+    lowercase_fields = ["name"]
+
+    class Meta:
+        verbose_name = "Subactividad"
+        verbose_name_plural = "Subactividades"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Company(LowercaseFieldsMixin, models.Model):
     email = models.EmailField(unique=True, verbose_name="Email")
     name = models.CharField(max_length=300, verbose_name="Nombre")
@@ -69,6 +83,14 @@ class Company(LowercaseFieldsMixin, models.Model):
         blank=True,
         related_name="companies",
         verbose_name="Localidad",
+    )
+    sub_area = models.ForeignKey(
+        SubArea,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="companies",
+        verbose_name="Subactividad",
     )
     address = models.CharField(max_length=500, blank=True, verbose_name="Dirección")
     zip_code = models.CharField(max_length=20, blank=True, verbose_name="Código postal")

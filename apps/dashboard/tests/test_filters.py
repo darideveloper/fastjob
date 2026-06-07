@@ -3,7 +3,7 @@ import pytest
 from django.core.cache import cache
 from django.urls import reverse
 
-from apps.companies.models import Company, Area, Location
+from apps.companies.models import Company, Area, Location, SubArea
 
 
 @pytest.fixture(autouse=True)
@@ -80,3 +80,31 @@ def test_update_filters_invalid_location_rejected(client, user_with_cv):
     assert resp.status_code == 302
     user_with_cv.refresh_from_db()
     assert user_with_cv.location_filters.count() == 0
+
+
+@pytest.mark.django_db
+def test_update_filters_valid_sub_area_saves(client, user_with_cv):
+    s, _ = SubArea.objects.get_or_create(name="limpieza")
+    Company.objects.create(email="hr@a.com", name="A", sub_area=s)
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("update_filters"),
+        {"area_filter": [], "location_filter": [], "sub_area_filter": ["limpieza"]}
+    )
+    assert resp.status_code == 302
+    user_with_cv.refresh_from_db()
+    assert user_with_cv.sub_area_filters.filter(name="limpieza").exists()
+
+
+@pytest.mark.django_db
+def test_update_filters_invalid_sub_area_rejected(client, user_with_cv):
+    s, _ = SubArea.objects.get_or_create(name="limpieza")
+    Company.objects.create(email="hr@a.com", name="A", sub_area=s)
+    client.force_login(user_with_cv)
+    resp = client.post(
+        reverse("update_filters"),
+        {"area_filter": [], "location_filter": [], "sub_area_filter": ["invalidsubarea"]}
+    )
+    assert resp.status_code == 302
+    user_with_cv.refresh_from_db()
+    assert user_with_cv.sub_area_filters.count() == 0

@@ -3,7 +3,7 @@
 {% block title %}FastJob — Envía tu CV a cientos de empresas{% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/combobox.js' %}?v=11"></script>
+<script src="{% static 'js/combobox.js' %}?v=12"></script>
 <script src="{% static 'js/vendor/typed.min.js' %}?v=6"></script>
 <script src="{% static 'js/search-suggestion.js' %}?v=10"></script>
 {% endblock %}
@@ -62,6 +62,13 @@
                  data-name="location"
                  data-value=""
                  data-placeholder="Escribe o elige una ubicación (ej. Madrid)…"></div>
+          </div>
+          <div class="flex-1 text-left w-full">
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Subactividad</label>
+            <div data-combobox="sub_area"
+                 data-name="sub_area"
+                 data-value=""
+                 data-placeholder="Escribe o elige una subactividad (ej. Productos de limpieza)…"></div>
           </div>
           <div class="w-full md:w-40 text-center bg-brand-soft rounded-xl border border-brand-muted py-3 px-4 self-stretch flex flex-col justify-center shadow-sm">
             <span class="block text-3xl font-black text-brand-dark leading-none" data-company-counter>—</span>
