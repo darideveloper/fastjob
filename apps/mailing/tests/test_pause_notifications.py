@@ -104,6 +104,12 @@ def test_dashboard_index_shows_pause_reason(client, google_linked_user):
     # Instead, verify the body text about re-uploading is present.
     assert "Sube un nuevo CV" in html
 
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.save()
+    response = client.get("/dashboard/")
+    html = response.content.decode("utf-8")
+    assert "Fuera de horario de envío" in html
+
 
 @pytest.mark.django_db
 def test_dashboard_hides_eliminar_button_when_campaign_active(client, user_with_cv):
@@ -232,3 +238,37 @@ def test_unlink_signal_enqueues_notification(client, google_linked_user):
     notification_email = [m for m in mail.outbox if "FastJob: Tu campaña ha sido pausada" in m.subject]
     assert len(notification_email) >= 1
     assert "se ha desvinculado tu cuenta" in notification_email[0].body
+
+
+@pytest.mark.django_db
+def test_toggle_campaign_start_outside_active_hours(client, google_linked_user):
+    """If user starts campaign outside active hours, it is scheduled as paused (time_window)."""
+    import datetime
+    from apps.mailing.models import SystemSettings
+    from django.utils import timezone
+    from unittest.mock import patch
+
+    cfg = SystemSettings.get()
+    cfg.email_sending_start_time = datetime.time(10, 0)
+    cfg.email_sending_end_time = datetime.time(20, 0)
+    cfg.save()
+
+    # Make sure user has CV
+    from apps.accounts.models import CV
+    import django.core.files.base
+    cv = CV.objects.create(user=google_linked_user, file=django.core.files.base.ContentFile(b"pdf", name="cv.pdf"))
+    google_linked_user.active_cv = cv
+    google_linked_user.credits_remaining = 10
+    google_linked_user.save()
+
+    # Mock time to 22:00 (outside window)
+    mock_now = timezone.now().replace(hour=22, minute=0, second=0, microsecond=0)
+
+    client.force_login(google_linked_user)
+    with patch("apps.dashboard.views.timezone.localtime", return_value=mock_now):
+        response = client.post("/dashboard/campana/", {"action": "start"})
+
+    assert response.status_code == 302
+    google_linked_user.refresh_from_db()
+    assert not google_linked_user.is_campaign_active
+    assert google_linked_user.campaign_pause_reason == "time_window"

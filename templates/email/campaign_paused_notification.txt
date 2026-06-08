@@ -8,6 +8,8 @@ Tu campaña ha sido pausada porque ha caducado.
 Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.
 {% elif reason == 'missing_cv' %}
 Tu campaña ha sido pausada porque no se ha encontrado tu CV.
+{% elif reason == 'time_window' %}
+Tu campaña ha sido temporalmente pausada fuera del horario de envío y se reanudará automáticamente cuando este comience.
 {% else %}
 Tu campaña ha sido pausada por motivos de seguridad o configuración.
 {% endif %}

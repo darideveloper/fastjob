@@ -37,6 +37,19 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Horario de Envío (Global)",
+            {
+                "fields": (
+                    "email_sending_start_time",
+                    "email_sending_end_time",
+                ),
+                "description": (
+                    "Define la ventana horaria en la que está permitido enviar correos. "
+                    "Fuera de esta ventana, las campañas activas se pausarán automáticamente."
+                ),
+            },
+        ),
+        (
             "Créditos y Bonos",
             {
                 "fields": (

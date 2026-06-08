@@ -38,6 +38,9 @@ def index(request):
     user_logs = MailingLog.objects.filter(user=user)
     payments = StripePayment.objects.filter(user=user).select_related("package").order_by("-created_at")
 
+    from apps.mailing.models import SystemSettings
+    cfg = SystemSettings.get()
+
     context = {
         "user": user,
         "recent_logs": page.object_list,
@@ -49,6 +52,7 @@ def index(request):
         "sent_this_week": user_logs.filter(status=MailingLog.Status.SENT, sent_at__gte=week_start).count(),
         "failed_count": user_logs.filter(status=MailingLog.Status.FAILED).count(),
         "payments": payments,
+        "system_settings": cfg,
     }
     return render(request, "dashboard/index.html", context)
 
@@ -202,9 +206,24 @@ def toggle_campaign(request):
         elif not user.linked_provider:
             messages.error(request, "Debes vincular tu cuenta de Google o Microsoft.")
         else:
-            user.is_campaign_active = True
-            user.save(update_fields=["is_campaign_active"])
-            messages.success(request, "¡Campaña iniciada! Tus CVs comenzarán a enviarse en breve.")
+            current_time = timezone.localtime(timezone.now()).time()
+            start_time = cfg.email_sending_start_time
+            end_time = cfg.email_sending_end_time
+
+            if start_time <= end_time:
+                is_active_window = start_time <= current_time <= end_time
+            else:
+                is_active_window = current_time >= start_time or current_time <= end_time
+
+            if not is_active_window:
+                user.is_campaign_active = False
+                user.campaign_pause_reason = "time_window"
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                messages.success(request, "¡Campaña programada! Tu campaña comenzará a enviar CVs cuando se abra el horario de envío.")
+            else:
+                user.is_campaign_active = True
+                user.save(update_fields=["is_campaign_active"])
+                messages.success(request, "¡Campaña iniciada! Tus CVs comenzarán a enviarse en breve.")
 
     elif action == "stop":
         user.is_campaign_active = False

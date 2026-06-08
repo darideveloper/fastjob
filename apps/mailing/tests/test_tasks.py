@@ -5,6 +5,7 @@ These exercise the operational rules (slow-drip interval, per-company
 cooldown, blacklist, filter matching, credit decrement, token-expiry pause)
 without ever calling a real Google/Microsoft API.
 """
+import datetime
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -392,3 +393,89 @@ def test_task_releases_lock_on_exception(settings_obj):
             process_mailing_queue()
 
     assert cache.get(lock_id) is None
+
+
+@pytest.mark.django_db
+def test_task_skips_sending_and_pauses_campaign_outside_active_hours(
+    google_linked_user, company, email_template, settings_obj
+):
+    """If running outside active hours, campaigns are paused and no emails are sent."""
+    # Set window: 10:00 to 20:00
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.save()
+
+    # Mock time to 22:00 (outside window)
+    mock_now = timezone.now().replace(hour=22, minute=0, second=0, microsecond=0)
+
+    with patch("apps.mailing.tasks.timezone.localtime") as mock_localtime, \
+         patch("apps.mailing.tasks.send_campaign_paused_notification.delay") as mock_notify, \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        mock_localtime.return_value = mock_now
+        process_mailing_queue()
+
+    mock_send.assert_not_called()
+    mock_notify.assert_called_once_with(google_linked_user.pk, "time_window")
+    
+    google_linked_user.refresh_from_db()
+    assert not google_linked_user.is_campaign_active
+    assert google_linked_user.campaign_pause_reason == "time_window"
+
+
+@pytest.mark.django_db
+def test_task_resumes_campaign_inside_active_hours(
+    google_linked_user, company, email_template, settings_obj
+):
+    """If running inside active hours, campaigns paused with time_window are resumed."""
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.save()
+
+    # Pause user via time_window
+    google_linked_user.is_campaign_active = False
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.credits_remaining = 5
+    google_linked_user.save()
+
+    # Mock time to 12:00 (inside window)
+    mock_now = timezone.now().replace(hour=12, minute=0, second=0, microsecond=0)
+
+    with patch("apps.mailing.tasks.timezone.localtime") as mock_localtime, \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        mock_localtime.return_value = mock_now
+        process_mailing_queue()
+
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active
+    assert google_linked_user.campaign_pause_reason == ""
+
+
+@pytest.mark.django_db
+def test_task_transitions_to_quota_when_resuming_without_credits(
+    google_linked_user, company, email_template, settings_obj
+):
+    """If resuming but credit multiplier limit is hit, transition campaign to quota pause."""
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.hidden_credit_multiplier = 1.00 # no extra credits
+    settings_obj.save()
+
+    # Set user with 0 credits (reaches limit)
+    google_linked_user.is_campaign_active = False
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.credits_remaining = 0
+    google_linked_user.save()
+
+    # Mock time to 12:00 (inside window)
+    mock_now = timezone.now().replace(hour=12, minute=0, second=0, microsecond=0)
+
+    with patch("apps.mailing.tasks.timezone.localtime") as mock_localtime, \
+         patch("apps.mailing.tasks.send_campaign_paused_notification.delay") as mock_notify, \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        mock_localtime.return_value = mock_now
+        process_mailing_queue()
+
+    google_linked_user.refresh_from_db()
+    assert not google_linked_user.is_campaign_active
+    assert google_linked_user.campaign_pause_reason == "quota"
+    mock_notify.assert_called_once_with(google_linked_user.pk, "quota")

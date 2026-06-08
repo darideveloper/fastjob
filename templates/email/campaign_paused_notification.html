@@ -7,6 +7,8 @@
   <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.</p>
 {% elif reason == 'missing_cv' %}
   <p>Tu campaña ha sido pausada porque no se ha encontrado tu CV.</p>
+{% elif reason == 'time_window' %}
+  <p>Tu campaña ha sido temporalmente pausada fuera del horario de envío y se reanudará automáticamente cuando este comience.</p>
 {% else %}
   <p>Tu campaña ha sido pausada por motivos de seguridad o configuración.</p>
 {% endif %}

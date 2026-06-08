@@ -1,3 +1,4 @@
+import datetime
 import string
 import uuid
 from django.core.exceptions import ValidationError
@@ -100,6 +101,16 @@ class SystemSettings(models.Model):
         default=0,
         verbose_name="Mínimo de envíos mostrados",
         help_text="Si el número real de envíos exitosos es menor que este valor, se mostrará este valor en la página de paquetes. Usar 0 para mostrar siempre el valor real.",
+    )
+    email_sending_start_time = models.TimeField(
+        default=datetime.time(10, 0),
+        verbose_name="Hora de inicio de envío",
+        help_text="Hora local a la que se inicia el envío diario de correos.",
+    )
+    email_sending_end_time = models.TimeField(
+        default=datetime.time(20, 0),
+        verbose_name="Hora de fin de envío",
+        help_text="Hora local a la que finaliza el envío diario de correos.",
     )
 
     class Meta:

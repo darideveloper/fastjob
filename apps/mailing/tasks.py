@@ -4,6 +4,7 @@ Celery tasks for the FastJob mailing engine.
 - send_campaign_paused_notification: emails user when their campaign is paused.
 """
 import logging
+import math
 from datetime import timedelta
 
 from celery import shared_task
@@ -40,6 +41,43 @@ def process_mailing_queue(self):
         from apps.accounts.models import User
 
         cfg = SystemSettings.get()
+        
+        # Evaluate time-window compliance
+        local_time = timezone.localtime(timezone.now()).time()
+        start_time = cfg.email_sending_start_time
+        end_time = cfg.email_sending_end_time
+
+        if start_time <= end_time:
+            is_active_window = start_time <= local_time <= end_time
+        else:
+            is_active_window = local_time >= start_time or local_time <= end_time
+
+        if not is_active_window:
+            # Transition active campaigns to paused due to time window
+            active_users = User.objects.filter(is_campaign_active=True)
+            for user in active_users:
+                user.is_campaign_active = False
+                user.campaign_pause_reason = "time_window"
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                send_campaign_paused_notification.delay(user.pk, "time_window")
+                logger.info("Campaign paused for user_pk=%s (outside active sending hours)", user.pk)
+            return
+
+        # We are inside the active hours. Check if any campaigns need to be resumed.
+        paused_users = User.objects.filter(is_campaign_active=False, campaign_pause_reason="time_window")
+        for user in paused_users:
+            extra_limit = math.ceil(user.total_purchased_credits * (float(cfg.hidden_credit_multiplier) - 1.0))
+            if user.credits_remaining > -extra_limit:
+                user.is_campaign_active = True
+                user.campaign_pause_reason = ""
+                user.save(update_fields=["is_campaign_active", "campaign_pause_reason"])
+                logger.info("Auto-resumed campaign for user_pk=%s", user.pk)
+            else:
+                user.campaign_pause_reason = "quota"
+                user.save(update_fields=["campaign_pause_reason"])
+                send_campaign_paused_notification.delay(user.pk, "quota")
+                logger.info("Transitioned user_pk=%s from time_window to quota pause", user.pk)
+
         send_interval = timedelta(minutes=cfg.global_send_interval_minutes)
         cooldown = timedelta(hours=cfg.company_cooldown_hours)
         daily_limit = cfg.max_emails_per_day_per_user
