@@ -4,86 +4,28 @@
 TBD - created by archiving change add-company-filter-finder. Update Purpose after archive.
 ## Requirements
 ### Requirement: Public Filter-Options Endpoint
+The system SHALL expose a read-only HTTP endpoint at `GET /api/companies/filter-options/` that returns the distinct, non-empty values currently present in `Company.area`, `Company.sub_area`, and `Company.location`. The endpoint MUST be reachable without authentication and MUST be rate-limited per **real client IP** — the visitor IP resolved per the `infrastructure` capability's `Trusted Reverse-Proxy Client IP Resolution` requirement, NOT the connecting socket address. The response payload MUST contain only label strings — never any company-identifying field (email, name, primary key, or any other column). All returned values MUST be in lowercase. The response MUST be client-cacheable via a `Cache-Control` header.
 
-The system SHALL expose a read-only HTTP endpoint at `GET /api/companies/filter-options/` that returns the distinct, non-empty values currently present in `Company.area` and `Company.location`. The endpoint MUST be reachable without authentication and MUST be rate-limited per **real client IP** — the visitor IP resolved per the `infrastructure` capability's `Trusted Reverse-Proxy Client IP Resolution` requirement, NOT the connecting socket address (which behind a reverse proxy is identical for every visitor). The response payload MUST contain only label strings — never any company-identifying field (email, name, primary key, or any other column). All returned values MUST be in lowercase. The response MUST be client-cacheable via a `Cache-Control` header so that browsers and shared caches do not re-fetch the (slow-changing) taxonomy on every page view.
-
-#### Scenario: Anonymous client retrieves option list
-
+#### Scenario: Anonymous client retrieves option list with sub-areas
 - **WHEN** an unauthenticated client sends `GET /api/companies/filter-options/`
-- **THEN** the response is `200 OK` with a JSON body `{"areas": [<sorted unique non-empty area strings>], "locations": [<sorted unique non-empty location strings>]}`
-- **AND** the response body contains no field other than `areas` and `locations`
-
-#### Scenario: Empty / whitespace values are excluded from the option list
-
-- **GIVEN** a `Company` row with `area = ""` and another with `area = "   "`
-- **WHEN** the endpoint is called
-- **THEN** neither blank value appears in `areas`
-
-#### Scenario: Values are always returned in lowercase
-
-- **GIVEN** companies linked to areas stored as `"tecnología"` and `"diseño"`
-- **WHEN** the endpoint is called
-- **THEN** `areas` contains `["diseño", "tecnología"]`
-- **AND** all entries are lowercase.
-
-#### Scenario: Per-IP rate limit blocks abuse and is keyed on the resolved client IP
-
-- **WHEN** a single real client IP sends more than the configured per-hour threshold
-- **THEN** subsequent requests from that IP within that window receive `429 Too Many Requests`
-- **AND** two distinct visitors behind the same reverse proxy are counted in separate buckets, so one visitor exhausting the limit does NOT cause `429` for the other
-
-#### Scenario: Response is client-cacheable
-
-- **WHEN** an unauthenticated client sends `GET /api/companies/filter-options/`
-- **THEN** the `200 OK` response includes a `Cache-Control` header permitting shared caching for a bounded period
-- **AND** a browser or edge cache may serve a repeat request within that period without contacting the origin
+- **THEN** the response is `200 OK` with a JSON body `{"areas": [<sorted unique areas>], "locations": [<sorted unique locations>], "sub_areas": [<sorted unique sub_areas>]}`
+- **AND** the response body contains no fields other than `areas`, `locations`, and `sub_areas`
 
 ### Requirement: Public Company-Count Endpoint
+The system SHALL expose a read-only HTTP endpoint at `GET /api/companies/count/` that accepts optional `area`, `sub_area`, and `location` query parameters and returns the integer number of companies matching those filters. The endpoint MUST be reachable without authentication, MUST be rate-limited per **real client IP**, and MUST return only an integer count. Filter values MUST be validated against the current allowed-options whitelist; any value outside the whitelist MUST cause the request to be rejected with `400 Bad Request`. A successful response MUST be client-cacheable via a `Cache-Control` header.
 
-The system SHALL expose a read-only HTTP endpoint at `GET /api/companies/count/` that accepts optional `area` and `location` query parameters and returns the integer number of companies matching those filters. The endpoint MUST be reachable without authentication, MUST be rate-limited per **real client IP** (resolved per the `infrastructure` capability's `Trusted Reverse-Proxy Client IP Resolution` requirement, NOT the connecting socket address), and MUST return only an integer count — never any company name, email, primary key, or any other row-level data. Filter values MUST be validated against the current allowed-options whitelist; any value outside the whitelist MUST cause the request to be rejected with `400 Bad Request`. A successful response MUST be client-cacheable via a `Cache-Control` header; the `400` validation-failure response MUST NOT be cached.
-
-#### Scenario: Count with no filters returns total eligible companies
-
-- **WHEN** an unauthenticated client sends `GET /api/companies/count/`
-- **THEN** the response is `200 OK` with body `{"count": <total non-blacklisted, not-recently-contacted company count>}`
-
-#### Scenario: Count with valid filters uses exact-match semantics
-
-- **GIVEN** companies with `area = "Tecnología"` and `area = "Tecnología Industrial"`
-- **WHEN** the client sends `GET /api/companies/count/?area=Tecnología`
-- **THEN** the count includes the first row but NOT the second
-
-#### Scenario: Filter value not in whitelist is rejected
-
-- **GIVEN** the current options list does NOT contain the area `"Bricolaje"`
-- **WHEN** the client sends `GET /api/companies/count/?area=Bricolaje`
-- **THEN** the response is `400 Bad Request` with body `{"error": "invalid_filter"}`
-- **AND** the `400` response is not stored by browser or shared caches
-
-#### Scenario: Empty parameter means "no filter on that field"
-
-- **WHEN** the client sends `GET /api/companies/count/?area=&location=Madrid`
-- **THEN** the count includes all companies with `location` equal to `"Madrid"` regardless of `area`
-
-#### Scenario: Response payload exposes no company-identifying data
-
-- **WHEN** the endpoint is called with any combination of parameters
-- **THEN** the JSON response body's keys are exactly `{"count"}` on success or `{"error"}` on validation failure
-- **AND** no key referencing a company's email, name, ID, or other row-level field appears
-
-#### Scenario: Per-IP rate limit blocks abuse and is keyed on the resolved client IP
-
-- **WHEN** a single real client IP sends more than the configured per-hour threshold
-- **THEN** subsequent requests from that IP within that window receive `429 Too Many Requests`
-- **AND** two distinct visitors behind the same reverse proxy are counted in separate buckets
+#### Scenario: Count with valid sub-area filter
+- **GIVEN** companies with `area = "Vendedor"`, `sub_area = "Productos de limpieza"`
+- **WHEN** the client sends `GET /api/companies/count/?sub_area=Productos de limpieza`
+- **THEN** the count includes only matching companies
+- **AND** the response returns 200 OK
 
 ### Requirement: Shared Company-Match Query Helper
-The system SHALL expose a single internal query helper that returns the queryset of companies matching a given set of `(areas, locations)` filters. Both the public count endpoint AND the mailing engine MUST use this helper, so that the count returned to the user is always equal to the set of companies the engine would consider for that user's next send (excluding per-user state such as cooldown). Matching multiple values for the same field MUST use `OR` logic (e.g. `IN`).
+The system SHALL expose a single internal query helper that returns the queryset of companies matching a given set of `(areas, locations, sub_areas)` filters. Both the public count endpoint AND the mailing engine MUST use this helper. Matching multiple values for the same field MUST use `OR` logic (e.g. `IN`).
 
-#### Scenario: Engine and counter use the same matching rules
-- **GIVEN** a user with `area_filters=["Tecnología"]` and `location_filters=[]`
-- **WHEN** the dashboard fetches the company count for those filters
-- **AND** the mailing engine subsequently selects a company for that user
+#### Scenario: Matches companies with sub-area filters
+- **GIVEN** a user with `sub_area_filters=["productos de limpieza"]`
+- **WHEN** the dashboard fetches the company count
 - **THEN** the company chosen by the engine is a member of the queryset that produced the count
 
 ### Requirement: Cache and Invalidation for Filter Data
@@ -146,7 +88,7 @@ The `Company` model MUST include the following fields:
 ### Requirement: Enhanced Spanish XLSX Importer
 The system SHALL support importing companies from an Excel file using Spanish headers and specific business logic for Spanish data.
 The importer MUST process rows within a background task context and:
-1. Map `EMPRESA` to `name`, `ACTIVIDAD` to `area`, `DIRECCION` to `address`, `CP` to `zip_code`, **`PROVINCIA` to `location`**, `PROVINCIA` to `province`, `COMUNIDAD` to `community`, `TELEFONO` to `phone`, `FAX` to `fax`, `EMAIL` to `email`, and `WEBSITE` to `website`.
+1. Map `EMPRESA` to `name`, `ACTIVIDAD` to `area`, `SUB ACTIVIDAD` to `sub_area`, `DIRECCION` to `address`, `CP` to `zip_code`, `PROVINCIA` to `location`, `PROVINCIA` to `province`, `COMUNIDAD` to `community`, `TELEFONO` to `phone`, `FAX` to `fax`, `EMAIL` to `email`, and `WEBSITE` to `website`.
 2. Split the `ACTIVIDAD` field by the first colon (`:`) and use only the first part as the `Area` name.
 3. Normalize all imported string data to lowercase.
 4. Materialise the current `Blacklist` email set once per import call and track a `blacklisted_skipped` counter that records the number of **distinct** blacklisted emails encountered in the file — not raw rows. If the same blacklisted email appears N times in the file (e.g. dirty exports with duplicates), the counter MUST advance by exactly 1 across those N rows. The `Company` row MUST still be upserted for every row (so that the row exists if the email is later removed from the blacklist), and the count MUST be returned alongside `created` / `updated` / `errors` and persisted on the `CompanyImportBatch` row that drives the import.
@@ -155,64 +97,13 @@ The importer MUST process rows within a background task context and:
 7. Skip rows where every cell is empty (typically trailing blanks left by Excel) before advancing the row counter.
 8. Tolerate per-row data errors (invalid email, missing required field, etc.) without aborting the chunk: bad rows are appended to the cumulative `errors` list, and the rest of the chunk is committed normally.
 
-#### Scenario: Importer splits ACTIVIDAD and lowercases data
-- **GIVEN** an Excel row with `EMPRESA = "KIKO MILANO"`, `ACTIVIDAD = "COSMETICOS: ESTABLECIMIENTOS"`, `PROVINCIA = "ALICANTE"`, and `POBLACION = "TORREVIEJA"`
+#### Scenario: Importer splits ACTIVIDAD and maps SUB ACTIVIDAD and lowercases data
+- **GIVEN** an Excel row with `EMPRESA = "KIKO MILANO"`, `ACTIVIDAD = "COSMETICOS: ESTABLECIMIENTOS"`, `SUB ACTIVIDAD = "COSMETICA NATURAL"`, `PROVINCIA = "ALICANTE"`, and `POBLACION = "TORREVIEJA"`
 - **WHEN** the file is imported
 - **THEN** a `Company` is created with name `"kiko milano"`
 - **AND** it is linked to an `Area` named `"cosmeticos"`
-- **AND** it is linked to a `Location` named **`"alicante"`** (derived from the `PROVINCIA` column).
-
-#### Scenario: Lowercase invariant survives the bulk-write path
-- **GIVEN** an Excel row with `EMAIL = "Contact@KIKO.es"`, `EMPRESA = "KIKO MILANO"`, `WEBSITE = "Https://Kiko.ES"`
-- **WHEN** the importer processes the chunk via `bulk_create` (new row) or `bulk_update` (existing row)
-- **THEN** the resulting `Company.email` is `"contact@kiko.es"`
-- **AND** `Company.name` is `"kiko milano"`
-- **AND** `Company.website` is `"https://kiko.es"`
-- **AND** the `LowercaseFieldsMixin.save()` hook is NOT relied upon — the importer itself MUST normalize these fields, since `bulk_create` and `bulk_update` bypass `Model.save()` and therefore bypass the mixin
-- **AND** re-running the same file produces identical lowercased values (no double-cased rows from a missed normalization in the bulk-update path)
-
-#### Scenario: Importer counts blacklisted rows without dropping them
-
-- **GIVEN** a `Blacklist` row exists for `"contact@kiko.es"`
-- **AND** the import file contains a row with `EMAIL = "Contact@kiko.es"`
-- **WHEN** the import runs
-- **THEN** the returned `blacklisted_skipped` is `1`
-- **AND** the `Company` row for `"contact@kiko.es"` is still created or updated
-- **AND** the `CompanyImportBatch` record persists `blacklisted_skipped = 1`
-
-#### Scenario: Duplicate blacklisted email in the input is counted once
-
-- **GIVEN** a `Blacklist` row exists for `"contact@kiko.es"`
-- **AND** the import file contains three rows whose `EMAIL` column lowercases to `"contact@kiko.es"` (e.g. `"contact@kiko.es"`, `"Contact@KIKO.es"`, `"  contact@kiko.es  "`)
-- **WHEN** the import runs
-- **THEN** the returned `blacklisted_skipped` is `1`, not `3`
-- **AND** exactly one `Company` row exists for `"contact@kiko.es"` (the upsert collapses duplicates by unique email)
-- **AND** the `CompanyImportBatch` record persists `blacklisted_skipped = 1`
-
-#### Scenario: Admin sees the blacklisted-skipped count after import
-- **GIVEN** an `CompanyImportBatch` with `blacklisted_skipped = 5`
-- **WHEN** an administrator opens the batch's admin detail page
-- **THEN** the displayed batch summary includes `blacklisted_skipped = 5`
-
-#### Scenario: Re-running a partially-imported file is idempotent
-- **GIVEN** a previous import run that committed N chunks before failing partway, leaving M `Company` rows in the database
-- **WHEN** an administrator uploads the same file again
-- **THEN** the second run completes successfully
-- **AND** the total `Company` row count for the emails in the file equals the number of unique emails in the file (no duplicates)
-- **AND** rows already imported by the first run are routed through the bulk-update path; rows missed by the first run are routed through the bulk-create path
-
-#### Scenario: One bad row does not abort its chunk
-- **GIVEN** an import file containing 1000 valid rows and 1 row with an invalid email
-- **WHEN** the import runs with `chunk_size = 1000`
-- **THEN** all 1000 valid rows in the chunk are committed
-- **AND** the invalid row is appended to `errors`
-- **AND** `processed_rows` advances by 1001 (or by 1000 if blank-row skipping applies — in either case the loop continues past the bad row)
-
-#### Scenario: Trailing blank rows are not counted as processed
-- **GIVEN** an import file with 50 data rows followed by 200 fully-blank rows (a common Excel artefact)
-- **WHEN** the import runs
-- **THEN** `processed_rows` reaches 50, not 250
-- **AND** `total_rows` reflects the same skipped-blank semantics as the importer (so the dashboard percentage hits 100%)
+- **AND** it is linked to a `SubArea` named `"cosmetica natural"`
+- **AND** it is linked to a `Location` named `"alicante"` (derived from the `PROVINCIA` column).
 
 ### Requirement: Asynchronous Excel Import Processing
 The system SHALL process Excel company imports asynchronously to prevent request timeouts.

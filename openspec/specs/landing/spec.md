@@ -4,86 +4,12 @@
 TBD - created by archiving change add-company-filter-finder. Update Purpose after archive.
 ## Requirements
 ### Requirement: Public Company-Finder Section on Landing Page
-The public landing page SHALL include a section, positioned **immediately below the hero section**, that lets anonymous visitors explore the company database by sector and location. The section MUST be 100% functional without authentication. It MUST consist of two searchable dropdown widgets (sector and location) and a live counter showing the number of matching companies. The widgets' option lists MUST be sourced from the same allowed-options whitelist as the dashboard. The counter MUST display only an integer and MUST NOT expose any company name, email, primary key, or other row-level data anywhere in the rendered HTML or JavaScript.
+The public landing page SHALL include a section, positioned **immediately below the hero section**, that lets anonymous visitors explore the company database by sector, sub-activity, and location. The section MUST consist of three searchable dropdown widgets (sector, sub-activity, and location) and a live counter showing the number of matching companies.
 
-After any filter selection change, the widget MUST dynamically update the available options in both comboboxes by fetching `GET /api/companies/available-filters/` with the current selection. The fetched available options replace the dropdown selectable-option lists. Currently-selected pills that are no longer in the available options MUST remain visible and removable so the user can deselect dead-end values. The dropdown list MUST only show options from the available-filters response (plus any selected-but-unavailable values shown as pills, not as selectable rows).
-
-When the section's backing API requests fail (rate limit `429`, server error, or network failure), the section MUST degrade gracefully and visibly: it MUST NOT silently render empty, non-functional dropdowns. The visitor MUST be shown a recoverable error state with a retry affordance.
-
-Each combobox dropdown SHALL always render a **per-field "no filter" first option** as the first row, regardless of selection state. The label MUST be:
-- Area combobox (`data-combobox="area"`): **"— TODOS LOS SECTORES —"**
-- Location combobox (`data-combobox="location"`): **"— TODAS LAS UBICACIONES —"**
-
-Clicking this row MUST clear all selected pills for that combobox, trigger both a counter update and an available-filters update.
-
-#### Scenario: Anonymous visitor sees the section without logging in
-- **GIVEN** a visitor with no authenticated session
+#### Scenario: Anonymous visitor sees the section with three dropdowns
 - **WHEN** they load the landing page
-- **THEN** the company-finder section is rendered immediately below the hero section, with both dropdowns populated and a placeholder counter
-
-#### Scenario: Dropdown options match the current database
-- **GIVEN** the `Company` table contains the distinct non-empty areas `{"Tecnología", "Diseño"}`
-- **WHEN** an anonymous visitor opens the area dropdown on the landing page
-- **THEN** the dropdown lists exactly those two values (alphabetically sorted)
-- **AND** the visitor cannot enter a value not in the list and have it accepted
-
-#### Scenario: Counter updates when filters change
-- **GIVEN** the visitor has selected `area="Tecnología"` and `location=""`
-- **WHEN** the visitor selects `location="Madrid"` from the second dropdown
-- **THEN** the counter re-fetches from the public count endpoint
-- **AND** the displayed integer reflects the new combined filter
-
-#### Scenario: Cascading options update on the landing page after selection
-- **GIVEN** a visitor on the landing page has selected `area="tecnología"`
-- **WHEN** the available-filters response arrives
-- **THEN** the Location dropdown updates to show only locations that have tecnología companies
-- **AND** the Area dropdown shows all areas (since no location is selected)
-
-#### Scenario: Selected pill remains removable even when not in available options
-- **GIVEN** a visitor has selected `area="abogados familiares"` and then selects `location="valencia"`
-- **AND** there are no companies matching "abogados familiares" in "valencia"
-- **WHEN** the available-filters response arrives showing that "abogados familiares" is not among the available areas for Valencia
-- **THEN** the "ABOGADOS FAMILIARES" pill is still visible in the area combobox
-- **AND** the visitor can click the × on the pill to remove it
-- **AND** the Area dropdown does NOT show "abogados familiares" as a selectable option
-
-#### Scenario: Section never exposes company-identifying data
-- **WHEN** the landing page is rendered with any combination of filter selections
-- **THEN** the rendered HTML and the JSON responses fetched by the section's JavaScript contain only label strings (the option lists) and an integer count
-- **AND** no company email, name, primary key, or row-level field appears in any DOM node or network response
-
-#### Scenario: Section drives traffic to the pricing page
-- **GIVEN** the visitor has used the finder and seen a non-zero count
-- **WHEN** they click the section's "Ver paquetes" call-to-action
-- **THEN** they navigate to `/payments/paquetes/` (the pricing page)
-
-#### Scenario: Per-IP rate limit applies the same as the dashboard
-- **WHEN** a single real client IP exceeds the configured per-hour threshold on the public count endpoint
-- **THEN** subsequent counter updates from that IP receive `429 Too Many Requests`
-- **AND** the counter degrades gracefully (shows a dash or last-known value rather than crashing)
-- **AND** other visitors behind the same reverse proxy are unaffected, because the limit is keyed on the resolved real client IP
-
-#### Scenario: Option-list failure shows a recoverable error instead of empty dropdowns
-- **GIVEN** the `GET /api/companies/filter-options/` request fails (e.g. `429` or a server error)
-- **WHEN** the landing-page company-finder section initialises
-- **THEN** the section displays a visible error message with a retry control
-- **AND** it does NOT render silently empty, non-functional dropdowns
-- **AND** activating the retry control re-fetches the options and, on success, renders the populated widgets
-
-#### Scenario: Available-filters fetch failure preserves previous options
-- **GIVEN** a visitor has selected `area="tecnología"` and the available-filters endpoint returns a 500 error
-- **WHEN** the response fails
-- **THEN** both dropdown option lists remain unchanged (showing the options from the last successful response or the full taxonomy from initial load)
-- **AND** the company counter still updates from the count endpoint
-- **AND** no dropdowns become empty or non-functional
-
-#### Scenario: Clicking "no filter" clears selections and restores full options
-- **GIVEN** a visitor has selected `area="tecnología"` and the Location dropdown has been constrained to show only locations with tecnología companies
-- **WHEN** the visitor clicks "— TODOS LOS SECTORES —"
-- **THEN** the área pills are cleared
-- **AND** the available-filters fetch is triggered with no area filter
-- **AND** the Location dropdown is restored to show all locations
-- **AND** the Area dropdown shows all areas
+- **THEN** the company-finder section contains three combobox widgets: Sector, Subactividad, and Ubicación.
+- **AND** the widgets are populated with whitelist values from the database.
 
 ### Requirement: Hero CTAs fit on a single line at 320 px
 The two hero call-to-action buttons in `templates/home.html` ("Empezar con Google" and "Empezar con Microsoft") SHALL each render on a single line at viewport 320 px without wrapping their label. Below the `sm` breakpoint, padding and font size MUST be reduced (e.g. `px-6 py-3 text-base`); at `sm` and above, padding and font size MUST match today's desktop look (`px-8 py-4 text-lg`).
@@ -192,140 +118,32 @@ The public company-finder section in `templates/home.html` SHALL be wrapped in a
 - **AND** no `indigo-*` legacy class survives in this section
 
 ### Requirement: Filter option labels display in uppercase on Landing page
-The company-finder filter widgets on the public landing page SHALL display all option labels —
-both inside the dropdown list and inside the selected-value pills — in UPPERCASE. The underlying
-option values sent to the API (for matching and counting) MUST remain unchanged (lowercase, as
-stored in the database). The visual transformation MUST be achieved via CSS (`text-transform:
-uppercase`) so that form submission values and whitelist validation are unaffected.
+The company-finder filter widgets on the public landing page (Sector, Subactividad, and Ubicación) SHALL display all option labels — both inside the dropdown list and inside the selected-value pills — in UPPERCASE.
 
-The "no filter" first row ("— TODOS LOS SECTORES —" / "— TODAS LAS UBICACIONES —") MUST also appear in uppercase and MUST be subject to the same CSS `text-transform: uppercase` rule as other dropdown items.
-
-#### Scenario: Dropdown option labels appear in uppercase
-- **GIVEN** the database contains areas `{"tecnología", "diseño"}`
-- **WHEN** an anonymous visitor opens the Sector dropdown on the landing page
-- **THEN** the dropdown list renders the labels as `TECNOLOGÍA` and `DISEÑO`
-- **AND** the "no filter" row renders as `— TODOS LOS SECTORES —`
-- **AND** the API count request still sends the lowercase values `tecnología` and `diseño`
-
-#### Scenario: Selected pill labels appear in uppercase
-- **GIVEN** the visitor has selected `"tecnología"` from the Sector dropdown
-- **WHEN** the selection is confirmed
-- **THEN** the pill inside the combobox input renders the text `TECNOLOGÍA`
-- **AND** the hidden form input value for that selection remains `tecnología`
-
-#### Scenario: Backend validation is unaffected by uppercase display
-- **GIVEN** the current allowed-options list for `area` contains `"tecnología"` (lowercase)
-- **WHEN** the user submits the filter form after selecting the option displayed as `TECNOLOGÍA`
-- **THEN** the server accepts the submission (hidden input value is `tecnología`, which matches
-  the whitelist)
-- **AND** the user's `area_filters` is updated to `["tecnología"]`
+#### Scenario: Sub-area option labels appear in uppercase
+- **GIVEN** the database contains sub-areas `{"productos de limpieza"}`
+- **WHEN** an anonymous visitor opens the Subactividad dropdown on the landing page
+- **THEN** the dropdown list renders the label as `PRODUCTOS DE LIMPIEZA`
+- **AND** the "no filter" row renders as `— TODAS LAS SUBACTIVIDADES —`
 
 ### Requirement: Filter widget placeholders signal type-to-search
-The two filter combobox widgets in the public company-finder section of `templates/home.html` SHALL present placeholder text that explicitly tells the visitor the field is a hybrid search-and-pick control. The placeholder text MUST follow the pattern `Escribe o elige <noun> (ej. <example>)…`, where:
-
-- the leading clause `Escribe o elige` signals that the visitor may type to filter, in addition to picking from the dropdown;
-- the parenthetical example surfaces a real value from the existing whitelist, anchoring the visitor with a concrete cue.
-
-The placeholders MUST be:
-
+The three filter combobox widgets in the public company-finder section of `templates/home.html` SHALL present placeholder text that explicitly tells the visitor the field is a hybrid search-and-pick control. The placeholders MUST be:
 - Sector combobox: `Escribe o elige un sector (ej. Tecnología)…`
 - Location combobox: `Escribe o elige una ubicación (ej. Madrid)…`
+- Sub-Area combobox: `Escribe o elige una subactividad (ej. Productos de limpieza)…`
 
-The placeholders MUST be supplied via the existing `data-placeholder` attribute on each combobox container in `templates/home.html` (read by `static/js/combobox.js` at initialization). The placeholders MUST remain in Spanish (matching the project's `LANGUAGE_CODE`). The example values (`Tecnología`, `Madrid`) MUST exist in the live whitelist returned by `GET /api/companies/filter-options/` so the cue is not misleading.
-
-#### Scenario: Sector combobox shows the new placeholder
-- **GIVEN** an anonymous visitor on the home page
-- **WHEN** they focus the empty sector combobox (no selections yet)
-- **THEN** the placeholder text reads exactly `Escribe o elige un sector (ej. Tecnología)…`
-- **AND** the placeholder disappears when the visitor types or selects a pill (preserving the existing combobox behavior)
-
-#### Scenario: Location combobox shows the new placeholder
-- **GIVEN** an anonymous visitor on the home page
-- **WHEN** they focus the empty location combobox (no selections yet)
-- **THEN** the placeholder text reads exactly `Escribe o elige una ubicación (ej. Madrid)…`
-
-#### Scenario: Placeholder example values are real whitelist members
-- **WHEN** `GET /api/companies/filter-options/` is requested
-- **THEN** the JSON response's `areas` list contains the string `Tecnología`
-- **AND** the JSON response's `locations` list contains the string `Madrid`
+#### Scenario: Sub-area combobox shows the new placeholder
+- **WHEN** they focus the empty sub-area combobox
+- **THEN** the placeholder text reads exactly `Escribe o elige una subactividad (ej. Productos de limpieza)…`
 
 ### Requirement: Filter dropdowns show at least 8 selectable options without scrolling
-Both filter combobox dropdowns (sector and location) in the public company-finder section SHALL display at least 8 **selectable** option rows simultaneously before requiring the visitor to scroll the list, **even when the dropdown also renders the per-field "no filter" first option at the top**. This MUST be achieved by setting the dropdown `<ul>` max-height in `static/js/combobox.js` to `max-h-[480px]` (480 px, ≥ 13 visible rows at the current row height — guaranteeing 8 selectable options + 1 "no filter" row when present, with room for additional rows). The existing `overflow-y-auto` MUST be preserved so the list continues to scroll when the whitelist exceeds the visible capacity.
-
+Both filter combobox dropdowns in the public company-finder section SHALL display at least 8 **selectable** option rows simultaneously before requiring the visitor to scroll the list.
 Each combobox dropdown SHALL always render a **per-field "no filter" first option** as the first row in the dropdown, regardless of selection state. The label MUST be:
 - Area combobox (`data-combobox="area"`): **"— TODOS LOS SECTORES —"**
 - Location combobox (`data-combobox="location"`): **"— TODAS LAS UBICACIONES —"**
+- Sub-Area combobox (`data-combobox="sub_area"`): **"— TODAS LAS SUBACTIVIDADES —"**
 
-Clicking this row MUST clear all selected pills for that combobox (equivalent to removing the filter entirely) and update the company counter. The row MUST be excluded from keyboard navigation (ArrowUp/ArrowDown/Enter) by applying the `italic` class so the existing `li:not(.italic)` selector skips it. The row MUST be styled distinctly from regular selectable options (e.g. `text-brand-dark font-semibold border-b border-gray-100`) and MUST be displayed in uppercase via the existing CSS `text-transform: uppercase` rule.
-
-The previous conditional "— Limpiar todos —" row (shown only when `selected.length > 0`) and the "Todos seleccionados" fallback message MUST be removed, as the "no filter" option subsumes their functionality.
-
-#### Scenario: "No filter" option is always visible in the area dropdown
-- **GIVEN** the `/api/companies/filter-options/` whitelist returns at least 1 sector
-- **WHEN** an anonymous visitor opens the sector dropdown on the landing page
-- **THEN** the first row in the dropdown displays "— TODOS LOS SECTORES —"
-- **AND** this row is visible regardless of whether any pills are selected
-
-#### Scenario: "No filter" option is always visible in the location dropdown
-- **GIVEN** the `/api/companies/filter-options/` whitelist returns at least 1 location
-- **WHEN** an anonymous visitor opens the location dropdown on the landing page
-- **THEN** the first row in the dropdown displays "— TODAS LAS UBICACIONES —"
-- **AND** this row is visible regardless of whether any pills are selected
-
-#### Scenario: Clicking "no filter" clears all pills and updates the counter
-- **GIVEN** the visitor has selected "Tecnología" and "Diseño" in the sector dropdown
-- **WHEN** the visitor clicks the "— TODOS LOS SECTORES —" row
-- **THEN** both pills are removed from the sector combobox
-- **AND** the company counter updates to reflect the count without any area filter
-- **AND** no hidden inputs for `area_filter` are submitted in a form POST
-
-#### Scenario: Clicking "no filter" when no pills are selected is a no-op
-- **GIVEN** the visitor has not selected any sector pills
-- **WHEN** the visitor clicks the "— TODOS LOS SECTORES —" row
-- **THEN** the dropdown closes and no change occurs (already in the "no filter" state)
-
-#### Scenario: Clicking "no filter" clears the search text
-- **GIVEN** the visitor has typed "tecn" into the sector combobox input and the dropdown is showing filtered results
-- **WHEN** the visitor clicks the "— TODOS LOS SECTORES —" row
-- **THEN** the search input is cleared (`textInput.value` becomes `""`)
-- **AND** all pills are removed (if any were selected)
-- **AND** the dropdown closes
-- **AND** the next focus/reopen of the dropdown shows all options, not the filtered subset
-
-#### Scenario: "No filter" row is visible during search/typing
-- **GIVEN** the visitor has typed "mad" into the location combobox
-- **WHEN** the dropdown renders the filtered list of locations matching "mad"
-- **THEN** the "— TODAS LAS UBICACIONES —" row still appears as the first row in the dropdown (above the filtered results)
-
-#### Scenario: Dropdown shows ≥ 8 selectable rows when the whitelist exceeds 8 values
-- **GIVEN** the `/api/companies/filter-options/` whitelist returns ≥ 10 sectors
-- **WHEN** an anonymous visitor opens the sector dropdown on the home page
-- **THEN** the dropdown `<ul>` exposes the "— TODOS LOS SECTORES —" row plus at least 8 selectable sector rows without requiring inner-list scrolling
-- **AND** the 9th and 10th rows remain reachable via inner-list scroll
-
-#### Scenario: Dropdown collapses naturally when the whitelist has fewer than 8 values
-- **GIVEN** the whitelist returns only 3 locations
-- **WHEN** the location dropdown opens
-- **THEN** the dropdown renders the "— TODAS LAS UBICACIONES —" row plus those 3 rows
-- **AND** no empty padding is shown to "fill" the max-height
-
-#### Scenario: Keyboard navigation skips the "no filter" row
-- **GIVEN** the sector dropdown is open showing the "— TODOS LOS SECTORES —" row followed by sector options
-- **WHEN** the user presses ArrowDown from the text input
-- **THEN** focus highlights the first **selectable** sector option (the second `<li>`), not the "no filter" row
-- **AND** pressing ArrowUp from the first selectable option returns focus to the text input, not the "no filter" row
-- **AND** pressing Enter while no selectable option is highlighted does not activate the "no filter" row
-
-#### Scenario: "No filter" row labels are displayed in uppercase
-- **GIVEN** the combobox dropdown is rendered in either the landing page or the dashboard
-- **WHEN** the "no filter" row is visible
-- **THEN** the text "— TODOS LOS SECTORES —" or "— TODAS LAS UBICACIONES —" appears in uppercase
-- **AND** the underlying label text in `combobox.js` uses the uppercaseSpanish form directly (not relying solely on CSS transform, though CSS `text-transform: uppercase` may also apply)
-
-#### Scenario: Existing behavior preserved
-- **WHEN** the visitor interacts with the dropdown (typing to filter, picking a value, removing a pill)
-- **THEN** every behavior defined under the "Public Company-Finder Section on Landing Page" requirement continues to hold
-- **AND** the rendered HTML still exposes only label strings and the integer count (no row-level data)
+Clicking this row MUST clear all selected pills for that combobox (equivalent to removing the filter entirely) and update the company counter.
 
 ### Requirement: Hero OAuth CTAs present distinct, brand-matched visual styles
 The two hero OAuth CTAs in `templates/home.html` ("Empezar con Google" and "Empezar con Microsoft") SHALL present distinct brand-matched visual styles to ensure immediate differentiation at rest, while maintaining shared high-quality "lift" and "scale" interactions. Both CTAs MUST animate via a `transition` utility (≤ 200 ms).

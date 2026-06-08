@@ -290,18 +290,12 @@ The strip-then-lower normalization is normative (not advisory): downstream analy
 - **THEN** no `outcome="unsubscribed"` log record is emitted
 
 ### Requirement: Slow-Drip Campaign Engine Matching
-The slow-drip mailing engine SHALL match a user's `area_filters` and `location_filters` against `Company.area` and `Company.location` using case-insensitive **exact** equality, not substring matching. An empty list MUST mean "no filter on that field". The engine MUST source its eligible-company queryset from the same shared helper used by the dashboard's live counter, so that the two cannot drift. To ensure scalability, exclusions (notably the `Blacklist` and recently contacted companies) MUST be applied using database-level subqueries (`NOT IN (SELECT ...)`) where possible. The engine MAY use a small in-memory set to track companies contacted within the current task execution tick to prevent duplicate sends across concurrent users.
+The slow-drip mailing engine SHALL match a user's `area_filters`, `location_filters`, and `sub_area_filters` against `Company.area`, `Company.location`, and `Company.sub_area` using case-insensitive **exact** equality. An empty list MUST mean "no filter on that field". The engine MUST source its eligible-company queryset from the same shared helper used by the dashboard's live counter, so that the two cannot drift.
 
-#### Scenario: Filter fields determine eligibility via IN clause
-- **GIVEN** a user with `area_filters = ["Tecnología", "Marketing"]`
+#### Scenario: Filter fields determine eligibility including sub-areas
+- **GIVEN** a user with `sub_area_filters = ["productos de limpieza"]`
 - **WHEN** the slow-drip task runs for that user
-- **THEN** only companies whose `area.name` exactly matches (case-insensitively) `"Tecnología"` or `"Marketing"` are considered for sending
-
-#### Scenario: Blacklist exclusion uses a subquery
-- **GIVEN** a large `Blacklist` table
-- **WHEN** the engine filters companies
-- **THEN** it generates a SQL `NOT IN (SELECT ...)` clause
-- **AND** it does NOT load the full blacklist into memory or pass it as a parameter list to the query
+- **THEN** only companies whose `sub_area.name` exactly matches (case-insensitively) `"productos de limpieza"` are considered for sending
 
 ### Requirement: CV PDF Attachments
 

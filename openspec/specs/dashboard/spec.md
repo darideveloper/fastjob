@@ -4,41 +4,29 @@
 TBD - created by archiving change add-company-filter-finder. Update Purpose after archive.
 ## Requirements
 ### Requirement: Search Filters Use DB-Backed Dropdowns
-The dashboard "Sector / Área" and "Ubicación" inputs SHALL be searchable dropdowns whose option lists are sourced exclusively from the distinct values of `Company.area` and `Company.location` in the database. Users MUST NOT be able to persist a filter value that is not currently present in the allowed-options whitelist. An empty selection MUST mean "no filter on that field". The dropdowns MUST support multiple selections.
+The dashboard "Sector / Área", "Ubicación", and new "Subactividad" inputs SHALL be searchable dropdowns whose option lists are sourced exclusively from the distinct values of `Company.area`, `Company.location`, and `Company.sub_area` in the database. Users MUST NOT be able to persist a filter value that is not currently present in the allowed-options whitelist. An empty selection MUST mean "no filter on that field". The dropdowns MUST support multiple selections.
 
 Each combobox dropdown SHALL always render a **per-field "no filter" first option** as the first row, regardless of selection state. The label MUST be:
 - Area combobox (`data-combobox="area"`): **"— TODOS LOS SECTORES —"**
 - Location combobox (`data-combobox="location"`): **"— TODAS LAS UBICACIONES —"**
+- Sub-Area combobox (`data-combobox="sub_area"`): **"— TODAS LAS SUBACTIVIDADES —"**
 
-Clicking this row MUST clear all selected pills for that combobox. The previous conditional "— Limpiar todos —" row (shown only when `selected.length > 0`) MUST be removed.
+Clicking this row MUST clear all selected pills for that combobox.
 
-#### Scenario: User cannot persist a free-text value
-- **GIVEN** the current allowed-options list for `area` does NOT contain the value `"Pesca"`
-- **WHEN** the user submits the filter form with `area_filter=Pesca` (e.g. via a hand-crafted POST)
+#### Scenario: User cannot persist a free-text value for sub-area
+- **GIVEN** the current allowed-options list for `sub_area` does NOT contain the value `"pesca marina"`
+- **WHEN** the user submits the filter form with `sub_area_filter=pesca marina`
 - **THEN** the server rejects the submission with an error message
-- **AND** the user's stored `area_filters` remains unchanged
-
-#### Scenario: Empty selection clears the filter
-- **WHEN** the user submits the filter form with no `area_filter` payload
-- **THEN** the user's stored `area_filters` is cleared
-- **AND** the mailing engine treats the user as having no `area` filter
-
-#### Scenario: "No filter" option clears pills, search text, and form inputs
-- **GIVEN** a user on the dashboard has selected "Tecnología" and "Diseño" in the sector dropdown and has typed "dis" in the search input
-- **WHEN** the user clicks the "— TODOS LOS SECTORES —" row
-- **THEN** both sector pills are removed
-- **AND** the search input is cleared (`textInput.value` becomes `""`)
-- **AND** no hidden `area_filter` inputs remain in the form
-- **AND** clicking "Actualizar búsqueda" submits an empty `area_filter` list (equivalent to clearing the filter)
+- **AND** the user's stored `sub_area_filters` remains unchanged
 
 ### Requirement: Live Company-Match Counter on Dashboard
-The dashboard SHALL display a live counter, immediately below the filter form, showing the number of companies that match the currently-selected filter values. The counter MUST update whenever either dropdown value changes, MUST display only an integer (no company names, emails, or row data), and MUST source its number from the public count endpoint (so engine and counter cannot drift).
+The dashboard SHALL display a live counter, immediately below the filter form, showing the number of companies that match the currently-selected filter values (including the new sub-area selections). The counter MUST update whenever any dropdown value changes, MUST display only an integer, and MUST source its number from the public count endpoint.
 
-#### Scenario: Counter agrees with the mailing engine
-- **GIVEN** a user has set `area_filters=["Tecnología", "Diseño"]` and `location_filters=["Madrid"]`
-- **AND** the dashboard counter reads `0`
-- **WHEN** the slow-drip task runs for that user
-- **THEN** the engine sends nothing for that user (because the eligible-company queryset is empty by the same matching rules)
+#### Scenario: Counter accounts for selected sub-areas
+- **GIVEN** a user has set `sub_area_filters=["productos de limpieza"]`
+- **AND** the dashboard counter reads `5`
+- **WHEN** the user adds a second sub-area filter
+- **THEN** the counter updates live to show the count of companies matching either sub-area (with OR logic)
 
 ### Requirement: Activity table is horizontally scrollable on small viewports
 The recent-activity table in `templates/dashboard/index.html` SHALL render at a fixed minimum width such that the existing `overflow-x-auto` wrapper engages on viewports below 640 px. Cell content (company email, template name, date, status badge) MUST NOT wrap mid-word, and status badges (`Enviado`, `Fallido`) MUST NOT clip to truncated forms (e.g. `Enviad…`, `Fallid…`).
@@ -275,38 +263,17 @@ The rebrand SHALL only add brand-coherent **focus styling** to both buttons (`fo
 - **AND** the button additionally carries the brand focus-ring utility set
 
 ### Requirement: Unified form-control styling on dashboard inputs
-Every `<input>`, `<select>`, and `<textarea>` on `templates/dashboard/index.html` and `templates/dashboard/delete_account.html` SHALL share the same visual treatment: `bg-white border border-brand-muted rounded-lg px-3 py-2 text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand`. The combobox widgets (`data-combobox="area"` / `"location"`) MUST adopt the same focused appearance via their existing JavaScript controller (no behavior change to the controller itself).
-
-#### Scenario: All dashboard inputs share the same focus ring
-- **GIVEN** a logged-in user on `/dashboard/`
-- **WHEN** they Tab through every form field, including the combobox widgets and any input on the delete-account page
-- **THEN** each focused field renders an outline using `brand.ring` and a `brand.DEFAULT` border color
-- **AND** no field exhibits a different focus color or border treatment
+Every `<input>`, `<select>`, and `<textarea>` on `templates/dashboard/index.html` and `templates/dashboard/delete_account.html` SHALL share the same visual treatment: `bg-white border border-brand-muted rounded-lg px-3 py-2 text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand`. The combobox widgets (`data-combobox="area"` / `"location"` / `"sub_area"`) MUST adopt the same focused appearance via their existing JavaScript controller.
 
 ### Requirement: Filter option labels display in uppercase on Dashboard
-The authenticated dashboard filter widgets (Sector/Área and Ubicación) SHALL display all option labels in UPPERCASE — both inside the dropdown list and inside the selected-value pills. The underlying values submitted to the server for persisting user preferences MUST remain unchanged (lowercase, as stored in the database). The visual transformation MUST be achieved via CSS (`text-transform: uppercase`) so that hidden input values, server-side whitelist validation, and the mailing engine matching logic are unaffected.
+The authenticated dashboard filter widgets (Sector/Área, Ubicación, and Subactividad) SHALL display all option labels in UPPERCASE — both inside the dropdown list and inside the selected-value pills. The underlying values submitted to the server for persisting user preferences MUST remain unchanged (lowercase, as stored in the database).
 
-The "no filter" first row ("— TODOS LOS SECTORES —" / "— TODAS LAS UBICACIONES —") MUST also appear in uppercase and MUST be subject to the same CSS `text-transform: uppercase` rule.
-
-#### Scenario: Dropdown option labels appear in uppercase on Dashboard
-- **GIVEN** the database contains locations `{"madrid", "barcelona"}`
-- **WHEN** an authenticated user opens the Ubicación dropdown on the dashboard
-- **THEN** the dropdown list renders the labels as `MADRID` and `BARCELONA`
-- **AND** the "no filter" row renders as `— TODAS LAS UBICACIONES —`
-- **AND** the POST request to `/filtros/` still sends the lowercase values `madrid` and `barcelona`
-
-#### Scenario: Selected pill labels appear in uppercase on Dashboard
-- **GIVEN** the user has `location_filters = ["madrid"]` saved
-- **WHEN** the dashboard page loads and pre-fills the combobox from `data-value`
-- **THEN** the pill inside the Ubicación combobox renders `MADRID`
-- **AND** the hidden form input value for that selection remains `madrid`
-
-#### Scenario: Backend validation is unaffected by uppercase display
-- **GIVEN** the current allowed-options list for `area` contains `"tecnología"` (lowercase)
-- **WHEN** the user submits the filter form after selecting the option displayed as `TECNOLOGÍA`
-- **THEN** the server accepts the submission (hidden input value is `tecnología`, which matches
-  the whitelist)
-- **AND** the user's `area_filters` is updated to `["tecnología"]`
+#### Scenario: Sub-area option labels appear in uppercase on Dashboard
+- **GIVEN** the database contains sub-areas `{"productos de limpieza", "cosmeticos natural"}`
+- **WHEN** an authenticated user opens the Subactividad dropdown on the dashboard
+- **THEN** the dropdown list renders the labels as `PRODUCTOS DE LIMPIEZA` and `COSMETICOS NATURAL`
+- **AND** the "no filter" row renders as `— TODAS LAS SUBACTIVIDADES —`
+- **AND** the POST request still sends the lowercase values
 
 ### Requirement: CV upload begins automatically on file selection
 Selecting a file via the `#cv-file-input` element on `/dashboard/` SHALL begin the upload immediately, without any further user action. The form MUST NOT expose a submit button. Client-side validation (extension `.pdf` case-insensitive, size ≤ 10 MB) SHALL run before any network request, and on failure SHALL surface an inline Spanish error in a sibling `<p data-upload-status>` element, reset `input.value = ""` so the same file can be re-picked, and not contact the server. On a valid selection, the page SHALL POST `multipart/form-data` (containing `cv_file` and `csrfmiddlewaretoken`) to the existing `{% url 'upload_cv' %}` endpoint with header `X-Requested-With: XMLHttpRequest`, display the status message `Subiendo…`, and disable the upload label while the request is in flight. On HTTP `200`, the page SHALL fully reload so the server re-renders the CV list, the "Activo" highlight, and Django flash messages from the canonical view. On a non-`2xx` response, the JSON `error` string SHALL be displayed inline in red, the label re-enabled, and `input.value` reset so the user can retry. The `upload_cv` view SHALL continue to accept ordinary (non-AJAX) form posts and respond with the existing redirect + flash-message behavior, so the feature degrades gracefully when JavaScript is disabled.
@@ -488,10 +455,10 @@ The filter form submission ("Actualizar búsqueda") MUST be unaffected: the user
 - WHEN they press ArrowDown to highlight the first option and press Enter
 - THEN the option is selected and the text input loses focus (same behavior as mouse click)
 
-
 ### Requirement: Payment History Position on Dashboard Layout
 The dashboard layout SHALL append the payment history section at the very bottom of the page, below the existing main two-column grid.
 
 #### Scenario: Payment history section position
 - **WHEN** the dashboard page `index.html` is rendered
 - **THEN** the payment history section is placed at the bottom, below the activity and filter grids.
+
