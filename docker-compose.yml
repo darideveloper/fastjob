@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-fastjob}
       POSTGRES_USER: ${SERVICE_USER_POSTGRES:-postgres}
       POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES:-postgres}
+    ports:
+      - "127.0.0.1:9041:5432"
     volumes:
       - ${COOLIFY_VOLUME_POSTGRES_DATA:-postgres_data}:/var/lib/postgresql/data
     healthcheck:
