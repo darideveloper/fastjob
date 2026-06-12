@@ -49,14 +49,11 @@
     <div class="max-w-3xl mx-auto" data-filter-widget>
       <div data-reveal data-reveal-delay="200" class="bg-white p-6 sm:p-8 rounded-2xl border border-brand-muted shadow-sm mb-8 motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out">
         <div class="flex flex-col items-center gap-6">
+          <div class="bg-brand-soft text-brand-dark font-semibold rounded-2xl border border-brand-muted py-3 px-6 shadow-sm inline-flex flex-col items-center">
+            <span class="block text-3xl font-black leading-none" data-company-counter>—</span>
+            <span class="block text-[10px] uppercase tracking-widest opacity-70 mt-1">Empresas</span>
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            <div class="text-left w-full">
-              <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Sector / Área</label>
-              <div data-combobox="area"
-                   data-name="area"
-                   data-value=""
-                   data-placeholder="Escribe o elige un sector (ej. Tecnología)…"></div>
-            </div>
             <div class="text-left w-full">
               <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Ubicación</label>
               <div data-combobox="location"
@@ -65,16 +62,19 @@
                    data-placeholder="Escribe o elige una ubicación (ej. Madrid)…"></div>
             </div>
             <div class="text-left w-full">
+              <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Sector / Área</label>
+              <div data-combobox="area"
+                   data-name="area"
+                   data-value=""
+                   data-placeholder="Escribe o elige un sector (ej. Tecnología)…"></div>
+            </div>
+            <div class="text-left w-full">
               <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Subactividad</label>
               <div data-combobox="sub_area"
                    data-name="sub_area"
                    data-value=""
                    data-placeholder="Escribe o elige una subactividad (ej. Productos de limpieza)…"></div>
             </div>
-          </div>
-          <div class="bg-brand-soft text-brand-dark font-semibold rounded-2xl border border-brand-muted py-3 px-6 shadow-sm inline-flex flex-col items-center">
-            <span class="block text-3xl font-black leading-none" data-company-counter>—</span>
-            <span class="block text-[10px] uppercase tracking-widest opacity-70 mt-1">Empresas</span>
           </div>
         </div>
       </div>
