@@ -20,13 +20,19 @@ Clicking this row MUST clear all selected pills for that combobox.
 - **AND** the user's stored `sub_area_filters` remains unchanged
 
 ### Requirement: Live Company-Match Counter on Dashboard
-The dashboard SHALL display a live counter, immediately below the filter form, showing the number of companies that match the currently-selected filter values (including the new sub-area selections). The counter MUST update whenever any dropdown value changes, MUST display only an integer, and MUST source its number from the public count endpoint.
+The dashboard SHALL display a live counter, positioned above the filter inputs and centered horizontally, showing the number of companies that match the currently-selected filter values (including the new sub-area selections). The counter MUST update whenever any dropdown value changes, MUST display only an integer (no company names, emails, or row data), and MUST source its number from the public count endpoint (so engine and counter cannot drift).
 
 #### Scenario: Counter accounts for selected sub-areas
 - **GIVEN** a user has set `sub_area_filters=["productos de limpieza"]`
 - **AND** the dashboard counter reads `5`
 - **WHEN** the user adds a second sub-area filter
 - **THEN** the counter updates live to show the count of companies matching either sub-area (with OR logic)
+
+#### Scenario: Counter agrees with the mailing engine
+- **GIVEN** a user has set `area_filters=["Tecnología", "Diseño"]` and `location_filters=["Madrid"]`
+- **AND** the dashboard counter reads `0`
+- **WHEN** the slow-drip task runs for that user
+- **THEN** the engine sends nothing for that user (because the eligible-company queryset is empty by the same matching rules)
 
 ### Requirement: Activity table is horizontally scrollable on small viewports
 The recent-activity table in `templates/dashboard/index.html` SHALL render at a fixed minimum width such that the existing `overflow-x-auto` wrapper engages on viewports below 640 px. Cell content (company email, template name, date, status badge) MUST NOT wrap mid-word, and status badges (`Enviado`, `Fallido`) MUST NOT clip to truncated forms (e.g. `Enviad…`, `Fallid…`).
