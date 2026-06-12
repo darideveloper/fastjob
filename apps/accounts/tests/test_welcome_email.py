@@ -32,6 +32,9 @@ def test_welcome_email_failures_logged(caplog):
         send_welcome_email(user.pk)
     
     assert "Failed to send welcome email" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send welcome email" in errors[0].message
 
 @pytest.mark.django_db
 def test_welcome_email_uses_first_name_or_email():

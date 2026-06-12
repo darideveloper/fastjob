@@ -40,7 +40,7 @@ def send_welcome_email(user_pk):
         msg.attach_alternative(body_html, "text/html")
         msg.send()
     except Exception as e:
-        logger.warning("Failed to send welcome email to user_pk=%s: %s", user_pk, e)
+        logger.error("Failed to send welcome email to user_pk=%s: %s", user_pk, e, exc_info=True)
 
 
 @shared_task
@@ -64,9 +64,9 @@ def send_account_deleted_email(user_email):
             to=[user_email],
         )
         msg.attach_alternative(body_html, "text/html")
-        msg.send(fail_silently=True)
+        msg.send()
     except Exception as e:
-        logger.warning("Failed to send account deleted email to %s: %s", user_email, e)
+        logger.error("Failed to send account deleted email to %s: %s", user_email, e, exc_info=True)
 
 
 @shared_task
@@ -96,6 +96,6 @@ def send_oauth_link_email(user_pk, provider_name):
             to=[user.email],
         )
         msg.attach_alternative(body_html, "text/html")
-        msg.send(fail_silently=True)
+        msg.send()
     except Exception as e:
-        logger.warning("Failed to send OAuth link email to user_pk=%s: %s", user_pk, e)
+        logger.error("Failed to send OAuth link email to user_pk=%s: %s", user_pk, e, exc_info=True)

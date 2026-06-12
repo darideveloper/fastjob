@@ -232,3 +232,16 @@ def test_unlink_signal_enqueues_notification(client, google_linked_user):
     notification_email = [m for m in mail.outbox if "FastJob: Tu campaña ha sido pausada" in m.subject]
     assert len(notification_email) >= 1
     assert "se ha desvinculado tu cuenta" in notification_email[0].body
+
+@pytest.mark.django_db
+def test_send_campaign_paused_notification_failure_logs_error(google_linked_user, caplog):
+    from apps.mailing.tasks import send_campaign_paused_notification
+    from unittest.mock import patch
+    
+    with patch("apps.mailing.tasks.EmailMultiAlternatives.send", side_effect=Exception("Pause notification failed")):
+        send_campaign_paused_notification(google_linked_user.pk, "expired")
+        
+    assert "Failed to send campaign paused email" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send campaign paused email" in errors[0].message

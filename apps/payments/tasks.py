@@ -46,4 +46,4 @@ def send_payment_receipt_email(user_pk, payment_pk):
         msg.attach_alternative(body_html, "text/html")
         msg.send()
     except Exception as e:
-        logger.warning("Failed to send payment receipt email to user_pk=%s: %s", user_pk, e)
+        logger.error("Failed to send payment receipt email to user_pk=%s: %s", user_pk, e, exc_info=True)

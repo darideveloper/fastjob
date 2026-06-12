@@ -203,7 +203,7 @@ The system MUST send a branded welcome email to every new user when the `user_si
 4. Links to each step: `/dashboard/` for CV upload and campaign start; `/accounts/3rdparty/` for linking an email provider.
 5. Subject line in Spanish: "¡Bienvenido/a a FastJob! Tus {N} envíos gratis te esperan" where `{N}` is the signup credit count.
 
-The Celery task MUST NOT fail the signup flow if the email cannot be sent. Errors MUST be logged at WARNING level.
+The Celery task MUST NOT fail the signup flow if the email cannot be sent. Errors MUST be raised from Django's email engine (via default `fail_silently=False` behavior), caught at the task level, and logged at ERROR level with a full stack trace (`exc_info=True`) to allow Sentry integration to capture them.
 
 #### Scenario: New user receives welcome email
 
@@ -224,7 +224,7 @@ The Celery task MUST NOT fail the signup flow if the email cannot be sent. Error
 - **GIVEN** the SMTP server is unreachable
 - **WHEN** `send_welcome_email.delay(user.pk)` executes
 - **THEN** the user's account is still created successfully.
-- **AND** the error is logged at WARNING level.
+- **AND** the error is caught and logged at ERROR level with full traceback.
 - **AND** `user.credits_remaining` is still set to the signup bonus value.
 
 #### Scenario: User without first name shows email in greeting
@@ -232,6 +232,8 @@ The Celery task MUST NOT fail the signup flow if the email cannot be sent. Error
 - **GIVEN** a new user whose `first_name` is empty and `email` is `ana@example.com`
 - **WHEN** the welcome email is sent
 - **THEN** the greeting uses "Hola, ana@example.com" instead of a blank name.
+
+---
 
 ### Requirement: Account Deletion Confirmation Email
 
@@ -242,7 +244,7 @@ The `delete_account` view (`apps/dashboard/views.py`) MUST send a branded confir
 3. A note that Stripe payment records are retained for accounting purposes (per GDPR, financial records are a legitimate basis for retention).
 4. A link to the homepage `/` in case they want to re-register.
 
-The email MUST be sent before `user.delete()` so that `user.email` is still available. If the email fails to send, deletion MUST still proceed (non-blocking).
+The email MUST be sent before `user.delete()` so that `user.email` is still available. If the email fails to send, deletion MUST still proceed (non-blocking). The sending operation MUST use `fail_silently=False` (default behavior), and any exceptions raised MUST be caught and logged at ERROR level with a full stack trace (`exc_info=True`).
 
 #### Scenario: User receives deletion confirmation email
 
@@ -255,8 +257,10 @@ The email MUST be sent before `user.delete()` so that `user.email` is still avai
 
 - **GIVEN** the SMTP server is unreachable
 - **WHEN** `delete_account` attempts to send the confirmation email
-- **THEN** the error is logged at WARNING level.
+- **THEN** the error is caught and logged at ERROR level with full traceback.
 - **AND** the user account is still deleted successfully.
+
+---
 
 ### Requirement: OAuth Link Confirmation Email
 
@@ -267,7 +271,7 @@ When a user successfully links a social account (Google or Microsoft), the syste
 3. A link to `/dashboard/` to start the campaign.
 4. Subject line in Spanish: "FastJob: Tu cuenta de {provider} ha sido vinculada".
 
-This email MUST NOT fire when a user disconnects (unlinks) a provider — the existing `social_account_removed` signal handles pausing the campaign and sending the "unlinked" notification.
+This email MUST NOT fire when a user disconnects (unlinks) a provider — the existing `social_account_removed` signal handles pausing the campaign and sending the "unlinked" notification. If the email fails to send, the exception MUST be caught and logged at ERROR level with a full stack trace (`exc_info=True`) to allow Sentry integration to capture it, and it MUST NOT crash the background worker or trigger automatic Celery task retries.
 
 #### Scenario: User links Google account and receives confirmation
 
@@ -289,6 +293,12 @@ This email MUST NOT fire when a user disconnects (unlinks) a provider — the ex
 - **WHEN** the `social_account_removed` signal fires
 - **THEN** no link confirmation email is sent.
 - **AND** the existing campaign-paused notification for "unlinked" IS sent (per the existing spec).
+
+#### Scenario: SMTP failure during link confirmation email is logged
+
+- **GIVEN** the SMTP server is unreachable
+- **WHEN** `send_oauth_link_email.delay(user.pk, "Google")` executes
+- **THEN** the exception is caught and logged at ERROR level with a full stack trace.
 
 ### Requirement: Re-link Action Redirects to Logout View
 The warning banner's "Vincular ahora" action button for `"expired"` or `"unlinked"` states SHALL direct the user to the logout confirmation page (`/accounts/logout/`), prompting them to log out so they can log back in and re-establish their OAuth tokens.
@@ -322,7 +332,6 @@ The system MUST serve the Microsoft identity association JSON file at the `/.wel
 - **AND** the `Content-Type` header is `application/json`
 - **AND** the response body contains `{"associatedApplications": [{"applicationId": "3853b95b-027f-4c59-94e4-d697b2a603a9"}]}`
 
-
 ### Requirement: Social login cancelled and error routing
 The system SHALL register the named URL patterns `socialaccount_login_cancelled` and `socialaccount_login_error` to ensure that OAuth cancellation and authentication error flows can resolve successfully and render their corresponding views.
 
@@ -335,5 +344,4 @@ The system SHALL register the named URL patterns `socialaccount_login_cancelled`
 - WHEN the named URL `socialaccount_login_error` is reversed
 - THEN it SHALL return `/accounts/social/login/error/`
 - AND resolving that path SHALL point to the `login_error` view function or view class
-
 

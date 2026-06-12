@@ -87,3 +87,16 @@ def test_no_warning_above_threshold(user_with_cv, company):
             process_mailing_queue()
         
     assert len(mail.outbox) == 0
+
+@pytest.mark.django_db
+def test_send_low_credits_warning_failure_logs_error(user_with_cv, caplog):
+    from apps.mailing.tasks import send_low_credits_warning
+    from unittest.mock import patch
+    
+    with patch("apps.mailing.tasks.EmailMultiAlternatives.send", side_effect=Exception("SMTP error")):
+        send_low_credits_warning(user_with_cv.pk)
+        
+    assert "Failed to send low credits warning" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send low credits warning" in errors[0].message

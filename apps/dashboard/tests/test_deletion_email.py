@@ -38,3 +38,15 @@ def test_deletion_continues_on_email_failure(client, user):
         assert response.status_code == 302
         
     assert not User.objects.filter(pk=user.pk).exists()
+
+@pytest.mark.django_db
+def test_deletion_email_failure_logs_error(client, user, caplog):
+    client.force_login(user)
+    
+    with patch("apps.accounts.tasks.EmailMultiAlternatives.send", side_effect=Exception("Email failed")):
+        client.post(reverse("delete_account"), {"confirm_email": user.email})
+        
+    assert "Failed to send account deleted email" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send account deleted email" in errors[0].message

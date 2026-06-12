@@ -40,3 +40,14 @@ def test_oauth_link_email_uses_branded_layout(user):
     assert "https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png" in html_content
     assert "#007BFF" in html_content
     assert "© 2026 FastJob. Todos los derechos reservados." in html_content
+
+@pytest.mark.django_db
+def test_oauth_link_email_failure_logs_error(user, caplog):
+    from unittest.mock import patch
+    with patch("apps.accounts.tasks.EmailMultiAlternatives.send", side_effect=Exception("OAuth email fail")):
+        send_oauth_link_email(user.pk, "google")
+        
+    assert "Failed to send OAuth link email" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send OAuth link email" in errors[0].message

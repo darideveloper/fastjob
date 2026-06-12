@@ -30,6 +30,22 @@ def test_receipt_email_shows_package_and_price(user):
 def test_receipt_email_missing_user_logs_warning(caplog):
     send_payment_receipt_email(999, 999)
     assert "Failed to send payment receipt" in caplog.text
+    warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+
+@pytest.mark.django_db
+def test_receipt_email_sending_failure_logs_error(user, caplog):
+    from unittest.mock import patch
+    package = CreditPackage.objects.create(name="Basic", price_eur=10, credits=10, is_active=True)
+    payment = StripePayment.objects.create(user=user, package=package, amount_eur=10, credits_granted=10, status=StripePayment.Status.COMPLETED)
+    
+    with patch("apps.payments.tasks.EmailMultiAlternatives.send", side_effect=Exception("SMTP error")):
+        send_payment_receipt_email(user.pk, payment.pk)
+        
+    assert "Failed to send payment receipt email" in caplog.text
+    errors = [r for r in caplog.records if r.levelname == "ERROR"]
+    assert len(errors) == 1
+    assert "Failed to send payment receipt email" in errors[0].message
 
 @pytest.mark.django_db
 def test_receipt_email_uses_branded_layout(user):

@@ -209,14 +209,17 @@ def send_campaign_paused_notification(user_pk, reason):
     )
     body_text = render_to_string("email/campaign_paused_notification.txt", context)
 
-    msg = EmailMultiAlternatives(
-        subject=subject,
-        body=body_text,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
-    )
-    msg.attach_alternative(body_html, "text/html")
-    msg.send(fail_silently=True)
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=body_text,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        msg.attach_alternative(body_html, "text/html")
+        msg.send()
+    except Exception as e:
+        logger.error("Failed to send campaign paused email to user_pk=%s: %s", user_pk, e, exc_info=True)
 
 
 @shared_task
@@ -246,7 +249,7 @@ def send_low_credits_warning(user_pk):
             to=[user.email],
         )
         msg.attach_alternative(body_html, "text/html")
-        msg.send(fail_silently=True)
+        msg.send()
     except Exception as e:
-        logger.warning("Failed to send low credits warning to user_pk=%s: %s", user_pk, e)
+        logger.error("Failed to send low credits warning to user_pk=%s: %s", user_pk, e, exc_info=True)
 
