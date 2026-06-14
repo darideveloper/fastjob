@@ -31,6 +31,9 @@ def test_privacy_page_spanish(client):
     assert response.status_code == 200
     assert b"dpo@basquekide.es" in response.content
     assert b"No compartimos ni transferimos:" in response.content
+    assert b"gmail.send" in response.content
+    assert b"Mail.Send" in response.content
+    assert b"cookie-banner" in response.content
 
 
 @pytest.mark.django_db
@@ -40,6 +43,9 @@ def test_privacy_page_english(client):
     assert response.status_code == 200
     assert b"dpo@basquekide.es" in response.content
     assert b"No compartimos ni transferimos:" in response.content
+    assert b"gmail.send" in response.content
+    assert b"Mail.Send" in response.content
+    assert b"cookie-banner" in response.content
 
 
 @pytest.mark.django_db
@@ -48,6 +54,8 @@ def test_terms_page_spanish(client):
     response = client.get(url)
     assert response.status_code == 200
     assert b"dpo@basquekide.es" in response.content
+    assert b"open-cookie-settings" in response.content
+    assert b"cookie-banner" in response.content
 
 
 @pytest.mark.django_db
@@ -56,4 +64,7 @@ def test_terms_page_english(client):
     response = client.get(url)
     assert response.status_code == 200
     assert b"dpo@basquekide.es" in response.content
+    assert b"open-cookie-settings" in response.content
+    assert b"cookie-banner" in response.content
+
 
