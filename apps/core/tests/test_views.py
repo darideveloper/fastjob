@@ -56,6 +56,13 @@ def test_terms_page_spanish(client):
     assert b"dpo@basquekide.es" in response.content
     assert b"open-cookie-settings" in response.content
     assert b"cookie-banner" in response.content
+    # New compliance assertions
+    assert "abstenga de utilizar el Sitio Web".encode("utf-8") in response.content
+    assert "libre, afirmativa y voluntariamente".encode("utf-8") in response.content
+    assert "Cookies de terceras partes".encode("utf-8") in response.content
+    assert "Estructura y Funcionamiento del Banner de Cookies".encode("utf-8") in response.content
+    assert "incluye expl\xc3\xadcitamente aquellos datos personales publicados".encode("utf-8") in response.content or b"incluye expl" in response.content
+    assert "revisados y modificados en cualquier momento".encode("utf-8") in response.content
 
 
 @pytest.mark.django_db
@@ -66,5 +73,10 @@ def test_terms_page_english(client):
     assert b"dpo@basquekide.es" in response.content
     assert b"open-cookie-settings" in response.content
     assert b"cookie-banner" in response.content
-
-
+    # New compliance assertions
+    assert "abstenga de utilizar el Sitio Web".encode("utf-8") in response.content
+    assert "libre, afirmativa y voluntariamente".encode("utf-8") in response.content
+    assert "Cookies de terceras partes".encode("utf-8") in response.content
+    assert "Estructura y Funcionamiento del Banner de Cookies".encode("utf-8") in response.content
+    assert "incluye expl\xc3\xadcitamente aquellos datos personales publicados".encode("utf-8") in response.content or b"incluye expl" in response.content
+    assert "revisados y modificados en cualquier momento".encode("utf-8") in response.content
