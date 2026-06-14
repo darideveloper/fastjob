@@ -35,8 +35,14 @@ class HomeView(TemplateView):
 
 
 class PrivacyView(TemplateView):
-    template_name = "legal/privacy.html"
+    def get_template_names(self):
+        if self.request.resolver_match and self.request.resolver_match.url_name == "privacy_en":
+            return ["legal/privacy_en.html"]
+        return ["legal/privacy.html"]
 
 
 class TermsView(TemplateView):
-    template_name = "legal/terms.html"
+    def get_template_names(self):
+        if self.request.resolver_match and self.request.resolver_match.url_name == "terms_en":
+            return ["legal/terms_en.html"]
+        return ["legal/terms.html"]

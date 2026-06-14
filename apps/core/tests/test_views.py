@@ -42,7 +42,7 @@ def test_privacy_page_english(client):
     response = client.get(url)
     assert response.status_code == 200
     assert b"dpo@basquekide.es" in response.content
-    assert b"No compartimos ni transferimos:" in response.content
+    assert b"No sharing or transfer:" in response.content
     assert b"gmail.send" in response.content
     assert b"Mail.Send" in response.content
     assert b"cookie-banner" in response.content
@@ -74,9 +74,9 @@ def test_terms_page_english(client):
     assert b"open-cookie-settings" in response.content
     assert b"cookie-banner" in response.content
     # New compliance assertions
-    assert "abstenga de utilizar el Sitio Web".encode("utf-8") in response.content
-    assert "libre, afirmativa y voluntariamente".encode("utf-8") in response.content
-    assert "Cookies de terceras partes".encode("utf-8") in response.content
-    assert "Estructura y Funcionamiento del Banner de Cookies".encode("utf-8") in response.content
-    assert "incluye expl\xc3\xadcitamente aquellos datos personales publicados".encode("utf-8") in response.content or b"incluye expl" in response.content
-    assert "revisados y modificados en cualquier momento".encode("utf-8") in response.content
+    assert "refrain from using the Website".encode("utf-8") in response.content
+    assert "freely, affirmatively, and voluntarily".encode("utf-8") in response.content
+    assert "Third-party cookies".encode("utf-8") in response.content
+    assert "Cookie Banner Structure and Operation".encode("utf-8") in response.content
+    assert "explicitly includes those personal data published".encode("utf-8") in response.content
+    assert "revised to adapt".encode("utf-8") in response.content
