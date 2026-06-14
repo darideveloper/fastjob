@@ -1,8 +1,5 @@
-# legal Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-legal-pages. Update Purpose after archive.
-## Requirements
 ### Requirement: Public Privacy Policy Page
 The application SHALL provide a public Privacy Policy page accessible at both `/privacidad/` and `/privacy/`. This page MUST describe the data collection practices of the service, specifically addressing the sensitive data processed by the app.
 
@@ -48,4 +45,3 @@ The content MUST include:
 #### Scenario: User views the Terms of Service via English URL
 - **WHEN** they navigate to `/terms/`
 - **THEN** the page displays the same terms of service covering service rules, cookie policy, social media privacy, and liability.
-

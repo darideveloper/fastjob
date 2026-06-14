@@ -22,3 +22,38 @@ def test_microsoft_identity_association_view(client):
 def test_microsoft_identity_association_url(client):
     response = client.get("/.well-known/microsoft-identity-association.json")
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_privacy_page_spanish(client):
+    url = reverse("privacy")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"dpo@basquekide.es" in response.content
+    assert b"No compartimos ni transferimos:" in response.content
+
+
+@pytest.mark.django_db
+def test_privacy_page_english(client):
+    url = reverse("privacy_en")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"dpo@basquekide.es" in response.content
+    assert b"No compartimos ni transferimos:" in response.content
+
+
+@pytest.mark.django_db
+def test_terms_page_spanish(client):
+    url = reverse("terms")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"dpo@basquekide.es" in response.content
+
+
+@pytest.mark.django_db
+def test_terms_page_english(client):
+    url = reverse("terms_en")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"dpo@basquekide.es" in response.content
+

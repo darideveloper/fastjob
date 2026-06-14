@@ -62,7 +62,9 @@ urlpatterns = [
         name="microsoft_identity_association",
     ),
     path("privacidad/", PrivacyView.as_view(), name="privacy"),
+    path("privacy/", PrivacyView.as_view(), name="privacy_en"),
     path("terminos/", TermsView.as_view(), name="terms"),
+    path("terms/", TermsView.as_view(), name="terms_en"),
     path("", include("apps.mailing.urls")),
     path("", HomeView.as_view(), name="home"),
 ]
