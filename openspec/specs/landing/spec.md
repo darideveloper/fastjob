@@ -41,43 +41,24 @@ The "Ver paquetes y empezar" CTA below the public company-finder section in `tem
 - **THEN** the CTA renders with `px-8 py-4 text-lg` exactly as it does today
 
 ### Requirement: Landing page uses "envíos" terminology for the per-CV unit
-The public landing page (`templates/home.html`) SHALL refer to the
-purchasable unit-of-value as `envío` / `envíos` (singular / plural,
-matching Spanish grammar) in every user-visible string. The legacy term
-`crédito` / `créditos` MUST NOT appear anywhere in the rendered HTML of
-the landing page (including, but not limited to: section headings,
-taglines, button labels, and the "How it works" step list). The landing
-page SHALL also avoid the strings `enlace de descarga` / `enlaces de
-descarga` (see also the new `Landing page reflects the CV-attachment
-delivery model` requirement above): the product now ships the CV as a
-PDF attachment, so any link-based phrasing is factually wrong. When a
-sentence relies on the contrast between the two terms (e.g. the current
-"Cada crédito equivale a un envío"), it MUST be reworded so it remains
-meaningful under the new vocabulary rather than becoming tautological.
+The public landing page (`templates/home.html`) SHALL refer to the purchasable unit-of-value as `envío` / `envíos` (singular / plural, matching Spanish grammar) in every user-visible string. The legacy term `crédito` / `créditos` MUST NOT appear anywhere in the rendered HTML of the landing page (including, but not limited to: section headings, taglines, button labels, and the "How it works" step list). The landing page SHALL also avoid the strings `enlace de descarga` / `enlaces de descarga` (see also the new `Landing page reflects the CV-attachment delivery model` requirement above): the product now ships the CV as a PDF attachment, so any link-based phrasing is factually wrong. When a sentence relies on the contrast between the two terms (e.g. the current "Cada crédito equivale a un envío"), it MUST be reworded so it remains meaningful under the new vocabulary rather than becoming tautological.
 
 #### Scenario: Landing page rendered to an anonymous visitor contains no "crédito" text
 - **GIVEN** a visitor with no authenticated session
 - **WHEN** they request `GET /` and the response body is rendered
-- **THEN** a case-insensitive regex search of the rendered HTML for
-  `cr[ée]dito` returns zero matches
-- **AND** the "How it works" step labelled `3.` reads `3. Compra envíos`
-  (not `3. Compra créditos`)
+- **THEN** a case-insensitive regex search of the rendered HTML for `cr[ée]dito` returns zero matches
+- **AND** the "How it works" step labelled `3.` reads `3. Compra envíos` (not `3. Compra créditos`)
 
 #### Scenario: The reworded tagline reads naturally
-- **WHEN** the landing page renders the tagline immediately below the
-  `3. Compra envíos` heading
-- **THEN** the tagline text is
-  `Cada envío manda tu CV a una empresa. Elige el paquete que mejor se adapte a ti.`
-- **AND** the rendered sentence does NOT contain the substring
-  `equivale a un envío` (the previous tautology-prone phrasing)
+- **WHEN** the tagline renders immediately below the `3. Compra envíos` heading
+- **THEN** the tagline text is `Cada envío manda tu CV a una empresa. Elige el paquete que mejor se adapte a ti.`
+- **AND** the rendered sentence does NOT contain the substring `equivale a un envío` (the previous tautology-prone phrasing)
 
 #### Scenario: Pre-existing "envío" usage on the landing page is preserved
-- **GIVEN** the existing copy at `templates/home.html` line ~99
-  ("Asunto y cuerpo aleatorios en cada envío…")
+- **GIVEN** the existing copy at `templates/home.html` ("Cada candidatura utiliza asuntos y textos adaptados para que el contacto con las empresas sea más profesional y cercano.")
 - **WHEN** the landing page renders after the change
-- **THEN** that sentence is unchanged
-- **AND** the noun "envío" is used consistently across both the
-  pricing-step copy and the deliverability copy
+- **THEN** that sentence is present
+- **AND** the noun "envío" is used consistently across both the pricing-step copy and the deliverability copy
 
 ### Requirement: Landing hero adopts the new brand palette while preserving its immersive treatment
 The hero `<section>` of `templates/home.html` SHALL keep its existing **dark-immersive** treatment (a brand-colored gradient backdrop with white body text). The gradient stops MUST be updated from the current `from-brand to-brand-dark` to `from-brand via-brand-dark to-brand-cyan/40` so the hero now reads as Vibrant Blue → Deep Cobalt with an Electric Cyan glow accent on the bottom-right. The headline MUST use the `text-display` typographic token (or its breakpoint-stepped fallback) in `text-white`. The subtitle MUST use `text-brand-cloud` — never `text-brand-muted` (which is a transparent tint suitable only for backgrounds) and never `text-brand-cyan` (insufficient contrast against the Cobalt midpoint).
@@ -147,6 +128,12 @@ Each combobox dropdown SHALL always render a **per-field "no filter" first optio
 
 Clicking this row MUST clear all selected pills for that combobox (equivalent to removing the filter entirely) and update the company counter.
 
+#### Scenario: Dropdowns display initial options
+- **GIVEN** an anonymous visitor focuses the Area combobox
+- **WHEN** the option list is displayed
+- **THEN** the first option row has label "— TODOS LOS SECTORES —"
+- **AND** at least 8 option rows are visible without scrolling
+
 ### Requirement: Hero OAuth CTAs present distinct, brand-matched visual styles
 The two hero OAuth CTAs in `templates/home.html` ("Empezar con Google" and "Empezar con Microsoft") SHALL present distinct brand-matched visual styles to ensure immediate differentiation at rest, while maintaining shared high-quality "lift" and "scale" interactions. Both CTAs MUST animate via a `transition` utility (≤ 200 ms).
 
@@ -204,7 +191,7 @@ The public landing page (`templates/home.html`) SHALL describe the product as se
 #### Scenario: Hero subtitle describes attachment delivery, not link delivery
 - **GIVEN** an anonymous visitor at any viewport
 - **WHEN** they request `GET /` and the response body is rendered
-- **THEN** the hero subtitle paragraph contains the substring `PDF adjunto` (or `en adjunto`)
+- **THEN** the hero subtitle paragraph contains the substring `PDF` (or `adjunto`) and describes email sending from Gmail/Outlook
 - **AND** a case-insensitive regex search of the rendered HTML for `enlaces? de descarga` returns zero matches
 
 #### Scenario: Trust-signal card no longer claims "Sin adjuntos"
