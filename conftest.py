@@ -111,3 +111,17 @@ def email_template(db):
         body_html='<p>Hola {company_name}</p><a href="{unsubscribe_url}">Baja</a>',
         is_active=True,
     )
+
+
+@pytest.fixture(autouse=True)
+def default_sending_hours(db):
+    from apps.mailing.models import SystemSettings
+    import datetime
+    SystemSettings.objects.update_or_create(
+        pk=1,
+        defaults={
+            "email_sending_start_time": datetime.time(0, 0),
+            "email_sending_end_time": datetime.time(23, 59, 59),
+        }
+    )
+

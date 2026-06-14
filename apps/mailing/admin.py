@@ -37,6 +37,20 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             },
         ),
         (
+            "Horario de Envío (Global)",
+            {
+                "fields": (
+                    "email_sending_start_time",
+                    "email_sending_end_time",
+                ),
+                "description": (
+                    "Define la ventana horaria permitida para realizar envíos de CVs. "
+                    "Fuera de este horario, las campañas activas se pausarán automáticamente "
+                    "y se reanudarán al reabrir la ventana horaria."
+                ),
+            },
+        ),
+        (
             "Créditos y Bonos",
             {
                 "fields": (

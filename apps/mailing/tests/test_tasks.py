@@ -392,3 +392,98 @@ def test_task_releases_lock_on_exception(settings_obj):
             process_mailing_queue()
 
     assert cache.get(lock_id) is None
+
+
+@pytest.mark.django_db
+def test_process_queue_skips_outside_hours(google_linked_user, company, email_template, settings_obj):
+    import datetime
+    import zoneinfo
+    # Set window: 10:00 to 20:00
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.save()
+
+    # Mock time to 22:00 (outside hours)
+    madrid_tz = zoneinfo.ZoneInfo("Europe/Madrid")
+    mocked_now = timezone.make_aware(datetime.datetime(2026, 6, 14, 22, 0, 0), madrid_tz)
+
+    with patch("django.utils.timezone.now", return_value=mocked_now), \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send, \
+         patch("apps.mailing.tasks.send_campaign_paused_notification.delay") as mock_notify:
+        process_mailing_queue()
+
+    # Verify no email was sent
+    mock_send.assert_not_called()
+
+    # Verify campaign is paused with reason "time_window"
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active is False
+    assert google_linked_user.campaign_pause_reason == "time_window"
+
+    # Verify notification was queued
+    mock_notify.assert_called_once_with(google_linked_user.pk, "time_window")
+
+
+@pytest.mark.django_db
+def test_process_queue_resumes_inside_hours(google_linked_user, company, email_template, settings_obj):
+    import datetime
+    import zoneinfo
+    # Set window: 10:00 to 20:00
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.save()
+
+    # Start with campaign paused due to time_window
+    google_linked_user.is_campaign_active = False
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.save()
+
+    # Mock time to 12:00 (inside hours)
+    madrid_tz = zoneinfo.ZoneInfo("Europe/Madrid")
+    mocked_now = timezone.make_aware(datetime.datetime(2026, 6, 14, 12, 0, 0), madrid_tz)
+
+    with patch("django.utils.timezone.now", return_value=mocked_now), \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send:
+        process_mailing_queue()
+
+    # Verify campaign resumed and email was sent
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active is True
+    assert google_linked_user.campaign_pause_reason == ""
+    assert mock_send.call_count == 1
+
+
+@pytest.mark.django_db
+def test_process_queue_quota_check_on_resume(google_linked_user, company, email_template, settings_obj):
+    import datetime
+    import zoneinfo
+    # Set window: 10:00 to 20:00
+    settings_obj.email_sending_start_time = datetime.time(10, 0)
+    settings_obj.email_sending_end_time = datetime.time(20, 0)
+    settings_obj.save()
+
+    # User has no credits left (multiplier is 1.0, credits are 0)
+    google_linked_user.is_campaign_active = False
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.credits_remaining = 0
+    google_linked_user.total_purchased_credits = 0
+    google_linked_user.save()
+
+    # Mock time to 12:00 (inside hours)
+    madrid_tz = zoneinfo.ZoneInfo("Europe/Madrid")
+    mocked_now = timezone.make_aware(datetime.datetime(2026, 6, 14, 12, 0, 0), madrid_tz)
+
+    with patch("django.utils.timezone.now", return_value=mocked_now), \
+         patch("apps.mailing.tasks.send_cv_email") as mock_send, \
+         patch("apps.mailing.tasks.send_campaign_paused_notification.delay") as mock_notify:
+        process_mailing_queue()
+
+    # Verify campaign remains paused and transitions to "quota"
+    google_linked_user.refresh_from_db()
+    assert google_linked_user.is_campaign_active is False
+    assert google_linked_user.campaign_pause_reason == "quota"
+    mock_send.assert_not_called()
+
+    # Verify quota notification was queued
+    mock_notify.assert_called_once_with(google_linked_user.pk, "quota")
+

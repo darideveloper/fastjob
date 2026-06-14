@@ -276,3 +276,51 @@ def test_dashboard_displays_payment_history(client, user):
     assert "+50 envíos" in resp.content.decode()
     assert "9,99 €" in resp.content.decode() or "9.99 €" in resp.content.decode()
 
+
+@pytest.mark.django_db
+def test_toggle_campaign_start_off_hours(client, google_linked_user):
+    import datetime
+    import zoneinfo
+    from unittest.mock import patch
+    from apps.mailing.models import SystemSettings
+    
+    cfg = SystemSettings.get()
+    cfg.email_sending_start_time = datetime.time(10, 0)
+    cfg.email_sending_end_time = datetime.time(20, 0)
+    cfg.save()
+
+    google_linked_user.is_campaign_active = False
+    google_linked_user.save()
+
+    madrid_tz = zoneinfo.ZoneInfo("Europe/Madrid")
+    mocked_now = timezone.make_aware(datetime.datetime(2026, 6, 14, 22, 0, 0), madrid_tz)
+
+    client.force_login(google_linked_user)
+
+    with patch("django.utils.timezone.now", return_value=mocked_now):
+        resp = client.post(reverse("toggle_campaign"), {"action": "start"}, follow=True)
+
+    google_linked_user.refresh_from_db()
+    
+    assert google_linked_user.is_campaign_active is False
+    assert google_linked_user.campaign_pause_reason == "time_window"
+    
+    messages_list = [str(m) for m in list(resp.context["messages"])]
+    assert any("programada" in m for m in messages_list)
+
+
+@pytest.mark.django_db
+def test_toggle_campaign_stop_clears_reason(client, google_linked_user):
+    google_linked_user.is_campaign_active = False
+    google_linked_user.campaign_pause_reason = "time_window"
+    google_linked_user.save()
+
+    client.force_login(google_linked_user)
+    resp = client.post(reverse("toggle_campaign"), {"action": "stop"}, follow=True)
+
+    google_linked_user.refresh_from_db()
+    
+    assert google_linked_user.is_campaign_active is False
+    assert google_linked_user.campaign_pause_reason == ""
+
+

@@ -40,6 +40,58 @@ def process_mailing_queue(self):
         from apps.accounts.models import User
 
         cfg = SystemSettings.get()
+
+        import math
+        current_local_time = timezone.localtime(timezone.now()).time()
+        start_time = cfg.email_sending_start_time
+        end_time = cfg.email_sending_end_time
+
+        if start_time <= end_time:
+            is_inside_hours = start_time <= current_local_time <= end_time
+        else:
+            is_inside_hours = current_local_time >= start_time or current_local_time <= end_time
+
+        if not is_inside_hours:
+            active_users_to_pause = list(User.objects.filter(is_campaign_active=True))
+            if active_users_to_pause:
+                User.objects.filter(pk__in=[u.pk for u in active_users_to_pause]).update(
+                    is_campaign_active=False,
+                    campaign_pause_reason="time_window"
+                )
+                for user in active_users_to_pause:
+                    send_campaign_paused_notification.delay(user.pk, "time_window")
+                    logger.info("Paused campaign due to off-hours for user_pk=%s", user.pk)
+            logger.info("Outside active sending hours window (%s - %s). Skipping queue tick.", start_time, end_time)
+            return
+
+        # Auto-resume campaigns paused by time_window if they now satisfy sending conditions
+        time_window_paused_users = list(User.objects.filter(campaign_pause_reason="time_window"))
+        to_resume = []
+        to_quota = []
+        for u in time_window_paused_users:
+            extra_limit = math.ceil(u.total_purchased_credits * (float(cfg.hidden_credit_multiplier) - 1.0))
+            if u.credits_remaining > -extra_limit:
+                to_resume.append(u)
+            else:
+                to_quota.append(u)
+
+        if to_resume:
+            User.objects.filter(pk__in=[u.pk for u in to_resume]).update(
+                is_campaign_active=True,
+                campaign_pause_reason=""
+            )
+            for u in to_resume:
+                logger.info("Auto-resumed campaign for user_pk=%s", u.pk)
+
+        if to_quota:
+            User.objects.filter(pk__in=[u.pk for u in to_quota]).update(
+                is_campaign_active=False,
+                campaign_pause_reason="quota"
+            )
+            for u in to_quota:
+                send_campaign_paused_notification.delay(u.pk, "quota")
+                logger.info("Transitioned user_pk=%s from time_window pause to quota pause.", u.pk)
+
         send_interval = timedelta(minutes=cfg.global_send_interval_minutes)
         cooldown = timedelta(hours=cfg.company_cooldown_hours)
         daily_limit = cfg.max_emails_per_day_per_user

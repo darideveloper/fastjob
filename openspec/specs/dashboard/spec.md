@@ -271,6 +271,11 @@ The rebrand SHALL only add brand-coherent **focus styling** to both buttons (`fo
 ### Requirement: Unified form-control styling on dashboard inputs
 Every `<input>`, `<select>`, and `<textarea>` on `templates/dashboard/index.html` and `templates/dashboard/delete_account.html` SHALL share the same visual treatment: `bg-white border border-brand-muted rounded-lg px-3 py-2 text-brand-ink focus:outline-none focus:ring-2 focus:ring-brand-ring focus:border-brand`. The combobox widgets (`data-combobox="area"` / `"location"` / `"sub_area"`) MUST adopt the same focused appearance via their existing JavaScript controller.
 
+#### Scenario: Visual styling classes on inputs
+- **GIVEN** a dashboard user views dashboard pages
+- **WHEN** the input elements are rendered
+- **THEN** they carry the brand-muted border and focus ring classes.
+
 ### Requirement: Filter option labels display in uppercase on Dashboard
 The authenticated dashboard filter widgets (Sector/Área, Ubicación, and Subactividad) SHALL display all option labels in UPPERCASE — both inside the dropdown list and inside the selected-value pills. The underlying values submitted to the server for persisting user preferences MUST remain unchanged (lowercase, as stored in the database).
 
@@ -467,4 +472,40 @@ The dashboard layout SHALL append the payment history section at the very bottom
 #### Scenario: Payment history section position
 - **WHEN** the dashboard page `index.html` is rendered
 - **THEN** the payment history section is placed at the bottom, below the activity and filter grids.
+
+### Requirement: Time Window Pause Feedbacks in Dashboard
+The dashboard index view SHALL query the `SystemSettings` singleton and inject its values into the template context. The dashboard template MUST display the configured start and end times in the warning banner when `campaign_pause_reason` is `"time_window"`.
+
+#### Scenario: Time window banner rendering
+- **GIVEN** a user with `campaign_pause_reason = "time_window"`
+- **WHEN** the user views their dashboard
+- **THEN** they see an alert banner explaining that the campaign is paused for off-hours
+- **AND** the banner displays the start and end times of the active sending window.
+
+### Requirement: Manual Campaign Toggle Off-Hours Check
+The `toggle_campaign` view SHALL verify whether the current local time is inside the sending window when starting a campaign. If it is outside active hours, the campaign MUST be set to `is_campaign_active = False` with `campaign_pause_reason = "time_window"`, and a success message indicating scheduling MUST be shown. If a stop action is received when in a `"time_window"` pause state, the view MUST set `is_campaign_active = False` and clear the `campaign_pause_reason` field.
+
+#### Scenario: Manually starting campaign during off-hours
+- **GIVEN** a user with a valid CV, connected provider, and remaining credits
+- **AND** the current local time is outside the configured sending hours window
+- **WHEN** the user clicks "Start Campaign"
+- **THEN** the campaign is saved with `is_campaign_active = False`
+- **AND** `campaign_pause_reason = "time_window"`
+- **AND** a success message explains that the campaign is scheduled for on-hours
+- **AND** no pause notification email is sent.
+
+#### Scenario: Manually stopping campaign during off-hours pause
+- **GIVEN** a user with `campaign_pause_reason = "time_window"`
+- **WHEN** the user clicks "Pausar Campaña"
+- **THEN** the campaign is saved with `is_campaign_active = False`
+- **AND** `campaign_pause_reason = ""`
+- **AND** a success message explains that the campaign has been paused.
+
+### Requirement: Active Campaign Hour Visibility
+The dashboard index view SHALL query the `SystemSettings` singleton and inject its values into the template context. When `is_campaign_active` is `True`, the dashboard MUST display the configured start and end times of the active sending window in the header/toggle area to inform the user when their emails will be delivered.
+
+#### Scenario: Active campaign hours display
+- **GIVEN** a user with an active campaign (`is_campaign_active = True`)
+- **WHEN** the user views their dashboard
+- **THEN** they see the configured active sending window start and end times in the header.
 

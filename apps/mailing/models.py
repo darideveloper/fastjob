@@ -1,3 +1,4 @@
+import datetime
 import string
 import uuid
 from django.core.exceptions import ValidationError
@@ -101,10 +102,27 @@ class SystemSettings(models.Model):
         verbose_name="Mínimo de envíos mostrados",
         help_text="Si el número real de envíos exitosos es menor que este valor, se mostrará este valor en la página de paquetes. Usar 0 para mostrar siempre el valor real.",
     )
+    email_sending_start_time = models.TimeField(
+        default=datetime.time(10, 0),
+        verbose_name="Hora de inicio de envío",
+        help_text="Hora a partir de la cual se pueden enviar correos (Slow-Drip).",
+    )
+    email_sending_end_time = models.TimeField(
+        default=datetime.time(20, 0),
+        verbose_name="Hora de fin de envío",
+        help_text="Hora límite hasta la cual se pueden enviar correos (Slow-Drip).",
+    )
 
     class Meta:
         verbose_name = "Configuración del Sistema"
         verbose_name_plural = "Configuración del Sistema"
+
+    def clean(self):
+        super().clean()
+        if self.email_sending_start_time == self.email_sending_end_time:
+            raise ValidationError({
+                "email_sending_end_time": "La hora de fin no puede ser idéntica a la hora de inicio."
+            })
 
     def save(self, *args, **kwargs):
         self.pk = 1

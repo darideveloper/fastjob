@@ -21,14 +21,14 @@
   <!-- Pause Reason Banner -->
   {% if user.campaign_pause_reason %}
     <div data-reveal="slide-down" data-reveal-delay="0" class="mb-6 p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-4 shadow-sm motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out
-        {% if user.campaign_pause_reason == 'quota' %}
+        {% if user.campaign_pause_reason == 'quota' or user.campaign_pause_reason == 'time_window' %}
           bg-amber-50 border-amber-200 text-amber-800
         {% else %}
           bg-red-50 border-red-200 text-red-800
         {% endif %}">
       
       <div class="shrink-0">
-        {% if user.campaign_pause_reason == 'quota' %}
+        {% if user.campaign_pause_reason == 'quota' or user.campaign_pause_reason == 'time_window' %}
           <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -42,6 +42,8 @@
       <div class="grow text-sm sm:text-base font-medium text-center sm:text-left">
         {% if user.campaign_pause_reason == 'quota' %}
           <strong>Límite diario alcanzado:</strong> Tu proveedor (Gmail/Outlook) ha pausado los envíos por hoy. No te preocupes, se reanudará automáticamente mañana.
+        {% elif user.campaign_pause_reason == 'time_window' %}
+          <strong>Fuera de horario de envío:</strong> La campaña está en pausa temporal por horario nocturno. Se reanudará automáticamente a partir de las {{ system_settings.email_sending_start_time|time:"H:i" }} de mañana.
         {% elif user.campaign_pause_reason == 'expired' %}
           <strong>Sesión expirada:</strong> Tu conexión con el correo se ha interrumpido. Debes volver a vincular tu cuenta para continuar.
         {% elif user.campaign_pause_reason == 'unlinked' %}
@@ -65,16 +67,25 @@
   <div data-reveal data-reveal-delay="0" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out">
     <div>
       <h1 class="text-h2 font-bold text-brand-dark">Panel de Control</h1>
-      <p class="text-gray-500 text-sm">Gestiona tu campaña de envío de CV</p>
+      <p class="text-gray-500 text-sm">
+        Gestiona tu campaña de envío de CV
+        {% if user.is_campaign_active or user.campaign_pause_reason == 'time_window' %}
+          <span class="text-brand font-medium ml-2">• Envíos de {{ system_settings.email_sending_start_time|time:"H:i" }} a {{ system_settings.email_sending_end_time|time:"H:i" }}</span>
+        {% endif %}
+      </p>
     </div>
     <!-- Campaign toggle -->
     <form method="post" action="{% url 'toggle_campaign' %}">
       {% csrf_token %}
-      {% if user.is_campaign_active %}
+      {% if user.is_campaign_active or user.campaign_pause_reason == 'time_window' %}
         <input type="hidden" name="action" value="stop"/>
         <button type="submit"
           class="inline-flex items-center gap-2 min-h-[44px] bg-red-500 hover:bg-red-600 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow focus:outline-none focus:ring-2 focus:ring-brand-ring focus:ring-offset-2">
-          <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+          {% if user.is_campaign_active %}
+            <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></span>
+          {% else %}
+            <span class="w-2.5 h-2.5 bg-amber-300 rounded-full"></span>
+          {% endif %}
           Pausar campaña
         </button>
       {% else %}

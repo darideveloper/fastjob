@@ -7,6 +7,8 @@
   <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta de correo o la vinculación ha sido revocada. Para solucionarlo, solo debes iniciar sesión nuevamente en FastJob.</p>
 {% elif reason == 'missing_cv' %}
   <p>Tu campaña ha sido pausada porque no se ha encontrado tu CV.</p>
+{% elif reason == 'time_window' %}
+  <p>Tu campaña ha sido pausada temporalmente fuera del horario de envío. Se reanudará automáticamente cuando se abra de nuevo el horario de envío.</p>
 {% else %}
   <p>Tu campaña ha sido pausada por motivos de seguridad o configuración.</p>
 {% endif %}

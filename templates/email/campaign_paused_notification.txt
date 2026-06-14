@@ -8,6 +8,8 @@ Tu campaña ha sido pausada porque la vinculación con tu cuenta de correo (Goog
 Tu campaña ha sido pausada porque se ha desvinculado tu cuenta de correo o la vinculación ha sido revocada. Para solucionarlo, solo debes iniciar sesión nuevamente en FastJob.
 {% elif reason == 'missing_cv' %}
 Tu campaña ha sido pausada porque no se ha encontrado tu CV.
+{% elif reason == 'time_window' %}
+Tu campaña ha sido pausada temporalmente fuera del horario de envío. Se reanudará automáticamente cuando se abra de nuevo el horario de envío.
 {% else %}
 Tu campaña ha sido pausada por motivos de seguridad o configuración.
 {% endif %}
