@@ -13,7 +13,8 @@ from .models import CV
 
 logger = logging.getLogger(__name__)
 
-@receiver(social_account_added)
+# Disconnected as users cannot link/unlink accounts; avoids redundant onboarding emails.
+# @receiver(social_account_added)
 def notify_oauth_link(sender, request, socialaccount, **kwargs):
     """Notify the user that a new social account has been linked."""
     send_oauth_link_email.delay(socialaccount.user.pk, socialaccount.provider)

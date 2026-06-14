@@ -2,9 +2,9 @@
 {% if reason == 'quota' %}
   <p>Tu campaña ha sido pausada porque has alcanzado tu límite de cuota.</p>
 {% elif reason == 'expired' %}
-  <p>Tu campaña ha sido pausada porque ha caducado.</p>
+  <p>Tu campaña ha sido pausada porque la vinculación con tu cuenta de correo (Google o Microsoft) ha expirado. Para solucionarlo, solo debes iniciar sesión nuevamente en FastJob.</p>
 {% elif reason == 'unlinked' %}
-  <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta.</p>
+  <p>Tu campaña ha sido pausada porque se ha desvinculado tu cuenta de correo o la vinculación ha sido revocada. Para solucionarlo, solo debes iniciar sesión nuevamente en FastJob.</p>
 {% elif reason == 'missing_cv' %}
   <p>Tu campaña ha sido pausada porque no se ha encontrado tu CV.</p>
 {% else %}
