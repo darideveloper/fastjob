@@ -79,7 +79,6 @@ def payment_success(request):
 
 
 @login_required
-@require_POST
 def billing_portal(request):
     """
     Redirect to Stripe's hosted Billing Portal. Uses the cached

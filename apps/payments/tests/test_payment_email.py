@@ -1,5 +1,6 @@
 import pytest
 from django.core import mail
+from apps.core.urls import abs_url
 from apps.payments.models import StripePayment, CreditPackage
 from apps.payments.tasks import send_payment_receipt_email
 
@@ -60,3 +61,28 @@ def test_receipt_email_uses_branded_layout(user):
     assert "https://raw.githubusercontent.com/darideveloper/fastjob/refs/heads/main/static/images/fastjob-logo.png" in html_content
     assert "#007BFF" in html_content
     assert "© 2026 FastJob. Todos los derechos reservados." in html_content
+
+
+@pytest.mark.django_db
+def test_receipt_email_billing_url_resolves_to_registered_route(user):
+    """Regression guard: the billing link MUST point at the real billing_portal
+    route, not the old /payments/billing/ path that 404'd.
+    """
+    package = CreditPackage.objects.create(name="Basic", price_eur=10, credits=10, is_active=True)
+    payment = StripePayment.objects.create(
+        user=user, package=package, amount_eur=10, credits_granted=10,
+        status=StripePayment.Status.COMPLETED,
+    )
+
+    send_payment_receipt_email(user.pk, payment.pk)
+
+    email = mail.outbox[0]
+    html_content = [alt[0] for alt in email.alternatives if alt[1] == "text/html"][0]
+    body = email.body
+
+    expected = abs_url("billing_portal")
+    assert expected in html_content
+    assert expected in body
+    # The old broken path must NOT appear.
+    assert "/payments/billing/" not in html_content
+    assert "/payments/billing/" not in body

@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from apps.core.urls import abs_url
+
 from apps.mailing.engine import (
     TokenExpiredError,
     TokenRefreshTransientError,
@@ -796,14 +798,13 @@ def test_send_emits_list_unsubscribe_headers_gmail(google_linked_user, company, 
 
     import base64
     from email import message_from_string
-    from django.conf import settings
 
     raw = mock_post.call_args.kwargs["json"]["raw"]
     raw_padded = raw + "=" * (-len(raw) % 4)
     mime_text = base64.urlsafe_b64decode(raw_padded).decode()
     msg = message_from_string(mime_text)
 
-    expected_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/unsubscribe/{log.unsubscribe_token}/"
+    expected_url = abs_url("unsubscribe", log.unsubscribe_token)
     # MIME header values may be RFC 2822 folded (leading \n + whitespace for long values).
     assert msg["List-Unsubscribe"].strip() == f"<{expected_url}>"
     assert msg["List-Unsubscribe-Post"].strip() == "List-Unsubscribe=One-Click"
@@ -822,12 +823,10 @@ def test_send_emits_list_unsubscribe_headers_outlook(microsoft_linked_user, comp
         mock_post.return_value = MagicMock(status_code=202)
         send_cv_email(microsoft_linked_user, company, email_template, log)
 
-    from django.conf import settings
-
     payload = mock_post.call_args.kwargs["json"]
     headers = {h["name"]: h["value"] for h in payload["message"]["internetMessageHeaders"]}
 
-    expected_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/unsubscribe/{log.unsubscribe_token}/"
+    expected_url = abs_url("unsubscribe", log.unsubscribe_token)
     assert headers["List-Unsubscribe"] == f"<{expected_url}>"
     assert headers["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
 

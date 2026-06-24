@@ -1,4 +1,5 @@
 import datetime
+import re
 import string
 import uuid
 from django.core.exceptions import ValidationError
@@ -123,6 +124,27 @@ class SystemSettings(models.Model):
             raise ValidationError({
                 "email_sending_end_time": "La hora de fin no puede ser idéntica a la hora de inicio."
             })
+        self._validate_footer_href_schemes()
+
+    def _validate_footer_href_schemes(self):
+        """Reject ``href`` values in ``email_footer_text`` whose scheme is not
+        ``http://``, ``https://``, or ``mailto:``. The footer is rendered with
+        the ``|safe`` filter, so a ``javascript:``/``data:`` URL or a relative
+        path (which email clients resolve against their own origin) would ship
+        to every recipient. Called from :meth:`clean`, so it fires on admin
+        save and ``full_clean()``.
+        """
+        allowed = ("http://", "https://", "mailto:")
+        for line_no, line in enumerate(self.email_footer_text.splitlines(), start=1):
+            for match in re.finditer(r'href\s*=\s*["\']([^"\']+)["\']', line, re.IGNORECASE):
+                href = match.group(1).strip()
+                if not href.lower().startswith(allowed):
+                    raise ValidationError({
+                        "email_footer_text": (
+                            f"El enlace en la línea {line_no} usa un esquema no permitido "
+                            f"({href!r}). Solo se permiten http://, https:// y mailto:."
+                        )
+                    })
 
     def save(self, *args, **kwargs):
         self.pk = 1

@@ -239,6 +239,7 @@ def process_mailing_queue(self):
 
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from apps.core.urls import abs_url
 from apps.mailing.email import render_branded_email
 
 @shared_task
@@ -251,7 +252,7 @@ def send_campaign_paused_notification(user_pk, reason):
     except User.DoesNotExist:
         return
 
-    context = {"user": user, "reason": reason}
+    context = {"user": user, "reason": reason, "dashboard_url": abs_url("dashboard")}
     subject = "FastJob: Tu campaña ha sido pausada"
     
     body_html = render_branded_email(
@@ -282,7 +283,7 @@ def send_low_credits_warning(user_pk):
     except User.DoesNotExist:
         return
 
-    packages_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/payments/paquetes/"
+    packages_url = abs_url("payment_packages")
     context = {"user": user, "packages_url": packages_url}
     subject = "FastJob: Tus créditos se están agotando"
     

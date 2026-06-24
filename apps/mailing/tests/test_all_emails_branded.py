@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 @pytest.mark.django_db
 def test_all_emails_use_branded_layout(user):
     templates = [
-        ("email/campaign_paused_notification.html", {"reason": "quota", "user": user}),
-        ("email/welcome.html", {"user": user, "dashboard_url": "/", "oauth_url": "/"}),
+        ("email/campaign_paused_notification.html", {"reason": "quota", "user": user, "dashboard_url": "/"}),
+        ("email/welcome.html", {"user": user, "dashboard_url": "/"}),
         ("email/payment_receipt.html", {
             "user": user, 
             "payment": MagicMock(amount_eur=10, credits_granted=10), 

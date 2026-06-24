@@ -1,8 +1,5 @@
-# payments Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change add-system-email-branding. Update Purpose after archive.
-## Requirements
 ### Requirement: Payment Receipt Email
 
 When a Stripe payment is completed (`checkout.session.completed` webhook), the system MUST send a branded receipt email to the user via a Celery task (`send_payment_receipt_email`). The email MUST use the branded email layout and MUST include:
@@ -62,21 +59,7 @@ The task MUST receive `user.pk` and `StripePayment.pk` as arguments so it can lo
 - **THEN** both `billing_url` and `dashboard_url` MUST be produced by calling `abs_url(...)` with the corresponding view names.
 - **AND** the resulting URLs MUST equal what `reverse(view_name)` would return when prefixed with the site scheme and domain.
 
-### Requirement: Low-Credits Warning Resets After Purchase
-
-`_handle_successful_payment` in `apps/payments/views.py` MUST reset `user.last_low_credits_warning_at` to `None` when credits are granted, so that the user can receive a new low-credits warning if their balance drops below the threshold again.
-
-#### Scenario: Low-credits warning flag is reset after purchase
-
-- **GIVEN** a user with `last_low_credits_warning_at` set to a non-null value
-- **WHEN** `_handle_successful_payment` processes their Stripe payment
-- **THEN** `User.last_low_credits_warning_at` is set to `None` as part of the atomic update.
-
-#### Scenario: Purchase without prior warning is unaffected
-
-- **GIVEN** a user with `last_low_credits_warning_at = None`
-- **WHEN** `_handle_successful_payment` processes their Stripe payment
-- **THEN** `last_low_credits_warning_at` remains `None` (no unnecessary write).
+## ADDED Requirements
 
 ### Requirement: Billing Portal Is GET-Accessible
 
@@ -90,4 +73,3 @@ The `billing_portal` view in `apps/payments/views.py` MUST be reachable by an HT
 #### Scenario: Unauthenticated GET to billing portal is rejected
 - **WHEN** an anonymous user issues GET `/payments/portal/`
 - **THEN** the response is a redirect to the login page (HTTP 302), not a 405.
-

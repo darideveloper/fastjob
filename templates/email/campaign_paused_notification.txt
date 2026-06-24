@@ -15,3 +15,5 @@ Tu campaña ha sido pausada por motivos de seguridad o configuración.
 {% endif %}
 
 Por favor, revisa tu dashboard para más detalles.
+
+Dashboard: {{ dashboard_url }}

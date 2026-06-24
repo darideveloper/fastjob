@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from apps.accounts.models import User
+from apps.core.urls import abs_url
 from apps.payments.models import StripePayment
 from apps.mailing.email import render_branded_email
 
@@ -18,8 +19,8 @@ def send_payment_receipt_email(user_pk, payment_pk):
         logger.warning("Failed to send payment receipt for user_pk=%s, payment_pk=%s: %s", user_pk, payment_pk, e)
         return
 
-    dashboard_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
-    billing_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/payments/billing/"
+    dashboard_url = abs_url("dashboard")
+    billing_url = abs_url("billing_portal")
     
     context = {
         "user": user,

@@ -29,6 +29,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.urls import abs_url
 from apps.mailing.email import render_branded_email
 
 logger = logging.getLogger(__name__)
@@ -371,8 +372,7 @@ def send_cv_email(user, company, template, log):
     Raises TokenExpiredError if the token cannot be refreshed.
     Raises Exception for other send failures.
     """
-    base_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}"
-    unsubscribe_url = f"{base_url}/unsubscribe/{log.unsubscribe_token}/"
+    unsubscribe_url = abs_url("unsubscribe", log.unsubscribe_token)
 
     subject, body_html = template.render(
         company_name=company.name,

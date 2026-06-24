@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from apps.accounts.models import User
+from apps.core.urls import abs_url
 from apps.mailing.email import render_branded_email
 
 logger = logging.getLogger(__name__)
@@ -15,12 +16,10 @@ def send_welcome_email(user_pk):
     except User.DoesNotExist:
         return
 
-    dashboard_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
-    oauth_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/accounts/login/"
+    dashboard_url = abs_url("dashboard")
     context = {
         "user": user,
         "dashboard_url": dashboard_url,
-        "oauth_url": oauth_url,
     }
     subject = "Bienvenido a FastJob"
     body_html = render_branded_email(
@@ -45,7 +44,7 @@ def send_welcome_email(user_pk):
 
 @shared_task
 def send_account_deleted_email(user_email):
-    home_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/"
+    home_url = abs_url("home")
     context = {"home_url": home_url}
     subject = "FastJob: Tu cuenta ha sido eliminada"
     
@@ -77,7 +76,7 @@ def send_oauth_link_email(user_pk, provider_name):
     except User.DoesNotExist:
         return
 
-    dashboard_url = f"{settings.SITE_SCHEME}://{settings.SITE_DOMAIN}/dashboard/"
+    dashboard_url = abs_url("dashboard")
     context = {"provider": provider_name, "dashboard_url": dashboard_url}
     subject = f"FastJob: Nueva cuenta de {provider_name} vinculada"
     
