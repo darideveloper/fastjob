@@ -139,6 +139,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'celery -A config inspect ping -d celery@$$HOSTNAME --timeout=10 | grep -q pong']
+      interval: 30s
+      timeout: 15s
+      start_period: 45s
+      retries: 3
 
   celery_beat:
     build: .
@@ -162,6 +168,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'grep -aq beat /proc/1/cmdline']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
   flower:
     build: .
@@ -177,9 +189,16 @@ services:
       - SERVICE_FQDN_FLOWER_5555=${SERVICE_FQDN_FLOWER_5555:-}
       - SERVICE_URL_FLOWER_5555=${SERVICE_URL_FLOWER_5555:-}
       - REDIS_URL=redis://redis:6379/0
+      - FLOWER_BASIC_AUTH=${FLOWER_BASIC_AUTH:?FLOWER_BASIC_AUTH must be set}
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS -L -u "$$FLOWER_BASIC_AUTH" http://127.0.0.1:5555/flower/']
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
 
 volumes:
   postgres_data:

@@ -34,6 +34,3 @@ RUN useradd --create-home --uid 1000 app && chown -R app:app /app
 USER app
 
 EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-    CMD curl -fsS http://localhost:8000/healthz || exit 1

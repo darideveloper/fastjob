@@ -263,6 +263,21 @@ curl https://yourdomain.com/healthz
 
 Point your uptime monitor (UptimeRobot / BetterStack / Pingdom) at `/healthz`. See [`features/monitoring.md`](features/monitoring.md) for details.
 
+### Container healthchecks
+
+Each service defines its own Docker healthcheck in `docker-compose.yml` (the image ships no global `HEALTHCHECK`):
+
+| Service | Healthcheck | What it proves |
+|---|---|---|
+| `db` | `pg_isready` | Postgres accepts connections |
+| `redis` | `redis-cli ping` | Redis responds |
+| `web` | `curl http://127.0.0.1:8000/healthz` | HTTP server + DB + cache reachable |
+| `celery_worker` | `celery -A config inspect ping` (scoped to the container) | Worker control loop alive and connected to the broker |
+| `celery_beat` | `grep -aq beat /proc/1/cmdline` | PID 1 is still the beat scheduler |
+| `flower` | `curl -u $FLOWER_BASIC_AUTH http://127.0.0.1:5555/flower/` | Dashboard answers with valid auth |
+
+Containers should report `healthy` (`docker ps`) within a minute or two of starting. Non-web services are never reported `unhealthy` due to a web-only check.
+
 ---
 
 ## Ongoing operations

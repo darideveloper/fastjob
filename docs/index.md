@@ -37,7 +37,9 @@ Mass-mailing a CV using generic tools (SendGrid, Mailchimp, even a Gmail alias) 
 2. **Deploying to a server?** → [`deploy.md`](deploy.md)
 3. **Want a system-wide picture?** → [`architecture.md`](architecture.md)
 4. **Upgrading Google OAuth scope?** → [`google-scope-upgrade.md`](google-scope-upgrade.md)
-5. **Diving into a specific feature?** → use the table below.
+5. **How is the site translated to Spanish?** → [`i18n.md`](i18n.md)
+6. **Porting the Spanish admin to another Django project (incl. django-unfold)?** → [`i18n-admin.md`](i18n-admin.md)
+7. **Diving into a specific feature?** → use the table below.
 
 ---
 

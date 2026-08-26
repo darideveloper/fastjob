@@ -19,6 +19,21 @@ curl https://yourdomain.com/healthz
 
 **Why both DB and cache:** the cache is where rate limiting lives. If Redis is down the site technically stays up (thanks to `IGNORE_EXCEPTIONS=True`), but rate limiting is silently disabled — a health check that doesn't surface that is dishonest.
 
+### Per-service container healthchecks
+
+Each container defines its own healthcheck in `docker-compose.yml` (the image ships no global `HEALTHCHECK`):
+
+| Service | Healthcheck |
+|---|---|
+| `db` | `pg_isready` |
+| `redis` | `redis-cli ping` |
+| `web` | `curl http://127.0.0.1:8000/healthz` (full DB + cache probe) |
+| `celery_worker` | `celery -A config inspect ping -d celery@$HOSTNAME` — worker must reply `pong` via the broker |
+| `celery_beat` | `grep -aq beat /proc/1/cmdline` — PID 1 is still the beat scheduler |
+| `flower` | `curl -u $FLOWER_BASIC_AUTH http://127.0.0.1:5555/flower/` — dashboard answers with valid auth |
+
+Because the checks are per-service, Coolify and Netdata report the real state of every container — a non-web service is never flagged `unhealthy` by a web-only check.
+
 ---
 
 ## Logging
